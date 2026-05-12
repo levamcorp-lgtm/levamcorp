@@ -63,8 +63,6 @@ export default function CatalogPage() {
     try {
       const supabase = createClient()
       const { data: { user: u } } = await supabase.auth.getUser()
-      
-      // Insert order directly without client_id requirement
       const { data: order, error } = await supabase.from('orders').insert([{
         status: 'new',
         subtotal: cartTotal,
@@ -73,7 +71,6 @@ export default function CatalogPage() {
       }]).select().single()
 
       if (!error && order) {
-        // Try to insert order items
         await supabase.from('order_items').insert(
           cartItems.map(item => ({
             order_id: order.id,
@@ -85,12 +82,12 @@ export default function CatalogPage() {
           }))
         )
       }
-    } catch (e) {
-      console.log('Order save error:', e)
-    }
+    } catch (e) { console.log('Order error:', e) }
     setSubmitting(false)
     setOrderSubmitted(true)
   }
+
+  const categoryIcon = (cat) => cat === 'electronics' ? '📺' : cat === 'home' ? '🏠' : '🍳'
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 13 }}>Loading catalog...</div>
 
@@ -150,7 +147,7 @@ export default function CatalogPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
             {filtered.map(product => (
-              <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} />
+              <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} />
             ))}
           </div>
           {filtered.length === 0 && (
@@ -179,6 +176,11 @@ export default function CatalogPage() {
                 </div>
               ) : cartItems.map(item => (
                 <div key={item.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 40, height: 40, background: '#f7f8fa', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{categoryIcon(item.category)}</div>
+                  )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, color: '#333', marginBottom: 2 }}>{item.name}</div>
                     <div style={{ fontSize: 11, color: '#aaa' }}>Qty: {item.qty} × ${item.price}</div>
@@ -207,24 +209,22 @@ export default function CatalogPage() {
       {showInvoice && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: '#fff', width: 520, maxHeight: '90vh', overflowY: 'auto', borderRadius: 4 }}>
-
             {orderSubmitted ? (
               <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
                 <div style={{ fontSize: 48, marginBottom: '1rem' }}>✅</div>
                 <h2 style={{ fontSize: 20, fontWeight: 500, color: '#111', marginBottom: '0.75rem' }}>Order submitted!</h2>
                 <p style={{ fontSize: 13, color: '#888', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-                  Your order <strong style={{ color: '#333' }}>#{invoiceNum}</strong> has been received by Levam Corp.<br />
-                  Our team will review and confirm within 1–2 business days.
+                  Your order <strong style={{ color: '#333' }}>#{invoiceNum}</strong> has been received.<br />
+                  Our team will confirm within 1–2 business days.
                 </p>
                 <button onClick={() => { setShowInvoice(false); setCart({}); setOrderSubmitted(false) }} style={{ padding: '10px 24px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>Back to catalog</button>
               </div>
             ) : (
               <>
-                {/* Invoice header */}
                 <div style={{ background: '#111', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                      <div className="logo-icon" style={{ position: 'relative', width: 28, height: 28 }}>
+                      <div style={{ position: 'relative', width: 28, height: 28 }}>
                         <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#444' }} />
                         <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#444' }} />
                         <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2, background: '#2d7dd2' }} />
@@ -242,20 +242,16 @@ export default function CatalogPage() {
                     <div style={{ fontSize: 10, color: '#555', lineHeight: 2, marginTop: 6 }}>Date: {today}<br />Valid until: {validStr}<br />Terms: Net 15</div>
                   </div>
                 </div>
-
-                {/* Parties */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <div style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>From</div>
-                    <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />6315 NW 99th Ave<br />Doral, FL 33178<br />partners@levamcorp.com</p>
+                    <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />6315 NW 99th Ave<br />Doral, FL 33178</p>
                   </div>
                   <div style={{ padding: '1.25rem 1.5rem', borderLeft: '0.5px solid rgba(0,0,0,0.08)' }}>
                     <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>Bill to</div>
                     <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Approved Partner</strong><br />{user?.email}</p>
                   </div>
                 </div>
-
-                {/* Items table */}
                 <div style={{ padding: '0 1.5rem' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }}>
                     <thead>
@@ -279,43 +275,24 @@ export default function CatalogPage() {
                     </tbody>
                   </table>
                 </div>
-
-                {/* Totals */}
                 <div style={{ padding: '0 1.5rem 1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Subtotal</span><span>${cartTotal.toLocaleString()}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Shipping</span><span>TBD</span></div>
                   <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.08)', margin: '8px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 500, color: '#111', padding: '4px 0' }}><span>Estimated Total</span><span>${cartTotal.toLocaleString()}</span></div>
                 </div>
-
-                {/* Legal */}
                 <div style={{ margin: '0 1.5rem 1.25rem', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ background: '#111', padding: '6px 12px', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa' }}>Terms & Conditions · Legal Notice</div>
                   <div style={{ background: '#fafafa', padding: 12, fontSize: 9.5, color: '#888', lineHeight: 1.75 }}>
-                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>All sales made by Levam Corp Distributors are final. Once an order has been confirmed, no returns, exchanges, refunds, or cancellations will be accepted under any circumstances. By accepting this invoice, the buyer acknowledges and agrees to this policy in full.<br /><br />
-                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>No Return Policy — </strong>Levam Corp Distributors does not accept returns for any reason. Claims regarding damaged goods must be reported in writing to partners@levamcorp.com within 48 hours of delivery.<br /><br />
+                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>All sales made by Levam Corp Distributors are final. Once an order has been confirmed, no returns, exchanges, refunds, or cancellations will be accepted under any circumstances.<br /><br />
                     <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Governing Law — </strong>This agreement is governed by the laws of the State of Florida. Any disputes shall be resolved exclusively in the courts of Miami-Dade County, Florida.
                   </div>
                 </div>
-
-                {/* Signature */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'rgba(0,0,0,0.08)', margin: '0 1.5rem 1.25rem' }}>
-                  <div style={{ background: '#fff', padding: '1rem' }}>
-                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Authorized by · Levam Corp</div>
-                    <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
-                  </div>
-                  <div style={{ background: '#fff', padding: '1rem' }}>
-                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Accepted by · Client</div>
-                    <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
-                  </div>
-                </div>
-
-                {/* Actions */}
                 <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
                   <button onClick={submitOrder} disabled={submitting} style={{ flex: 1, padding: 11, background: submitting ? '#aaa' : '#2a7d4f', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', borderRadius: 2 }}>
                     {submitting ? 'Submitting...' : '✓ Submit order'}
                   </button>
-                  <button onClick={() => window.print()} style={{ padding: '11px 16px', background: '#e8e8e8', color: '#333', fontSize: 11, border: '0.5px solid #ccc', cursor: 'pointer', borderRadius: 2 }}>🖨 Print</button>
+                  <button onClick={() => window.print()} style={{ padding: '11px 16px', background: '#e8e8e8', color: '#333', fontSize: 11, border: '0.5px solid #ccc', cursor: 'pointer', borderRadius: 2 }}>🖨</button>
                   <button onClick={() => setShowInvoice(false)} style={{ padding: '11px 16px', background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Close</button>
                 </div>
               </>
@@ -327,21 +304,27 @@ export default function CatalogPage() {
   )
 }
 
-function ProductCard({ product, inCart, onAdd }) {
+function ProductCard({ product, inCart, onAdd, categoryIcon }) {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(inCart)
 
   const handleAdd = () => { onAdd(qty); setAdded(true) }
 
-  const icon = product.category === 'electronics' ? '📺' : product.category === 'home' ? '🏠' : '🍳'
-
   return (
     <div style={{ background: '#fff', border: `0.5px solid ${added ? 'rgba(45,125,210,0.35)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 4, overflow: 'hidden' }}>
-      <div style={{ height: 100, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>{icon}</div>
+      {/* PRODUCT IMAGE — real or emoji fallback */}
+      {product.image_url ? (
+        <img src={product.image_url} alt={product.name} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }} />
+      ) : (
+        <div style={{ height: 160, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+          {categoryIcon(product.category)}
+        </div>
+      )}
       <div style={{ padding: '1rem' }}>
         <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{product.category}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{product.name}</div>
         <div style={{ fontSize: 10, color: '#ccc', marginBottom: 8 }}>{product.sku}</div>
+        {product.description && <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.5, marginBottom: 8 }}>{product.description}</div>}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 18, fontWeight: 500, color: '#111' }}>${product.price}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: product.stock <= 5 ? '#b07c00' : '#2a7d4f' }}>{product.stock <= 5 ? '⚠ Low stock' : '✓ In stock'}</div>
