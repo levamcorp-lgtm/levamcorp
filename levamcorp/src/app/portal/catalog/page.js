@@ -314,9 +314,9 @@ function ProductCard({ product, inCart, onAdd, categoryIcon }) {
     <div style={{ background: '#fff', border: `0.5px solid ${added ? 'rgba(45,125,210,0.35)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 4, overflow: 'hidden' }}>
       {/* PRODUCT IMAGE — real or emoji fallback */}
       {product.image_url ? (
-        <img src={product.image_url} alt={product.name} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }} />
+        <div style={{ width: "100%", aspectRatio: "1/1", overflow: "hidden", borderBottom: "0.5px solid rgba(0,0,0,0.06)" }}><img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
       ) : (
-        <div style={{ height: 160, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ width: '100%', aspectRatio: '1/1', background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
           {categoryIcon(product.category)}
         </div>
       )}
