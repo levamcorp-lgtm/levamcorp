@@ -71,16 +71,28 @@ export default function CatalogPage() {
       }]).select().single()
 
       if (!error && order) {
-        await supabase.from('order_items').insert(
-          cartItems.map(item => ({
-            order_id: order.id,
-            product_id: item.id,
-            product_name: item.name,
-            product_sku: item.sku,
-            quantity: item.qty,
-            unit_price: item.price,
-          }))
-        )
+        const orderItems = cartItems.map(item => ({
+          order_id: order.id,
+          product_id: item.id,
+          product_name: item.name,
+          product_sku: item.sku,
+          quantity: item.qty,
+          unit_price: item.price,
+        }))
+        await supabase.from('order_items').insert(orderItems)
+
+        // Send confirmation email
+        await fetch('/api/send-order-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order,
+            items: cartItems.map(i => ({ product_name: i.name, product_sku: i.sku, quantity: i.qty, unit_price: i.price })),
+            clientEmail: u.email,
+            invoiceNum,
+            total: cartTotal,
+          })
+        })
       }
     } catch (e) { console.log('Order error:', e) }
     setSubmitting(false)
