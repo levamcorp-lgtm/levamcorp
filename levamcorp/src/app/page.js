@@ -1,3 +1,4 @@
+'use client'
 import Link from 'next/link'
 
 export default function Home() {
@@ -22,7 +23,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
-          <a href="#catalog" style={{ fontSize: 13, color: '#666', textDecoration: 'none', fontWeight: 400 }}>Products</a>
+          <a href="#catalog" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>Products</a>
           <a href="#how" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>How it works</a>
           <a href="#about" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>About us</a>
           <Link href="/portal" style={{
@@ -62,7 +63,7 @@ export default function Home() {
             <Link href="/apply" style={{
               padding: '14px 32px', background: '#2d7dd2', color: '#fff',
               fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase',
-              border: 'none', borderRadius: 2, textDecoration: 'none', display: 'inline-block'
+              borderRadius: 2, textDecoration: 'none', display: 'inline-block'
             }}>Apply to partner</Link>
             <a href="#how" style={{
               padding: '14px 32px', background: 'transparent', color: '#555',
@@ -71,22 +72,14 @@ export default function Home() {
             }}>How it works</a>
           </div>
         </div>
-        {/* HERO IMAGE — reemplaza el src con tu foto real */}
-        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 560 }}>
-          <img
-            src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1200&q=85&auto=format"
-            alt="Levam Corp Distribution Warehouse"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-          />
-          <div style={{
-            display: 'none', width: '100%', height: '100%', minHeight: 560,
-            background: '#f7f8fa', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 10, borderLeft: '0.5px solid rgba(0,0,0,0.08)'
-          }}>
-            <div style={{ fontSize: 64, color: '#ddd' }}>🏭</div>
-            <span style={{ fontSize: 11, color: '#ccc', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Your warehouse photo here</span>
-          </div>
+        <div style={{
+          background: '#f7f8fa', borderLeft: '0.5px solid rgba(0,0,0,0.08)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 10, minHeight: 560
+        }}>
+          <div style={{ fontSize: 64, color: '#ddd' }}>🏭</div>
+          <span style={{ fontSize: 11, color: '#ccc', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Your warehouse photo here</span>
+          <span style={{ fontSize: 10, color: '#ddd' }}>Replace with your image</span>
         </div>
       </section>
 
@@ -129,17 +122,13 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div style={{ position: 'relative', overflow: 'hidden' }}>
-          <img
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=85&auto=format"
-            alt="Levam Corp Products"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-          />
-          <div style={{ display: 'none', width: '100%', height: '100%', minHeight: 400, background: '#f7f8fa', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <div style={{ fontSize: 64, color: '#ddd' }}>📦</div>
-            <span style={{ fontSize: 11, color: '#ccc', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Team / products photo</span>
-          </div>
+        <div style={{
+          background: '#f7f8fa', borderLeft: '0.5px solid rgba(0,0,0,0.08)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 10, minHeight: 400
+        }}>
+          <div style={{ fontSize: 64, color: '#ddd' }}>📦</div>
+          <span style={{ fontSize: 11, color: '#ccc', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Team / products photo</span>
         </div>
       </div>
 
@@ -187,7 +176,7 @@ export default function Home() {
         <Link href="/apply" style={{
           padding: '15px 40px', background: '#fff', color: '#2d7dd2',
           fontSize: 12, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase',
-          border: 'none', cursor: 'pointer', borderRadius: 2, textDecoration: 'none', display: 'inline-block'
+          borderRadius: 2, textDecoration: 'none', display: 'inline-block'
         }}>Start your application</Link>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: '1.5rem' }}>
           Already approved?{' '}
