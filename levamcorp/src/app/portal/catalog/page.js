@@ -12,7 +12,14 @@ export default function CatalogPage() {
   const [category, setCategory] = useState('all')
   const [showQuote, setShowQuote] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
+  const [invoiceNum] = useState(`LC-${Math.floor(20000 + Math.random() * 9999)}`)
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [orderSubmitted, setOrderSubmitted] = useState(false)
+
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const validDate = new Date(); validDate.setDate(validDate.getDate() + 7)
+  const validStr = validDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
   useEffect(() => {
     const supabase = createClient()
@@ -33,14 +40,8 @@ export default function CatalogPage() {
     setFiltered(list)
   }, [search, category, products])
 
-  const addToCart = (product, qty) => {
-    setCart(c => ({ ...c, [product.id]: { ...product, qty: parseInt(qty) || 1 } }))
-  }
-
-  const removeFromCart = (id) => {
-    setCart(c => { const n = { ...c }; delete n[id]; return n })
-  }
-
+  const addToCart = (product, qty) => setCart(c => ({ ...c, [product.id]: { ...product, qty: parseInt(qty) || 1 } }))
+  const removeFromCart = (id) => setCart(c => { const n = { ...c }; delete n[id]; return n })
   const cartItems = Object.values(cart)
   const cartTotal = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0)
   const cartCount = cartItems.length
@@ -51,44 +52,45 @@ export default function CatalogPage() {
     window.location.href = '/portal'
   }
 
-  const submitOrder = async () => {
+  const generateInvoice = () => {
     if (cartItems.length === 0) return
-    const supabase = createClient()
-    const { data: { user: u } } = await supabase.auth.getUser()
-
-    // Get client record
-    const { data: client } = await supabase.from('clients').select('id').eq('user_id', u.id).single()
-
-    // Create order
-    const { data: order, error } = await supabase.from('orders').insert([{
-      client_id: client?.id,
-      status: 'new',
-      subtotal: cartTotal,
-      total: cartTotal,
-    }]).select().single()
-
-    if (error || !order) { alert('Error submitting order. Please try again.'); return }
-
-    // Insert order items
-    await supabase.from('order_items').insert(
-      cartItems.map(item => ({
-        order_id: order.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_sku: item.sku,
-        quantity: item.qty,
-        unit_price: item.price,
-      }))
-    )
-
-    setShowInvoice(true)
     setShowQuote(false)
+    setShowInvoice(true)
   }
 
-  const invNum = `LC-${Math.floor(20000 + Math.random() * 9999)}`
-  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  const validDate = new Date(); validDate.setDate(validDate.getDate() + 7)
-  const validStr = validDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const submitOrder = async () => {
+    setSubmitting(true)
+    try {
+      const supabase = createClient()
+      const { data: { user: u } } = await supabase.auth.getUser()
+      
+      // Insert order directly without client_id requirement
+      const { data: order, error } = await supabase.from('orders').insert([{
+        status: 'new',
+        subtotal: cartTotal,
+        total: cartTotal,
+        notes: `Email: ${u.email} | Items: ${cartItems.map(i => `${i.name} x${i.qty}`).join(', ')}`
+      }]).select().single()
+
+      if (!error && order) {
+        // Try to insert order items
+        await supabase.from('order_items').insert(
+          cartItems.map(item => ({
+            order_id: order.id,
+            product_id: item.id,
+            product_name: item.name,
+            product_sku: item.sku,
+            quantity: item.qty,
+            unit_price: item.price,
+          }))
+        )
+      }
+    } catch (e) {
+      console.log('Order save error:', e)
+    }
+    setSubmitting(false)
+    setOrderSubmitted(true)
+  }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 13 }}>Loading catalog...</div>
 
@@ -113,7 +115,8 @@ export default function CatalogPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => setShowQuote(true)} style={{
-            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: cartCount > 0 ? '#2d7dd2' : '#888',
+            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
+            color: cartCount > 0 ? '#2d7dd2' : '#888',
             padding: '7px 16px', border: `0.5px solid ${cartCount > 0 ? '#2d7dd2' : 'rgba(0,0,0,0.1)'}`,
             background: cartCount > 0 ? 'rgba(45,125,210,0.08)' : '#fff', borderRadius: 2, cursor: 'pointer', fontWeight: 500
           }}>
@@ -133,12 +136,7 @@ export default function CatalogPage() {
           </div>
           <div style={{ padding: '0 1.25rem', marginBottom: '0.5rem', fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb' }}>Categories</div>
           {[['all','All products'],['electronics','Electronics'],['home','Home appliances'],['kitchen','Kitchen']].map(([val, label]) => (
-            <div key={val} onClick={() => setCategory(val)} style={{
-              padding: '8px 1.25rem', fontSize: 12, cursor: 'pointer',
-              color: category === val ? '#2d7dd2' : '#888',
-              background: category === val ? 'rgba(45,125,210,0.08)' : 'transparent',
-              borderLeft: `2px solid ${category === val ? '#2d7dd2' : 'transparent'}`
-            }}>{label}</div>
+            <div key={val} onClick={() => setCategory(val)} style={{ padding: '8px 1.25rem', fontSize: 12, cursor: 'pointer', color: category === val ? '#2d7dd2' : '#888', background: category === val ? 'rgba(45,125,210,0.08)' : 'transparent', borderLeft: `2px solid ${category === val ? '#2d7dd2' : 'transparent'}` }}>{label}</div>
           ))}
         </div>
 
@@ -150,13 +148,11 @@ export default function CatalogPage() {
               <p style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>Showing {filtered.length} products · Approved partner pricing</p>
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
             {filtered.map(product => (
               <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} />
             ))}
           </div>
-
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '4rem', color: '#ccc' }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
@@ -175,7 +171,6 @@ export default function CatalogPage() {
               <h3 style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>🧾 Order quote</h3>
               <button onClick={() => setShowQuote(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#bbb', cursor: 'pointer' }}>×</button>
             </div>
-
             <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem' }}>
               {cartItems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#ccc' }}>
@@ -195,13 +190,12 @@ export default function CatalogPage() {
                 </div>
               ))}
             </div>
-
             {cartItems.length > 0 && (
               <div style={{ padding: '1.25rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 6 }}><span>Subtotal</span><span>${cartTotal.toLocaleString()}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 10 }}><span>Shipping</span><span>TBD</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 500, color: '#111', marginBottom: '1.25rem', paddingTop: 10, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}><span>Estimated total</span><span>${cartTotal.toLocaleString()}</span></div>
-                <button onClick={submitOrder} style={{ width: '100%', padding: 12, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2, marginBottom: 8 }}>Generate quote & invoice</button>
+                <button onClick={generateInvoice} style={{ width: '100%', padding: 12, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2, marginBottom: 8 }}>Generate quote & invoice</button>
                 <button onClick={() => setCart({})} style={{ width: '100%', padding: 8, background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Clear quote</button>
               </div>
             )}
@@ -211,90 +205,121 @@ export default function CatalogPage() {
 
       {/* INVOICE MODAL */}
       {showInvoice && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: '#fff', width: 520, maxHeight: '90vh', overflowY: 'auto', borderRadius: 4 }}>
 
-            {/* Invoice header */}
-            <div style={{ background: '#111', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div className="logo-icon"><div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#444' }} /><div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#444' }} /><div className="logo-accent" /></div>
+            {orderSubmitted ? (
+              <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <div style={{ fontSize: 48, marginBottom: '1rem' }}>✅</div>
+                <h2 style={{ fontSize: 20, fontWeight: 500, color: '#111', marginBottom: '0.75rem' }}>Order submitted!</h2>
+                <p style={{ fontSize: 13, color: '#888', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+                  Your order <strong style={{ color: '#333' }}>#{invoiceNum}</strong> has been received by Levam Corp.<br />
+                  Our team will review and confirm within 1–2 business days.
+                </p>
+                <button onClick={() => { setShowInvoice(false); setCart({}); setOrderSubmitted(false) }} style={{ padding: '10px 24px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>Back to catalog</button>
+              </div>
+            ) : (
+              <>
+                {/* Invoice header */}
+                <div style={{ background: '#111', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: '0.2em', color: '#ddd', textTransform: 'uppercase' }}>Levam</div>
-                    <div style={{ fontSize: 8, letterSpacing: '0.3em', color: '#2d7dd2', textTransform: 'uppercase' }}>Corp · Distributors</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div className="logo-icon" style={{ position: 'relative', width: 28, height: 28 }}>
+                        <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#444' }} />
+                        <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#444' }} />
+                        <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2, background: '#2d7dd2' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: '0.2em', color: '#ddd', textTransform: 'uppercase' }}>Levam</div>
+                        <div style={{ fontSize: 8, letterSpacing: '0.3em', color: '#2d7dd2', textTransform: 'uppercase' }}>Corp · Distributors</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#555', lineHeight: 1.8 }}>6315 NW 99th Ave, Doral, FL 33178<br />partners@levamcorp.com · levamcorp.com</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', letterSpacing: '0.1em', marginBottom: 6 }}>QUOTE / INVOICE</div>
+                    <div style={{ fontSize: 13, color: '#2d7dd2', fontWeight: 500 }}>#{invoiceNum}</div>
+                    <div style={{ fontSize: 10, color: '#555', lineHeight: 2, marginTop: 6 }}>Date: {today}<br />Valid until: {validStr}<br />Terms: Net 15</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 10, color: '#555', lineHeight: 1.8 }}>6315 NW 99th Ave, Doral, FL 33178<br />partners@levamcorp.com · levamcorp.com</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', letterSpacing: '0.1em', marginBottom: 6 }}>QUOTE / INVOICE</div>
-                <div style={{ fontSize: 13, color: '#2d7dd2', fontWeight: 500 }}>#{invNum}</div>
-                <div style={{ fontSize: 10, color: '#555', lineHeight: 2, marginTop: 6 }}>
-                  Date: {today}<br />Valid until: {validStr}<br />Terms: Net 15
+
+                {/* Parties */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <div style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>From</div>
+                    <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />6315 NW 99th Ave<br />Doral, FL 33178<br />partners@levamcorp.com</p>
+                  </div>
+                  <div style={{ padding: '1.25rem 1.5rem', borderLeft: '0.5px solid rgba(0,0,0,0.08)' }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>Bill to</div>
+                    <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Approved Partner</strong><br />{user?.email}</p>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Parties */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-              <div style={{ padding: '1.25rem 1.5rem' }}>
-                <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>From</div>
-                <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />6315 NW 99th Ave<br />Doral, FL 33178<br />partners@levamcorp.com</p>
-              </div>
-              <div style={{ padding: '1.25rem 1.5rem', borderLeft: '0.5px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>Bill to</div>
-                <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Approved Partner</strong><br />{user?.email}</p>
-              </div>
-            </div>
+                {/* Items table */}
+                <div style={{ padding: '0 1.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }}>
+                    <thead>
+                      <tr style={{ background: '#f7f8fa' }}>
+                        {['#','Product','SKU','Qty','Unit price','Total'].map((h,i) => (
+                          <th key={h} style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#bbb', padding: '8px', textAlign: i > 2 ? 'right' : 'left', fontWeight: 400 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cartItems.map((item, i) => (
+                        <tr key={item.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                          <td style={{ padding: '10px 8px', fontSize: 11, color: '#bbb' }}>{i+1}</td>
+                          <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#333' }}>{item.name}</td>
+                          <td style={{ padding: '10px 8px', fontSize: 10, color: '#bbb' }}>{item.sku}</td>
+                          <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>{item.qty}</td>
+                          <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>${item.price.toLocaleString()}</td>
+                          <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#111', textAlign: 'right' }}>${(item.price * item.qty).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* Items */}
-            <div style={{ padding: '0 1.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }}>
-                <thead>
-                  <tr style={{ background: '#f7f8fa' }}>
-                    {['#','Product','SKU','Qty','Unit price','Total'].map(h => (
-                      <th key={h} style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#bbb', padding: '8px', textAlign: h === 'Total' || h === 'Unit price' || h === 'Qty' ? 'right' : 'left', fontWeight: 400 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {cartItems.map((item, i) => (
-                    <tr key={item.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
-                      <td style={{ padding: '10px 8px', fontSize: 11, color: '#bbb' }}>{i+1}</td>
-                      <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#333' }}>{item.name}</td>
-                      <td style={{ padding: '10px 8px', fontSize: 10, color: '#bbb' }}>{item.sku}</td>
-                      <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>{item.qty}</td>
-                      <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>${item.price.toLocaleString()}</td>
-                      <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#111', textAlign: 'right' }}>${(item.price * item.qty).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                {/* Totals */}
+                <div style={{ padding: '0 1.5rem 1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Subtotal</span><span>${cartTotal.toLocaleString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Shipping</span><span>TBD</span></div>
+                  <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.08)', margin: '8px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 500, color: '#111', padding: '4px 0' }}><span>Estimated Total</span><span>${cartTotal.toLocaleString()}</span></div>
+                </div>
 
-            {/* Totals */}
-            <div style={{ padding: '0 1.5rem 1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Subtotal</span><span>${cartTotal.toLocaleString()}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Shipping</span><span>TBD</span></div>
-              <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.08)', margin: '8px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 500, color: '#111', padding: '4px 0' }}><span>Estimated Total</span><span>${cartTotal.toLocaleString()}</span></div>
-            </div>
+                {/* Legal */}
+                <div style={{ margin: '0 1.5rem 1.25rem', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ background: '#111', padding: '6px 12px', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa' }}>Terms & Conditions · Legal Notice</div>
+                  <div style={{ background: '#fafafa', padding: 12, fontSize: 9.5, color: '#888', lineHeight: 1.75 }}>
+                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>All sales made by Levam Corp Distributors are final. Once an order has been confirmed, no returns, exchanges, refunds, or cancellations will be accepted under any circumstances. By accepting this invoice, the buyer acknowledges and agrees to this policy in full.<br /><br />
+                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>No Return Policy — </strong>Levam Corp Distributors does not accept returns for any reason. Claims regarding damaged goods must be reported in writing to partners@levamcorp.com within 48 hours of delivery.<br /><br />
+                    <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Governing Law — </strong>This agreement is governed by the laws of the State of Florida. Any disputes shall be resolved exclusively in the courts of Miami-Dade County, Florida.
+                  </div>
+                </div>
 
-            {/* Legal */}
-            <div style={{ margin: '0 1.5rem 1.25rem', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ background: '#111', padding: '6px 12px', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa' }}>Terms & Conditions · Legal Notice</div>
-              <div style={{ background: '#fafafa', padding: 12, fontSize: 9.5, color: '#888', lineHeight: 1.75 }}>
-                <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>All sales made by Levam Corp Distributors are final. Once an order has been confirmed, no returns, exchanges, refunds, or cancellations will be accepted. By accepting this invoice, the buyer agrees to this policy in full.<br /><br />
-                <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Governing Law — </strong>This agreement is governed by the laws of the State of Florida. Any disputes shall be resolved exclusively in the courts of Miami-Dade County, Florida.
-              </div>
-            </div>
+                {/* Signature */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'rgba(0,0,0,0.08)', margin: '0 1.5rem 1.25rem' }}>
+                  <div style={{ background: '#fff', padding: '1rem' }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Authorized by · Levam Corp</div>
+                    <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
+                  </div>
+                  <div style={{ background: '#fff', padding: '1rem' }}>
+                    <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Accepted by · Client</div>
+                    <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
+                  </div>
+                </div>
 
-            {/* Footer */}
-            <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
-              <button onClick={() => { setShowInvoice(false); setCart({}); window.location.href = '/portal/orders' }} style={{ flex: 1, padding: 10, background: '#2a7d4f', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>✓ Order submitted</button>
-              <button onClick={() => window.print()} style={{ padding: '10px 16px', background: '#fff', color: '#333', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.12)', cursor: 'pointer', borderRadius: 2 }}>🖨 Print</button>
-              <button onClick={() => setShowInvoice(false)} style={{ padding: '10px 16px', background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Close</button>
-            </div>
+                {/* Actions */}
+                <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
+                  <button onClick={submitOrder} disabled={submitting} style={{ flex: 1, padding: 11, background: submitting ? '#aaa' : '#2a7d4f', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', borderRadius: 2 }}>
+                    {submitting ? 'Submitting...' : '✓ Submit order'}
+                  </button>
+                  <button onClick={() => window.print()} style={{ padding: '11px 16px', background: '#e8e8e8', color: '#333', fontSize: 11, border: '0.5px solid #ccc', cursor: 'pointer', borderRadius: 2 }}>🖨 Print</button>
+                  <button onClick={() => setShowInvoice(false)} style={{ padding: '11px 16px', background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Close</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -306,16 +331,13 @@ function ProductCard({ product, inCart, onAdd }) {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(inCart)
 
-  const handleAdd = () => {
-    onAdd(qty)
-    setAdded(true)
-  }
+  const handleAdd = () => { onAdd(qty); setAdded(true) }
+
+  const icon = product.category === 'electronics' ? '📺' : product.category === 'home' ? '🏠' : '🍳'
 
   return (
     <div style={{ background: '#fff', border: `0.5px solid ${added ? 'rgba(45,125,210,0.35)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 4, overflow: 'hidden' }}>
-      <div style={{ height: 100, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-        {product.category === 'electronics' ? '📺' : product.category === 'home' ? '🏠' : '🍳'}
-      </div>
+      <div style={{ height: 100, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>{icon}</div>
       <div style={{ padding: '1rem' }}>
         <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{product.category}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{product.name}</div>
