@@ -5,12 +5,22 @@ import { createClient } from '../../../lib/supabase'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) window.location.href = '/portal'
-      else setUser(data.user)
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { window.location.href = '/portal'; return }
+      setUser(data.user)
+      // Load orders
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('*')
+        .order('submitted_at', { ascending: false })
+        .limit(5)
+      setOrders(ordersData || [])
+      setLoading(false)
     })
   }, [])
 
@@ -20,51 +30,131 @@ export default function Dashboard() {
     window.location.href = '/portal'
   }
 
-  if (!user) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 13 }}>Loading...</div>
+  const statusBadge = (status) => {
+    const map = {
+      new: { label: 'New', bg: 'rgba(231,76,60,0.1)', color: '#c0392b' },
+      review: { label: 'In review', bg: 'rgba(45,125,210,0.1)', color: '#2d7dd2' },
+      confirmed: { label: 'Confirmed', bg: 'rgba(42,125,79,0.08)', color: '#2a7d4f' },
+      completed: { label: 'Completed', bg: 'rgba(42,125,79,0.08)', color: '#2a7d4f' },
+      dispatched: { label: 'Dispatched', bg: 'rgba(42,125,79,0.08)', color: '#2a7d4f' },
+    }
+    const s = map[status] || { label: status, bg: '#f0f0f0', color: '#888' }
+    return (
+      <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 2, background: s.bg, color: s.color, border: `0.5px solid ${s.color}30` }}>
+        {s.label}
+      </span>
+    )
+  }
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 13 }}>
+      Loading...
+    </div>
+  )
 
   return (
     <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
+
+      {/* NAV */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="logo-icon"><div className="logo-l-vert" /><div className="logo-l-horiz" /><div className="logo-accent" /></div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.15em', color: '#222', textTransform: 'uppercase' }}>Levam</div>
-            <div style={{ fontSize: 7, letterSpacing: '0.25em', color: '#2d7dd2', textTransform: 'uppercase' }}>Partner Portal</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="logo-icon"><div className="logo-l-vert" /><div className="logo-l-horiz" /><div className="logo-accent" /></div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.15em', color: '#222', textTransform: 'uppercase' }}>Levam</div>
+              <div style={{ fontSize: 7, letterSpacing: '0.25em', color: '#2d7dd2', textTransform: 'uppercase' }}>Partner Portal</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 0, borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
+            {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices']].map(([label, href]) => (
+              <Link key={label} href={href} style={{
+                fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#888',
+                textDecoration: 'none', padding: '4px 14px',
+                borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent'
+              }}>{label}</Link>
+            ))}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, color: '#888' }}>{user.email}</span>
-          <button onClick={handleLogout} style={{ fontSize: 11, color: '#aaa', border: '0.5px solid rgba(0,0,0,0.08)', padding: '5px 12px', borderRadius: 2, background: '#fff', cursor: 'pointer' }}>Sign out</button>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#2d7dd2' }}>
+            {user?.email?.[0]?.toUpperCase()}
+          </div>
+          <span style={{ fontSize: 11, color: '#888' }}>{user?.email}</span>
+          <button onClick={handleLogout} style={{ fontSize: 11, color: '#333', border: '0.5px solid rgba(0,0,0,0.12)', padding: '6px 14px', borderRadius: 2, background: '#fff', cursor: 'pointer', fontWeight: 500 }}>Sign out</button>
         </div>
       </nav>
 
       <div style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 500, color: '#111', marginBottom: 4 }}>Welcome back 👋</h2>
-        <p style={{ fontSize: 12, color: '#aaa', marginBottom: '1.5rem' }}>{user.email}</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
-          {[['Open orders','3'],['This month','$8,240'],['Pending invoices','2'],['Items available','40+']].map(([label,val]) => (
-            <div key={label} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, padding: '1rem 1.25rem' }}>
-              <div style={{ fontSize: 10, color: '#bbb', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
-              <div style={{ fontSize: 22, fontWeight: 500, color: '#111' }}>{val}</div>
-            </div>
+        {/* WELCOME */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 500, color: '#111', marginBottom: 4 }}>Welcome back 👋</h2>
+          <p style={{ fontSize: 12, color: '#aaa' }}>{user?.email} · Approved partner</p>
+        </div>
+
+        {/* QUICK ACTIONS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: '1.5rem' }}>
+          {[
+            { icon: '📦', label: 'Browse catalog', desc: 'View products & pricing', href: '/portal/catalog', color: '#2d7dd2' },
+            { icon: '📋', label: 'New quote', desc: 'Start an order quote', href: '/portal/catalog', color: '#2a7d4f' },
+            { icon: '🧾', label: 'My invoices', desc: 'View & download', href: '/portal/invoices', color: '#854f0b' },
+            { icon: '📜', label: 'Order history', desc: 'Track your orders', href: '/portal/orders', color: '#534ab7' },
+          ].map(item => (
+            <Link key={item.label} href={item.href} style={{ textDecoration: 'none' }}>
+              <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, padding: '1.25rem', cursor: 'pointer', transition: 'border-color 0.15s' }}>
+                <div style={{ fontSize: 24, marginBottom: 10 }}>{item.icon}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: '#222', marginBottom: 3 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: '#aaa' }}>{item.desc}</div>
+              </div>
+            </Link>
           ))}
         </div>
 
-        <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, padding: '1.25rem' }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: '#333', marginBottom: '1rem' }}>Quick actions</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[['📦','Browse catalog','View all products and pricing'],['📋','New quote','Start a new order quote'],['🧾','My invoices','View and download invoices'],['📜','Order history','Track all your orders']].map(([icon,title,desc]) => (
-              <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 2, cursor: 'pointer', background: '#fff' }}>
-                <span style={{ fontSize: 16 }}>{icon}</span>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: '#333' }}>{title}</div>
-                  <div style={{ fontSize: 11, color: '#aaa' }}>{desc}</div>
-                </div>
-              </div>
-            ))}
+        {/* RECENT ORDERS */}
+        <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: '#333' }}>Recent orders</div>
+            <Link href="/portal/orders" style={{ fontSize: 11, color: '#2d7dd2', textDecoration: 'none' }}>View all →</Link>
           </div>
+
+          {orders.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#ccc' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>📦</div>
+              <div style={{ fontSize: 13, color: '#bbb', marginBottom: 8 }}>No orders yet</div>
+              <Link href="/portal/catalog" style={{
+                fontSize: 11, padding: '8px 20px', background: '#2d7dd2', color: '#fff',
+                borderRadius: 2, textDecoration: 'none', display: 'inline-block', fontWeight: 500
+              }}>Browse catalog to start</Link>
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f7f8fa' }}>
+                  {['Order ID', 'Items', 'Total', 'Date', 'Status'].map(h => (
+                    <th key={h} style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#bbb', padding: '8px 1.25rem', textAlign: 'left', fontWeight: 400 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map(order => (
+                  <tr key={order.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 500, color: '#333' }}>#{order.order_number}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#888' }}>{order.items_count || '—'} items</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 500, color: '#111' }}>${order.total?.toLocaleString()}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#bbb' }}>{new Date(order.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                    <td style={{ padding: '12px 1.25rem' }}>{statusBadge(order.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+
+        {/* FOOTER NOTE */}
+        <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', background: 'rgba(45,125,210,0.05)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4, fontSize: 12, color: '#555' }}>
+          📍 Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178 · partners@levamcorp.com
+        </div>
+
       </div>
     </div>
   )
