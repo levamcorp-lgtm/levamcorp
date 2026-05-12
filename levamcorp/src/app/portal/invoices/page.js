@@ -29,14 +29,17 @@ export default function InvoicesPage() {
     window.location.href = '/portal'
   }
 
-  const today = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const handlePrint = () => window.print()
+
+  const fmtDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const dueDate = (date) => { const d = new Date(date); d.setDate(d.getDate() + 15); return fmtDate(d) }
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 13 }}>Loading invoices...</div>
 
   return (
     <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
 
-      {/* NAV */}
+      {/* NAV — hidden on print */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -86,18 +89,14 @@ export default function InvoicesPage() {
                     const invNum = `LC-INV-${String(i + 1001).padStart(5, '0')}`
                     const isSelected = selected?.id === order.id
                     return (
-                      <tr key={order.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(45,125,210,0.03)' : '#fff', cursor: 'pointer' }} onClick={() => setSelected(isSelected ? null : { ...order, invNum })}>
+                      <tr key={order.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(45,125,210,0.03)' : '#fff', cursor: 'pointer' }}
+                        onClick={() => setSelected(isSelected ? null : { ...order, invNum })}>
                         <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 500, color: '#2d7dd2' }}>{invNum}</td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#888' }}>{today(order.submitted_at)}</td>
+                        <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#888' }}>{fmtDate(order.submitted_at)}</td>
                         <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#888' }}>{order.order_items?.length || 0} items</td>
                         <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 500, color: '#111' }}>${order.total?.toLocaleString()}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
-                          <span style={{
-                            fontSize: 10, padding: '3px 10px', borderRadius: 2,
-                            background: order.status === 'completed' ? 'rgba(42,125,79,0.08)' : 'rgba(45,125,210,0.08)',
-                            color: order.status === 'completed' ? '#2a7d4f' : '#2d7dd2',
-                            border: `0.5px solid ${order.status === 'completed' ? 'rgba(42,125,79,0.2)' : 'rgba(45,125,210,0.2)'}`
-                          }}>
+                          <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 2, background: order.status === 'completed' ? 'rgba(42,125,79,0.08)' : 'rgba(45,125,210,0.08)', color: order.status === 'completed' ? '#2a7d4f' : '#2d7dd2', border: `0.5px solid ${order.status === 'completed' ? 'rgba(42,125,79,0.2)' : 'rgba(45,125,210,0.2)'}` }}>
                             {order.status === 'completed' ? 'Paid' : 'Pending'}
                           </span>
                         </td>
@@ -113,67 +112,81 @@ export default function InvoicesPage() {
           )}
         </div>
 
-        {/* RIGHT — invoice preview */}
+        {/* RIGHT — invoice preview with print class */}
         {selected && (
-          <div style={{ width: 480, position: 'sticky', top: 80, height: 'fit-content' }}>
-            <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ width: 500, position: 'sticky', top: 80, height: 'fit-content' }}>
+            <div className="invoice-print" style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
 
-              {/* Header */}
-              <div style={{ background: '#111', padding: '1.75rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              {/* Header dark */}
+              <div style={{ background: '#111', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <div style={{ position: 'relative', width: 28, height: 28 }}>
-                      <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#444' }} />
-                      <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#444' }} />
-                      <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2, background: '#2d7dd2' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ position: 'relative', width: 36, height: 36 }}>
+                      <div style={{ position: 'absolute', left: 8, top: 0, width: 2.5, height: 28, background: '#444' }} />
+                      <div style={{ position: 'absolute', left: 8, bottom: 0, width: 20, height: 2.5, background: '#444' }} />
+                      <div style={{ position: 'absolute', left: 13, bottom: 8, width: 12, height: 2.5, background: '#2d7dd2' }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, letterSpacing: '0.2em', color: '#ddd', textTransform: 'uppercase' }}>Levam</div>
-                      <div style={{ fontSize: 8, letterSpacing: '0.3em', color: '#2d7dd2', textTransform: 'uppercase' }}>Corp · Distributors</div>
+                      <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: '0.2em', color: '#ddd', textTransform: 'uppercase' }}>Levam</div>
+                      <div style={{ fontSize: 8, letterSpacing: '0.35em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 2 }}>Corp · Distributors</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 10, color: '#555', lineHeight: 1.8 }}>6315 NW 99th Ave, Doral, FL 33178<br />partners@levamcorp.com</div>
+                  <div style={{ fontSize: 10, color: '#555', lineHeight: 1.8 }}>
+                    6315 NW 99th Ave, Doral, FL 33178<br />
+                    partners@levamcorp.com · levamcorp.com<br />
+                    Phone: +1 (305) 000-0000
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', letterSpacing: '0.1em', marginBottom: 4 }}>INVOICE</div>
-                  <div style={{ fontSize: 12, color: '#2d7dd2', fontWeight: 500 }}>#{selected.invNum}</div>
-                  <div style={{ fontSize: 10, color: '#555', lineHeight: 2, marginTop: 6 }}>
-                    Date: {today(selected.submitted_at)}<br />
-                    Terms: Net 15
+                  <div style={{ fontSize: 18, fontWeight: 500, color: '#fff', letterSpacing: '0.15em', marginBottom: 6 }}>INVOICE</div>
+                  <div style={{ fontSize: 13, color: '#2d7dd2', fontWeight: 500 }}>#{selected.invNum}</div>
+                  <div style={{ fontSize: 10, color: '#555', lineHeight: 2, marginTop: 8 }}>
+                    <strong style={{ color: '#aaa' }}>Date:</strong> {fmtDate(selected.submitted_at)}<br />
+                    <strong style={{ color: '#aaa' }}>Due:</strong> {dueDate(selected.submitted_at)}<br />
+                    <strong style={{ color: '#aaa' }}>Terms:</strong> Net 15
                   </div>
                 </div>
               </div>
 
               {/* Parties */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ padding: '1rem 1.5rem' }}>
-                  <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 6 }}>From</div>
-                  <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />6315 NW 99th Ave, Doral FL 33178</p>
+                <div style={{ padding: '1.25rem 1.5rem' }}>
+                  <div style={{ fontSize: 8, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>From</div>
+                  <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}>
+                    <strong style={{ color: '#222' }}>Levam Corp Distributors</strong><br />
+                    6315 NW 99th Ave<br />
+                    Doral, FL 33178<br />
+                    partners@levamcorp.com
+                  </p>
                 </div>
-                <div style={{ padding: '1rem 1.5rem', borderLeft: '0.5px solid rgba(0,0,0,0.08)' }}>
-                  <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 6 }}>Bill to</div>
-                  <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}><strong style={{ color: '#222' }}>Approved Partner</strong><br />{user?.email}</p>
+                <div style={{ padding: '1.25rem 1.5rem', borderLeft: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <div style={{ fontSize: 8, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#bbb', marginBottom: 8 }}>Bill to</div>
+                  <p style={{ fontSize: 11, color: '#555', lineHeight: 1.8 }}>
+                    <strong style={{ color: '#222' }}>Approved Partner</strong><br />
+                    {user?.email}
+                  </p>
                 </div>
               </div>
 
-              {/* Items */}
+              {/* Items table */}
               <div style={{ padding: '0 1.5rem' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }}>
                   <thead>
                     <tr style={{ background: '#f7f8fa' }}>
-                      {['Product', 'SKU', 'Qty', 'Price', 'Total'].map((h, i) => (
-                        <th key={h} style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#bbb', padding: '6px 8px', textAlign: i > 1 ? 'right' : 'left', fontWeight: 400 }}>{h}</th>
+                      {['#', 'Product', 'SKU', 'Qty', 'Unit price', 'Total'].map((h, i) => (
+                        <th key={h} style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#bbb', padding: '8px', textAlign: i > 2 ? 'right' : 'left', fontWeight: 400 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {selected.order_items?.map(item => (
+                    {selected.order_items?.map((item, i) => (
                       <tr key={item.id} style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
-                        <td style={{ padding: '8px', fontSize: 11, fontWeight: 500, color: '#333' }}>{item.product_name}</td>
-                        <td style={{ padding: '8px', fontSize: 10, color: '#bbb' }}>{item.product_sku}</td>
-                        <td style={{ padding: '8px', fontSize: 11, textAlign: 'right' }}>{item.quantity}</td>
-                        <td style={{ padding: '8px', fontSize: 11, textAlign: 'right' }}>${item.unit_price?.toLocaleString()}</td>
-                        <td style={{ padding: '8px', fontSize: 11, fontWeight: 500, color: '#111', textAlign: 'right' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 11, color: '#bbb' }}>{i + 1}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#333' }}>{item.product_name}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 10, color: '#bbb' }}>{item.product_sku}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>{item.quantity}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right' }}>${item.unit_price?.toLocaleString()}</td>
+                        <td style={{ padding: '10px 8px', fontSize: 11, fontWeight: 500, color: '#111', textAlign: 'right' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -181,26 +194,52 @@ export default function InvoicesPage() {
               </div>
 
               {/* Totals */}
-              <div style={{ padding: '0 1.5rem 1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '3px 0' }}><span>Subtotal</span><span>${selected.subtotal?.toLocaleString()}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '3px 0' }}><span>Shipping</span><span>TBD</span></div>
+              <div style={{ padding: '0 1.5rem 1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Subtotal</span><span>${selected.subtotal?.toLocaleString()}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Shipping</span><span>TBD</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', padding: '4px 0' }}><span>Tax</span><span>TBD</span></div>
                 <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.08)', margin: '8px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 500, color: '#111' }}><span>Total</span><span>${selected.total?.toLocaleString()}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 500, color: '#111', padding: '4px 0' }}><span>Estimated Total</span><span>${selected.total?.toLocaleString()}</span></div>
               </div>
 
               {/* Legal */}
-              <div style={{ margin: '0 1.5rem 1rem', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ background: '#111', padding: '5px 10px', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa' }}>Terms & Conditions</div>
-                <div style={{ background: '#fafafa', padding: 10, fontSize: 9, color: '#888', lineHeight: 1.7 }}>
-                  <strong style={{ color: '#555', textTransform: 'uppercase' }}>All Sales Are Final — </strong>No returns, exchanges, refunds, or cancellations. Claims for damaged goods must be reported within 48 hours to partners@levamcorp.com. Governed by the laws of the State of Florida, Miami-Dade County courts.
+              <div style={{ margin: '0 1.5rem 1.25rem', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ background: '#111', padding: '7px 12px', fontSize: 8, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#aaa' }}>Terms & Conditions · Legal Notice</div>
+                <div style={{ background: '#fafafa', padding: 12, fontSize: 9.5, color: '#888', lineHeight: 1.75 }}>
+                  <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>
+                  All sales made by Levam Corp Distributors are final. Once an order has been confirmed, no returns, exchanges, refunds, or cancellations will be accepted under any circumstances. By accepting this invoice, the buyer acknowledges and agrees to this policy in full.<br /><br />
+                  <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>No Return Policy — </strong>
+                  Levam Corp Distributors does not accept returns for any reason. Claims for damaged goods must be reported in writing to partners@levamcorp.com within 48 hours of delivery.<br /><br />
+                  <strong style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Governing Law — </strong>
+                  This agreement is governed by the laws of the State of Florida. Any disputes shall be resolved exclusively in the courts of Miami-Dade County, Florida.
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
-                <button onClick={() => window.print()} style={{ flex: 1, padding: '10px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>🖨 Print / Save PDF</button>
-                <button onClick={() => setSelected(null)} style={{ padding: '10px 16px', background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Close</button>
+              {/* Signature */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'rgba(0,0,0,0.08)', margin: '0 1.5rem 1.25rem' }}>
+                <div style={{ background: '#fff', padding: '1rem' }}>
+                  <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Authorized by · Levam Corp</div>
+                  <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
+                </div>
+                <div style={{ background: '#fff', padding: '1rem' }}>
+                  <div style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#bbb', marginBottom: 20 }}>Accepted by · Client</div>
+                  <div style={{ borderTop: '0.5px solid #ddd', paddingTop: 5, fontSize: 9, color: '#ccc' }}>Signature & date</div>
+                </div>
               </div>
+
+              {/* Footer */}
+              <div style={{ background: '#f7f8fa', padding: '0.75rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', fontSize: 9, color: '#bbb', textAlign: 'center' }}>
+                Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178 · partners@levamcorp.com · levamcorp.com
+              </div>
+
+              {/* Action buttons — hidden on print */}
+              <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
+                <button onClick={handlePrint} style={{ flex: 1, padding: 11, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>
+                  🖨 Print / Save PDF
+                </button>
+                <button onClick={() => setSelected(null)} style={{ padding: '11px 16px', background: '#fff', color: '#aaa', fontSize: 11, border: '0.5px solid rgba(0,0,0,0.08)', cursor: 'pointer', borderRadius: 2 }}>Close</button>
+              </div>
+
             </div>
           </div>
         )}
