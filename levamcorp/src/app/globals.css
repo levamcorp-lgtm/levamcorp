@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue: #2d7dd2;
+  --blue-dim: rgba(45,125,210,0.08);
+  --border: rgba(0,0,0,0.08);
+  --bg-soft: #f7f8fa;
+  --green: #2a7d4f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #fff;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+.logo-icon { width: 28px; height: 28px; position: relative; display: inline-block; }
+.logo-l-vert { position: absolute; left: 6px; top: 0; width: 2px; height: 22px; background: #bbb; }
+.logo-l-horiz { position: absolute; left: 6px; bottom: 0; width: 16px; height: 2px; background: #bbb; }
+.logo-accent { position: absolute; left: 10px; bottom: 6px; width: 10px; height: 2px; background: #2d7dd2; }
+
+.btn-primary {
+  padding: 11px 24px; background: #2d7dd2; color: #fff !important;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; border: none; cursor: pointer;
+  border-radius: 2px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-ghost {
+  padding: 11px 24px; background: transparent; color: #555 !important;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  border: 0.5px solid rgba(0,0,0,0.2); cursor: pointer; border-radius: 2px;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-ghost:hover { color: #111 !important; border-color: rgba(0,0,0,0.4); }
+
+.section-tag {
+  font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: #2d7dd2; margin-bottom: 0.75rem;
+}
+
+.field { margin-bottom: 1rem; }
+.field label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: #f7f8fa; border: 0.5px solid rgba(0,0,0,0.1);
+  color: #333; font-size: 13px; padding: 10px 14px;
+  border-radius: 2px; outline: none; font-family: inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: rgba(45,125,210,0.4); background: #fff;
+}
+.field input::placeholder, .field textarea::placeholder { color: #ccc; }
