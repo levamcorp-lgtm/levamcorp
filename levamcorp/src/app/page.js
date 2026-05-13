@@ -130,9 +130,12 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div style={{ background: '#f7f8fa', borderLeft: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 400 }}>
-          <div style={{ fontSize: 64, color: '#ddd' }}>📦</div>
-          <span style={{ fontSize: 11, color: '#ccc', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Team / products photo</span>
+        <div style={{ overflow: 'hidden', minHeight: 400 }}>
+          <img
+            src="https://images.pexels.com/photos/34968619/pexels-photo-34968619.jpeg?auto=compress&cs=tinysrgb&w=800"
+            alt="Levam Corp Distribution"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 400 }}
+          />
         </div>
       </div>
 
@@ -210,23 +213,27 @@ export default function Home() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1.5rem', marginBottom: '3.5rem' }}>
           {[
-            { num: '01', title: 'Apply', desc: 'Submit your business info. We review every application personally within 1–2 business days.', icon: '📋' },
-            { num: '02', title: 'Get approved', desc: 'Receive your private portal login credentials and get instant access to our full catalog.', icon: '✓' },
-            { num: '03', title: 'Browse & quote', desc: 'Access live pricing, real-time availability, dispatch times, and generate quotes instantly.', icon: '🔍' },
-            { num: '04', title: 'Order & invoice', desc: 'Place your order with one click. Invoice and quote generate automatically — no back and forth.', icon: '⚡' },
+            { num: '01', title: 'Apply', desc: 'Submit your business info. We review every application personally within 1–2 business days.',
+              svg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> },
+            { num: '02', title: 'Get approved', desc: 'Receive your private portal login credentials and get instant access to our full catalog.',
+              svg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+            { num: '03', title: 'Browse & quote', desc: 'Access live pricing, real-time availability, dispatch times, and generate quotes instantly.',
+              svg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
+            { num: '04', title: 'Order & invoice', desc: 'Place your order with one click. Invoice and quote generate automatically — no back and forth.',
+              svg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
           ].map((step, i) => (
             <div key={step.num} style={{
               background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.08)',
               borderRadius: 4, padding: '2rem 1.75rem', position: 'relative', overflow: 'hidden'
             }}>
-              <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', fontSize: 11, color: 'rgba(255,255,255,0.1)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: 28 }}>{step.num}</div>
+              <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', fontSize: 28, color: 'rgba(255,255,255,0.06)', fontWeight: 900 }}>{step.num}</div>
               <div style={{
-                width: 40, height: 40, background: 'rgba(45,125,210,0.15)', border: '0.5px solid rgba(45,125,210,0.3)',
-                borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, marginBottom: '1.25rem'
-              }}>{step.icon}</div>
+                width: 44, height: 44, background: 'rgba(45,125,210,0.12)', border: '0.5px solid rgba(45,125,210,0.25)',
+                borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '1.25rem'
+              }}>{step.svg}</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 10 }}>{step.title}</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75 }}>{step.desc}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.75 }}>{step.desc}</div>
               {i < 3 && (
                 <div style={{ position: 'absolute', right: -12, top: '50%', transform: 'translateY(-50%)', color: '#2d7dd2', fontSize: 18, fontWeight: 700, zIndex: 2 }}>→</div>
               )}
