@@ -47,6 +47,20 @@ export default function PaymentsPage() {
         payment_method: paymentMethod,
         notes: `Payment request for order #${selected.order_number}`
       }])
+
+      // Send email notification
+      await fetch('/api/send-payment-request-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientEmail: user.email,
+          orderNumber: selected.order_number,
+          total: selected.total,
+          paymentMethod,
+          items: selected.order_items || []
+        })
+      })
+
       setSubmitted(true)
       setSelected(null)
       setPaymentMethod('')
