@@ -143,16 +143,43 @@ export default function Home() {
         <p style={{ fontSize: 15, color: '#555', lineHeight: 1.8, maxWidth: 520, marginBottom: '2.5rem' }}>
           From consumer electronics to home and kitchen appliances — competitive wholesale pricing for approved partners.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: 'rgba(0,0,0,0.08)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: 'rgba(0,0,0,0.08)', marginBottom: '3rem' }}>
           {[
-            { icon: '📺', name: 'Electronics & TVs', desc: 'Smart TVs, streaming devices, and consumer electronics at distributor pricing.' },
-            { icon: '🏠', name: 'Home appliances', desc: 'Major and small appliances for household use, sourced from reliable suppliers.' },
-            { icon: '🍳', name: 'Kitchen essentials', desc: 'Countertop appliances, cookware, and kitchen gadgets ready to dispatch.' },
+            { icon: '📺', name: 'Electronics & TVs', desc: 'Smart TVs, streaming devices, and consumer electronics at distributor pricing.', brands: ['JBL','LG','Garmin','Logitech','DJI'] },
+            { icon: '🏠', name: 'Home appliances', desc: 'Major and small appliances for household use, sourced from reliable suppliers.', brands: ['Shark','Roomba','Ninja','Nutribullet'] },
+            { icon: '🍳', name: 'Kitchen essentials', desc: 'Countertop appliances, cookware, and kitchen gadgets ready to dispatch.', brands: ['Ninja','Nutribullet','Cuisinart','KitchenAid'] },
           ].map(cat => (
             <div key={cat.name} style={{ background: '#fff', padding: '2.5rem 2rem' }}>
               <div style={{ fontSize: 40, marginBottom: '1.25rem' }}>{cat.icon}</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 8 }}>{cat.name}</div>
-              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7 }}>{cat.desc}</div>
+              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, marginBottom: '1.25rem' }}>{cat.desc}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {cat.brands.map(brand => (
+                  <span key={brand} style={{ fontSize: 10, fontWeight: 700, color: '#555', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.1)', padding: '4px 10px', borderRadius: 2, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{brand}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* BRANDS ROW */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#bbb', fontWeight: 600 }}>Brands we carry</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9,1fr)', gap: 1, background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          {[
+            { name: 'JBL', color: '#ff6600', bg: '#fff8f4' },
+            { name: 'LG', color: '#a50034', bg: '#fff4f7' },
+            { name: 'Garmin', color: '#007cc0', bg: '#f4f9ff' },
+            { name: 'Logitech', color: '#00b900', bg: '#f4fff4' },
+            { name: 'DJI', color: '#1a1a1a', bg: '#f7f8fa' },
+            { name: 'Shark', color: '#003da5', bg: '#f4f7ff' },
+            { name: 'Ninja', color: '#e4002b', bg: '#fff4f5' },
+            { name: 'Roomba', color: '#e31937', bg: '#fff4f5' },
+            { name: 'Nutribullet', color: '#6db33f', bg: '#f6fff2' },
+          ].map(brand => (
+            <div key={brand.name} style={{ background: brand.bg, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: brand.color, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{brand.name}</span>
             </div>
           ))}
         </div>
