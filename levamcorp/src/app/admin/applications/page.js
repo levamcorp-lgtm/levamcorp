@@ -43,7 +43,17 @@ export default function AdminApplications() {
           ein: selected.ein,
           status: 'active',
         }])
-        alert(`✓ ${selected.business_name} approved! Now go to Supabase → Authentication → Add user to create their login.`)
+        // Send approval email
+        await fetch('/api/send-approval-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: selected.email,
+            businessName: selected.business_name,
+            contactName: selected.contact_name,
+          })
+        })
+        alert(`✓ ${selected.business_name} approved! Notification email sent. Now go to Supabase → Authentication → Add user to create their login.`)
       }
       await loadApps(supabase)
       setSelected(prev => prev ? { ...prev, status } : null)
