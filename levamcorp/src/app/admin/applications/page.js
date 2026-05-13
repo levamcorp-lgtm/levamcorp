@@ -28,10 +28,32 @@ export default function AdminApplications() {
 
   const updateApp = async (id, status) => {
     setUpdating(true)
-    const supabase = createClient()
-    await supabase.from('applications').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id)
-    await loadApps(supabase)
-    setSelected(prev => prev ? { ...prev, status } : null)
+    try {
+      const supabase = createClient()
+      if (status === 'approved' && selected) {
+        const res = await fetch('/api/approve-client', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicationId: id,
+            businessName: selected.business_name,
+            contactName: selected.contact_name,
+            email: selected.email,
+            phone: selected.phone,
+            address: selected.address,
+          })
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error)
+        alert(`✓ Client approved! Welcome email sent to ${selected.email}`)
+      } else {
+        await supabase.from('applications').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id)
+      }
+      await loadApps(supabase)
+      setSelected(prev => prev ? { ...prev, status } : null)
+    } catch (e) {
+      alert('Error: ' + e.message)
+    }
     setUpdating(false)
   }
 
