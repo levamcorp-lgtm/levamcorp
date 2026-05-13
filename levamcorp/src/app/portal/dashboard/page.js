@@ -71,7 +71,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 0, borderLeft: '0.5px solid rgba(255,255,255,0.08)', paddingLeft: 20 }}>
-            {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices']].map(([label, href]) => (
+            {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices'], ['Payments', '/portal/payments']].map(([label, href]) => (
               <Link key={label} href={href} style={{
                 fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#888',
                 textDecoration: 'none', padding: '4px 14px',
