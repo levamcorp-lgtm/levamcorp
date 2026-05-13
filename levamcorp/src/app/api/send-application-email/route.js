@@ -9,7 +9,7 @@ export async function POST(request) {
 
     await resend.emails.send({
       from: 'Levam Corp Distributors <partners@levamcorp.com>',
-      to: [email]
+      to: [email],
       subject: `Application Received — ${businessName} · Levam Corp`,
       html: `
 <!DOCTYPE html>
