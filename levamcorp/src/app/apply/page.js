@@ -28,6 +28,12 @@ export default function ApplyPage() {
       const supabase = createClient()
       const { error: err } = await supabase.from('applications').insert([form])
       if (err) throw err
+      // Send confirmation email
+      await fetch('/api/send-application-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, businessName: form.business_name, contactName: form.contact_name })
+      })
       setSubmitted(true)
     } catch (e) { setError('Something went wrong. Please try again.') }
     finally { setLoading(false) }
