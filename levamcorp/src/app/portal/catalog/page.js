@@ -392,7 +392,7 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
         {/* Stock badge */}
         <div style={{ position: 'absolute', top: 8, right: 8 }}>
           <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 20, background: product.stock <= 5 ? 'rgba(231,76,60,0.1)' : 'rgba(42,125,79,0.1)', color: product.stock <= 5 ? '#c0392b' : '#2a7d4f', fontWeight: 600, border: `0.5px solid ${product.stock <= 5 ? 'rgba(231,76,60,0.2)' : 'rgba(42,125,79,0.2)'}` }}>
-            {product.stock <= 5 ? `⚠ ${product.stock} left` : '✓ In stock'}
+            {product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} in stock`}
           </span>
         </div>
         {/* Category badge */}
@@ -412,9 +412,17 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
           <div style={{ fontSize: 11, color: '#999', lineHeight: 1.5, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.description}</div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>${product.price?.toLocaleString()}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: '#bbb' }}>⏱ {product.dispatch_days}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 2, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.15)' }}>
+            MOQ: {product.moq || 1} units
+          </span>
+          <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(0,0,0,0.04)', color: '#888', borderRadius: 2, fontWeight: 600, border: '0.5px solid rgba(0,0,0,0.08)' }}>
+            📍 {product.warehouse || 'WH: FL'}
+          </span>
         </div>
 
         {/* Amazon & Walmart */}
