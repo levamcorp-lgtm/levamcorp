@@ -56,7 +56,7 @@ export default function Dashboard() {
     <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ position: 'relative', width: 32, height: 32 }}>
@@ -83,7 +83,7 @@ export default function Dashboard() {
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#2d7dd2' }}>
             {user?.email?.[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 11, color: '#888' }}>{user?.email}</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{user?.email}</span>
           <button onClick={handleLogout} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer', fontWeight: 500 }}>Sign out</button>
         </div>
       </nav>
