@@ -78,7 +78,7 @@ export default function Home() {
           justifyContent: 'center', gap: 10, minHeight: 560
         }}>
           <img 
-  src="/pexels-juan-r-real-2147838396-29786116.jpg"
+ src="https://images.pexels.com/photos/29786116/pexels-photo-29786116.jpeg?auto=compress&cs=tinysrgb&w=1200"
   alt="Levam Corp Warehouse"
   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 560 }}
 />
