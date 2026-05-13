@@ -132,8 +132,8 @@ export default function AdminPayments() {
                     return (
                       <tr key={payment.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.04)', background: selected?.id === payment.id ? 'rgba(45,125,210,0.05)' : 'transparent', cursor: 'pointer' }}
                         onClick={() => { setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.client_email || '') }}>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#ccc' }}>#{payment.orders?.order_number}</td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#555' }}>{clientEmail}</td>
+                        <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#ccc' }}>#{payment.orders?.order_number || '—'}</td>
+                        <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#ccc' }}>{payment.client_email || clientEmail}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
                           <span style={{ fontSize: 11, color: '#ccc' }}>{methodIcons[payment.payment_method]} {methodLabels[payment.payment_method]}</span>
                         </td>
