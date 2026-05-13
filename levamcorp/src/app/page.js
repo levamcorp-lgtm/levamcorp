@@ -83,7 +83,7 @@ export default function Home() {
         </div>
         <div style={{ position: 'relative', overflow: 'hidden', minHeight: 580 }}>
           <img
-            src="/pexels-juan-r-real-2147838396-29786116.jpg"
+            src="https://images.pexels.com/photos/29786116/pexels-photo-29786116.jpeg?auto=compress&cs=tinysrgb&w=1200"
             alt="Levam Corp Warehouse"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 580 }}
           />
@@ -93,12 +93,13 @@ export default function Home() {
 
       {/* TRUST BAR */}
       <div style={{
-        background: '#111', padding: '1.4rem 3rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4rem'
+        background: '#111', padding: '1.6rem 3rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4rem',
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)'
       }}>
         {[['✓','Verified inventory'],['⏱','48h average dispatch'],['🔒','Approved partners only'],['📍','Doral, FL 33178']].map(([icon,label]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
-            <span style={{ color: '#2d7dd2', fontSize: 14 }}>{icon}</span> {label}
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.03em' }}>
+            <span style={{ color: '#2d7dd2', fontSize: 16, fontWeight: 700 }}>{icon}</span> {label}
           </div>
         ))}
       </div>
