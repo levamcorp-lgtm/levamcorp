@@ -11,6 +11,7 @@ export default function PaymentsPage() {
   const [paymentMethod, setPaymentMethod] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [shippingMethod, setShippingMethod] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -36,6 +37,7 @@ export default function PaymentsPage() {
 
   const submitPaymentRequest = async () => {
     if (!paymentMethod) { alert('Please select a payment method'); return }
+    if (!shippingMethod) { alert('Please select a shipping method'); return }
     setSubmitting(true)
     try {
       const supabase = createClient()
@@ -46,7 +48,7 @@ export default function PaymentsPage() {
         status: 'requested',
         payment_method: paymentMethod,
         client_email: user.email,
-        notes: `Payment request for order #${selected.order_number}`
+        notes: `Payment request for order #${selected.order_number} | Shipping: ${shippingMethod}`
       }])
       await fetch('/api/send-payment-request-email', {
         method: 'POST',
@@ -279,6 +281,41 @@ export default function PaymentsPage() {
                   ))}
                 </div>
 
+                {/* SHIPPING */}
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Shipping method</div>
+                  {[
+                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: 'Pick up at our warehouse · 6315 NW 99th Ave, Doral FL', tag: 'FREE', tagColor: '#2a7d4f' },
+                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship directly to your prep center address', tag: 'FREE', tagColor: '#2a7d4f' },
+                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping — rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders — freight rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
+                  ].map(method => (
+                    <div key={method.value} onClick={() => setShippingMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <span style={{ fontSize: 20 }}>{method.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{method.label}</div>
+                          <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: `${method.tagColor}15`, color: method.tagColor, fontWeight: 700 }}>{method.tag}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#aaa' }}>{method.desc}</div>
+                      </div>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${shippingMethod === method.value ? '#2d7dd2' : '#ddd'}`, background: shippingMethod === method.value ? '#2d7dd2' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {shippingMethod === method.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                      </div>
+                    </div>
+                  ))}
+                  {(shippingMethod === 'shipping' || shippingMethod === 'freight') && (
+                    <div style={{ padding: '10px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 4 }}>
+                      📋 Shipping cost will be quoted separately. We'll include it in your payment instructions.
+                    </div>
+                  )}
+                  {shippingMethod === 'prep_center' && (
+                    <div style={{ marginTop: 8 }}>
+                      <input placeholder="Prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box' }} />
+                    </div>
+                  )}
+                </div>
+
                 {/* Info */}
                 {paymentMethod && (
                   <div style={{ padding: '1rem 1.5rem', background: 'rgba(45,125,210,0.04)', borderBottom: '0.5px solid rgba(45,125,210,0.1)' }}>
@@ -292,7 +329,7 @@ export default function PaymentsPage() {
 
                 {/* Submit */}
                 <div style={{ padding: '1.25rem 1.5rem' }}>
-                  <button onClick={submitPaymentRequest} disabled={submitting || !paymentMethod} style={{ width: '100%', padding: 14, background: !paymentMethod ? '#e0e0e0' : submitting ? '#aaa' : '#2d7dd2', color: !paymentMethod ? '#aaa' : '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: !paymentMethod ? 'not-allowed' : 'pointer', borderRadius: 4, boxShadow: paymentMethod ? '0 4px 16px rgba(45,125,210,0.3)' : 'none', transition: 'all 0.2s' }}>
+                  <button onClick={submitPaymentRequest} disabled={submitting || !paymentMethod} style={{ width: '100%', padding: 14, background: (!paymentMethod || !shippingMethod) ? '#e0e0e0' : submitting ? '#aaa' : '#2d7dd2', color: (!paymentMethod || !shippingMethod) ? '#aaa' : '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: (!paymentMethod || !shippingMethod) ? 'not-allowed' : 'pointer', borderRadius: 4, boxShadow: (paymentMethod && shippingMethod) ? '0 4px 16px rgba(45,125,210,0.3)' : 'none', transition: 'all 0.2s' }}>
                     {submitting ? 'Submitting...' : `Request payment — $${selected.total?.toLocaleString()}`}
                   </button>
                   <div style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 8 }}>We'll follow up within 1 business day</div>
