@@ -8,7 +8,7 @@ export async function POST(request) {
 
     await resend.emails.send({
       from: 'Levam Corp Distributors <partners@levamcorp.com>',
-      to: [email]
+      to: [email],
       subject: `✓ Your application has been approved — Levam Corp Distributors`,
       html: `
 <!DOCTYPE html>
