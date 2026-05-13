@@ -64,6 +64,7 @@ export default function CatalogPage() {
       const supabase = createClient()
       const { data: { user: u } } = await supabase.auth.getUser()
       const { data: order, error } = await supabase.from('orders').insert([{
+        user_id: u.id,
         status: 'new',
         subtotal: cartTotal,
         total: cartTotal,
