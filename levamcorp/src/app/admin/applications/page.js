@@ -30,24 +30,20 @@ export default function AdminApplications() {
     setUpdating(true)
     try {
       const supabase = createClient()
+      await supabase.from('applications').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id)
+      
       if (status === 'approved' && selected) {
-        const res = await fetch('/api/approve-client', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            applicationId: id,
-            businessName: selected.business_name,
-            contactName: selected.contact_name,
-            email: selected.email,
-            phone: selected.phone,
-            address: selected.address,
-          })
-        })
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
-        alert(`✓ Client approved! Welcome email sent to ${selected.email}`)
-      } else {
-        await supabase.from('applications').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id)
+        // Create client record
+        await supabase.from('clients').insert([{
+          business_name: selected.business_name,
+          contact_name: selected.contact_name,
+          email: selected.email,
+          phone: selected.phone,
+          address: selected.address,
+          ein: selected.ein,
+          status: 'active',
+        }])
+        alert(`✓ ${selected.business_name} approved! Now go to Supabase → Authentication → Add user to create their login.`)
       }
       await loadApps(supabase)
       setSelected(prev => prev ? { ...prev, status } : null)
