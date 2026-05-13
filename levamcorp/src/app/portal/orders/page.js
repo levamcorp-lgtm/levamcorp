@@ -97,7 +97,7 @@ export default function OrdersPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 0, borderLeft: '0.5px solid rgba(255,255,255,0.08)', paddingLeft: 20 }}>
-            {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices']].map(([label, href]) => (
+            {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices'], ['Payments', '/portal/payments']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, fontSize: 13, fontWeight: label === 'My orders' ? 700 : 500, color: label === 'My orders' ? '#fff' : 'rgba(255,255,255,0.5)', textDecoration: 'none', padding: '6px 16px', borderBottom: label === 'My orders' ? '2px solid #2d7dd2' : '2px solid transparent', letterSpacing: '0.02em' }}>{label}</Link>
             ))}
           </div>
