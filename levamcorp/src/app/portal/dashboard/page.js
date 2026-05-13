@@ -17,6 +17,7 @@ export default function Dashboard() {
       const { data: ordersData } = await supabase
         .from('orders')
         .select('*')
+        .eq('user_id', data.user.id)
         .order('submitted_at', { ascending: false })
         .limit(5)
       setOrders(ordersData || [])
