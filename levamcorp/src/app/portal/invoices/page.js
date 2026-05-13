@@ -17,6 +17,7 @@ export default function InvoicesPage() {
       const { data: ordersData } = await supabase
         .from('orders')
         .select('*, order_items(*)')
+        .eq('user_id', data.user.id)
         .order('submitted_at', { ascending: false })
       setOrders(ordersData || [])
       setLoading(false)
