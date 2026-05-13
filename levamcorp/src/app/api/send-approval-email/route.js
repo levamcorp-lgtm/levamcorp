@@ -7,8 +7,8 @@ export async function POST(request) {
     const { email, businessName, contactName } = await request.json()
 
     await resend.emails.send({
-      from: 'Levam Corp Distributors <onboarding@resend.dev>',
-      to: ['levamcorp@gmail.com'], // Change to: [email] after domain verified
+      from: 'Levam Corp Distributors <partners@levamcorp.com>',
+      to: [email]
       subject: `✓ Your application has been approved — Levam Corp Distributors`,
       html: `
 <!DOCTYPE html>
