@@ -8,8 +8,8 @@ export async function POST(request) {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
     await resend.emails.send({
-      from: 'Levam Corp Distributors <onboarding@resend.dev>',
-      to: ['levamcorp@gmail.com'], // Change to: [email] after domain verified
+      from: 'Levam Corp Distributors <partners@levamcorp.com>',
+      to: [email]
       subject: `Application Received — ${businessName} · Levam Corp`,
       html: `
 <!DOCTYPE html>
