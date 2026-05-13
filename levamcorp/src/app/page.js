@@ -11,7 +11,7 @@ export default function Home() {
         padding: '1.4rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)',
         background: '#fff', position: 'sticky', top: 0, zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="logo-icon">
             <div className="logo-l-vert" />
             <div className="logo-l-horiz" />
