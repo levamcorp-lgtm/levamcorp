@@ -145,12 +145,18 @@ export default function Home() {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: 'rgba(0,0,0,0.08)', marginBottom: '3rem' }}>
           {[
-            { icon: '📺', name: 'Electronics & TVs', desc: 'Smart TVs, streaming devices, and consumer electronics at distributor pricing.', brands: ['JBL','LG','Garmin','Logitech','DJI'] },
-            { icon: '🏠', name: 'Home appliances', desc: 'Major and small appliances for household use, sourced from reliable suppliers.', brands: ['Shark','Roomba','Ninja','Nutribullet'] },
-            { icon: '🍳', name: 'Kitchen essentials', desc: 'Countertop appliances, cookware, and kitchen gadgets ready to dispatch.', brands: ['Ninja','Nutribullet','Cuisinart','KitchenAid'] },
+            { 
+              icon: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>,
+              name: 'Electronics & TVs', desc: 'Smart TVs, streaming devices, and consumer electronics at distributor pricing.', brands: ['JBL','LG','Garmin','Logitech','DJI'] },
+            { 
+              icon: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+              name: 'Home appliances', desc: 'Major and small appliances for household use, sourced from reliable suppliers.', brands: ['Shark','Roomba','Ninja','Nutribullet'] },
+            { 
+              icon: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2d7dd2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="19" cy="5" r="3"/></svg>,
+              name: 'Kitchen essentials', desc: 'Countertop appliances, cookware, and kitchen gadgets ready to dispatch.', brands: ['Ninja','Nutribullet','Cuisinart','KitchenAid'] },
           ].map(cat => (
             <div key={cat.name} style={{ background: '#fff', padding: '2.5rem 2rem' }}>
-              <div style={{ fontSize: 40, marginBottom: '1.25rem' }}>{cat.icon}</div>
+              <div style={{ marginBottom: '1.25rem' }}>{cat.icon}</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 8 }}>{cat.name}</div>
               <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, marginBottom: '1.25rem' }}>{cat.desc}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
