@@ -48,13 +48,14 @@ export default function AdminPayments() {
     setSending(true)
     try {
       const supabase = createClient()
-      if (!clientEmailInput) { alert('Please enter the client email'); setSending(false); return }
+      const emailToUse = clientEmailInput || selected.client_email || ''
+      if (!emailToUse) { alert('Please enter the client email'); setSending(false); return }
 
       const res = await fetch('/api/send-payment-link-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientEmail: clientEmailInput,
+          clientEmail: emailToUse,
           orderNumber: selected.orders?.order_number,
           total: selected.amount,
           paymentMethod: selected.payment_method,
@@ -130,7 +131,7 @@ export default function AdminPayments() {
                     const clientEmail = payment.notes?.match(/Email: ([^\s|]+)/)?.[1] || '—'
                     return (
                       <tr key={payment.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.04)', background: selected?.id === payment.id ? 'rgba(45,125,210,0.05)' : 'transparent', cursor: 'pointer' }}
-                        onClick={() => { setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || '') }}>
+                        onClick={() => { setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.client_email || '') }}>
                         <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#ccc' }}>#{payment.orders?.order_number}</td>
                         <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#555' }}>{clientEmail}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
@@ -143,7 +144,7 @@ export default function AdminPayments() {
                         <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#444' }}>{new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
                           {payment.status === 'requested' && (
-                            <button onClick={(e) => { e.stopPropagation(); setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || '') }}
+                            <button onClick={(e) => { e.stopPropagation(); setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.client_email || '') }}
                               style={{ fontSize: 10, padding: '4px 10px', background: 'rgba(45,125,210,0.15)', color: '#2d7dd2', border: '0.5px solid rgba(45,125,210,0.3)', borderRadius: 2, cursor: 'pointer' }}>
                               Send →
                             </button>
