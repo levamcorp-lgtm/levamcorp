@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '../../lib/supabase'
 
 export default function PortalPage() {
   const [email, setEmail] = useState('')
