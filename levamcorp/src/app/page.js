@@ -41,7 +41,7 @@ export default function Home() {
         display: 'grid', gridTemplateColumns: '1fr 1fr',
         minHeight: 580, borderBottom: '0.5px solid rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '3.5rem 3.5rem 3.5rem 3rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '5rem 3.5rem 5rem 3rem' }}>
           <div style={{
             fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase',
             color: '#2d7dd2', marginBottom: '1.5rem',
@@ -83,9 +83,9 @@ export default function Home() {
         </div>
         <div style={{ position: 'relative', overflow: 'hidden', minHeight: 580 }}>
           <img
-src="https://images.pexels.com/photos/29786116/pexels-photo-29786116.jpeg?auto=compress&cs=tinysrgb&w=1200"
+            src="/pexels-juan-r-real-2147838396-29786116.jpg"
             alt="Levam Corp Warehouse"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 460 }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 580 }}
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent)' }} />
         </div>
