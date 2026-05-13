@@ -40,22 +40,26 @@ export default function InvoicesPage() {
     <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
 
       {/* NAV — hidden on print */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40 }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="logo-icon"><div className="logo-l-vert" /><div className="logo-l-horiz" /><div className="logo-accent" /></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative', width: 32, height: 32 }}>
+              <div style={{ position: 'absolute', left: 7, top: 0, width: 2, height: 25, background: '#444' }} />
+              <div style={{ position: 'absolute', left: 7, bottom: 0, width: 18, height: 2, background: '#444' }} />
+              <div style={{ position: 'absolute', left: 11, bottom: 7, width: 11, height: 2.5, background: '#2d7dd2' }} />
+            </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.15em', color: '#222', textTransform: 'uppercase' }}>Levam</div>
-              <div style={{ fontSize: 7, letterSpacing: '0.25em', color: '#2d7dd2', textTransform: 'uppercase' }}>Partner Portal</div>
+              <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.18em', color: '#fff', textTransform: 'uppercase' }}>Levam</div>
+              <div style={{ fontSize: 8, letterSpacing: '0.28em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 2 }}>Partner Portal</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 0, borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
+          <div style={{ display: 'flex', gap: 0, borderLeft: '0.5px solid rgba(255,255,255,0.08)', paddingLeft: 20 }}>
             {[['Dashboard', '/portal/dashboard'], ['Catalog', '/portal/catalog'], ['My orders', '/portal/orders'], ['Invoices', '/portal/invoices']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Invoices' ? '#2d7dd2' : '#888', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Invoices' ? '2px solid #2d7dd2' : '2px solid transparent' }}>{label}</Link>
+              <Link key={label} href={href} style={{ fontSize: 12, fontSize: 13, fontWeight: label === 'Invoices' ? 700 : 500, color: label === 'Invoices' ? '#fff' : 'rgba(255,255,255,0.5)', textDecoration: 'none', padding: '6px 16px', borderBottom: label === 'Invoices' ? '2px solid #2d7dd2' : '2px solid transparent', letterSpacing: '0.02em' }}>{label}</Link>
             ))}
           </div>
         </div>
-        <button onClick={handleLogout} style={{ fontSize: 11, color: '#333', border: '0.5px solid rgba(0,0,0,0.12)', padding: '6px 14px', borderRadius: 2, background: '#fff', cursor: 'pointer' }}>Sign out</button>
+        <button onClick={handleLogout} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
       </nav>
 
       <div style={{ padding: '2rem', display: 'flex', gap: '1.5rem' }}>
