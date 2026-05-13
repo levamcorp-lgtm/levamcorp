@@ -342,6 +342,42 @@ function ProductCard({ product, inCart, onAdd, categoryIcon }) {
           <div style={{ fontSize: 10, color: product.stock <= 5 ? '#b07c00' : '#2a7d4f' }}>{product.stock <= 5 ? '⚠ Low stock' : '✓ In stock'}</div>
         </div>
         <div style={{ fontSize: 10, color: '#aaa', marginBottom: 10 }}>⏱ Ships in {product.dispatch_days}</div>
+        
+        {/* Amazon & Walmart links */}
+        {(product.amazon_url || product.walmart_url) && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            {product.amazon_url && (
+              <a href={product.amazon_url} target="_blank" rel="noopener noreferrer" style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '7px 10px', background: '#FF9900', borderRadius: 2,
+                textDecoration: 'none', transition: 'opacity 0.15s'
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity='0.85'}
+              onMouseOut={e => e.currentTarget.style.opacity='1'}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13.958 10.09c0 1.232.031 2.257-.59 3.351-.502.891-1.301 1.438-2.186 1.438-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.698-3.182v.685zm3.186 7.705c-.209.188-.512.201-.745.074-1.047-.872-1.234-1.276-1.814-2.106-1.734 1.768-2.962 2.297-5.209 2.297-2.66 0-4.731-1.641-4.731-4.927 0-2.565 1.391-4.309 3.37-5.164 1.715-.755 4.113-.891 5.945-1.098v-.41c0-.753.059-1.642-.384-2.294-.385-.579-1.124-.818-1.774-.818-1.205 0-2.277.618-2.54 1.9-.054.285-.261.567-.549.582l-3.065-.331c-.259-.058-.548-.266-.472-.66C5.9 1.766 9.08.5 11.9.5c1.44 0 3.318.383 4.455 1.476 1.441 1.346 1.303 3.141 1.303 5.094v4.617c0 1.387.576 1.997 1.118 2.747.192.271.234.593-.01.793l-1.622 1.568z"/>
+                  <path d="M20.533 19.638c-3.606 2.65-8.836 4.062-13.338 4.062-6.311 0-11.993-2.333-16.286-6.215-.337-.305-.035-.721.369-.484 4.635 2.697 10.366 4.319 16.281 4.319 3.992 0 8.381-.827 12.419-2.543.609-.261 1.12.401.555.861z"/>
+                </svg>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', letterSpacing: '0.04em' }}>Amazon</span>
+              </a>
+            )}
+            {product.walmart_url && (
+              <a href={product.walmart_url} target="_blank" rel="noopener noreferrer" style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '7px 10px', background: '#0071CE', borderRadius: 2,
+                textDecoration: 'none', transition: 'opacity 0.15s'
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity='0.85'}
+              onMouseOut={e => e.currentTarget.style.opacity='1'}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L13.5 8.5L20 7L15.5 12L20 17L13.5 15.5L12 22L10.5 15.5L4 17L8.5 12L4 7L10.5 8.5L12 2Z"/>
+                </svg>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', letterSpacing: '0.04em' }}>Walmart</span>
+              </a>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 2, overflow: 'hidden' }}>
             <button onClick={() => setQty(q => Math.max(1, q-1))} style={{ width: 26, height: 28, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888' }}>−</button>
