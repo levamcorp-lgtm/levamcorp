@@ -286,7 +286,7 @@ export default function PaymentsPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Shipping method</div>
                   {[
                     { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: 'Pick up at our warehouse · 6315 NW 99th Ave, Doral FL', tag: 'FREE', tagColor: '#2a7d4f' },
-                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship directly to your prep center address', tag: 'FREE', tagColor: '#2a7d4f' },
+                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship directly to your prep center — rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
                     { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping — rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
                     { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders — freight rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
                   ].map(method => (
@@ -312,6 +312,9 @@ export default function PaymentsPage() {
                   {shippingMethod === 'prep_center' && (
                     <div style={{ marginTop: 8 }}>
                       <input placeholder="Prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box' }} />
+                      <div style={{ padding: '8px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 6 }}>
+                        📋 Prep center shipping cost will be quoted separately and included in your payment instructions.
+                      </div>
                     </div>
                   )}
                 </div>
