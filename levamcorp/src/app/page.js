@@ -178,14 +178,15 @@ export default function Home() {
             { name: 'iRobot', domain: 'irobot.com' },
             { name: 'Nutribullet', domain: 'nutribullet.com' },
           ].map(brand => (
-            <div key={brand.name} style={{ background: '#fff', padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div key={brand.name} style={{ background: '#fff', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <img
-                src={`https://logo.clearbit.com/${brand.domain}`}
+                src={`https://img.logo.dev/${brand.domain}?token=pk_X-1ZO13GSgeOoUrIuJ6BeQ&size=80&format=png`}
                 alt={brand.name}
-                style={{ width: 40, height: 40, objectFit: 'contain', filter: 'grayscale(20%)' }}
+                style={{ width: 48, height: 48, objectFit: 'contain' }}
                 onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block' }}
               />
               <span style={{ fontSize: 10, fontWeight: 700, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'none' }}>{brand.name}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#aaa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{brand.name}</span>
             </div>
           ))}
         </div>
