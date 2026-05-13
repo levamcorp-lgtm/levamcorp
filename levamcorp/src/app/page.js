@@ -77,9 +77,11 @@ export default function Home() {
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 10, minHeight: 560
         }}>
-          <div style={{ fontSize: 64, color: '#ddd' }}>🏭</div>
-          <span style={{ fontSize: 11, color: '#ccc', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Your warehouse photo here</span>
-          <span style={{ fontSize: 10, color: '#ddd' }}>Replace with your image</span>
+          <img 
+  src="/pexels-juan-r-real-2147838396-29786116.jpg"
+  alt="Levam Corp Warehouse"
+  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 560 }}
+/>
         </div>
       </section>
 
