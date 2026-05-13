@@ -7,8 +7,8 @@ export async function POST(request) {
     const { email, businessName, contactName } = await request.json()
 
     await resend.emails.send({
-      from: 'Levam Corp Distributors <partners@levamcorp.com>',
-      to: [email],
+      from: 'Levam Corp Distributors <onboarding@resend.dev>',
+      to: ['levamcorp@gmail.com'], // Change to: [email] after domain verified
       subject: `✓ Your application has been approved — Levam Corp Distributors`,
       html: `
 <!DOCTYPE html>
@@ -22,7 +22,7 @@ export async function POST(request) {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td>
-            <div style="font-size:17px;font-weight:500;letter-spacing:0.18em;color:#d0d0d0;text-transform:uppercase;">LEVAM</div>
+            <div style="font-size:17px;font-weight:500;letter-spacing:0.18em;color:#d0d0d0;text-transform:uppercase;"><img src="https://levamcorp.com/levamcorp-logo_1.png" alt="Levam Corp" style="height:44px;display:block;margin-bottom:14px;" />LEVAM</div>
             <div style="font-size:8px;letter-spacing:0.32em;color:#2d7dd2;text-transform:uppercase;margin-top:3px;">CORP · DISTRIBUTORS</div>
             <div style="margin-top:14px;font-size:10px;color:#444;line-height:1.9;">
               6315 NW 99th Ave, Doral, FL 33178<br>
