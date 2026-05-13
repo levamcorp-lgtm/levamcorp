@@ -52,7 +52,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-          {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products']].map(([label, href]) => (
+          {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments']].map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 12, color: label === active ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 14px', borderBottom: label === active ? '2px solid #2d7dd2' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 5 }}>
               {label}
               {label === 'Orders' && stats.newOrders > 0 && <span style={{ background: '#e74c3c', color: '#fff', fontSize: 9, fontWeight: 500, width: 15, height: 15, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.newOrders}</span>}
