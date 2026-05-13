@@ -12,7 +12,7 @@ export default function AdminProducts() {
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '' })
+  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '', amazon_url: '', walmart_url: '' })
   const fileRef = useRef(null)
   const editFileRef = useRef(null)
 
@@ -194,6 +194,8 @@ export default function AdminProducts() {
                   <Field label="Stock" value={editing.stock} onChange={v => setEditing({...editing, stock: v})} type="number" />
                   <Field label="Dispatch time" value={editing.dispatch_days} onChange={v => setEditing({...editing, dispatch_days: v})} />
                   <Field label="Description" value={editing.description || ''} onChange={v => setEditing({...editing, description: v})} />
+                  <Field label="Amazon URL" value={editing.amazon_url || ''} onChange={v => setEditing({...editing, amazon_url: v})} />
+                  <Field label="Walmart URL" value={editing.walmart_url || ''} onChange={v => setEditing({...editing, walmart_url: v})} />
                 </>
               ) : (
                 <>
@@ -205,6 +207,8 @@ export default function AdminProducts() {
                   <Field label="Stock *" value={newProduct.stock} onChange={v => setNewProduct({...newProduct, stock: v})} type="number" />
                   <Field label="Dispatch time" value={newProduct.dispatch_days} onChange={v => setNewProduct({...newProduct, dispatch_days: v})} />
                   <Field label="Description" value={newProduct.description} onChange={v => setNewProduct({...newProduct, description: v})} />
+                  <Field label="Amazon URL" value={newProduct.amazon_url} onChange={v => setNewProduct({...newProduct, amazon_url: v})} />
+                  <Field label="Walmart URL" value={newProduct.walmart_url} onChange={v => setNewProduct({...newProduct, walmart_url: v})} />
                 </>
               )}
 
