@@ -157,7 +157,7 @@ export default function CatalogPage() {
               <p style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>Showing {filtered.length} products · Approved partner pricing</p>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
             {filtered.map(product => (
               <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} />
             ))}
@@ -332,13 +332,13 @@ function ProductCard({ product, inCart, onAdd, categoryIcon }) {
           {categoryIcon(product.category)}
         </div>
       )}
-      <div style={{ padding: '1rem' }}>
+      <div style={{ padding: '0.75rem' }}>
         <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{product.category}</div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{product.name}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111', marginBottom: 4, lineHeight: 1.3 }}>{product.name}</div>
         <div style={{ fontSize: 10, color: '#ccc', marginBottom: 8 }}>{product.sku}</div>
         {product.description && <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.5, marginBottom: 8 }}>{product.description}</div>}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 18, fontWeight: 500, color: '#111' }}>${product.price}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>${product.price}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: product.stock <= 5 ? '#b07c00' : '#2a7d4f' }}>{product.stock <= 5 ? '⚠ Low stock' : '✓ In stock'}</div>
         </div>
         <div style={{ fontSize: 10, color: '#aaa', marginBottom: 10 }}>⏱ Ships in {product.dispatch_days}</div>
