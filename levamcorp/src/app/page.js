@@ -201,17 +201,62 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" style={{ padding: '4rem 3rem', background: '#f7f8fa', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-        <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '0.75rem', fontWeight: 600 }}>How it works</div>
-        <h2 style={{ fontSize: 36, fontWeight: 800, color: '#111', marginBottom: '2.5rem', letterSpacing: '-0.01em' }}>Four steps to start ordering.</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: 'rgba(0,0,0,0.08)' }}>
-          {[['01','Apply','Submit your business info. We review every application personally.'],['02','Get approved','Receive your private login credentials within 1–2 business days.'],['03','Browse & quote','Access the full catalog with live pricing, availability, and dispatch times.'],['04','Order & invoice','Place your order. Invoice and quote generate automatically.']].map(([num,title,desc]) => (
-            <div key={num} style={{ background: '#fff', padding: '2rem 1.5rem' }}>
-              <div style={{ fontSize: 11, color: '#2d7dd2', letterSpacing: '0.25em', marginBottom: '1rem', fontWeight: 700 }}>{num}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 8 }}>{title}</div>
-              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7 }}>{desc}</div>
+      <section id="how" style={{ padding: '5rem 3rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '0.75rem', fontWeight: 600 }}>How it works</div>
+          <h2 style={{ fontSize: 38, fontWeight: 800, color: '#fff', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Four steps to start ordering.</h2>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', maxWidth: 480, margin: '0 auto' }}>Join our network of verified distributors and get access to wholesale pricing today.</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1.5rem', marginBottom: '3.5rem' }}>
+          {[
+            { num: '01', title: 'Apply', desc: 'Submit your business info. We review every application personally within 1–2 business days.', icon: '📋' },
+            { num: '02', title: 'Get approved', desc: 'Receive your private portal login credentials and get instant access to our full catalog.', icon: '✓' },
+            { num: '03', title: 'Browse & quote', desc: 'Access live pricing, real-time availability, dispatch times, and generate quotes instantly.', icon: '🔍' },
+            { num: '04', title: 'Order & invoice', desc: 'Place your order with one click. Invoice and quote generate automatically — no back and forth.', icon: '⚡' },
+          ].map((step, i) => (
+            <div key={step.num} style={{
+              background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.08)',
+              borderRadius: 4, padding: '2rem 1.75rem', position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', fontSize: 11, color: 'rgba(255,255,255,0.1)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: 28 }}>{step.num}</div>
+              <div style={{
+                width: 40, height: 40, background: 'rgba(45,125,210,0.15)', border: '0.5px solid rgba(45,125,210,0.3)',
+                borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, marginBottom: '1.25rem'
+              }}>{step.icon}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 10 }}>{step.title}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75 }}>{step.desc}</div>
+              {i < 3 && (
+                <div style={{ position: 'absolute', right: -12, top: '50%', transform: 'translateY(-50%)', color: '#2d7dd2', fontSize: 18, fontWeight: 700, zIndex: 2 }}>→</div>
+              )}
             </div>
           ))}
+        </div>
+
+        {/* CTA INSIDE HOW IT WORKS */}
+        <div style={{
+          background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.25)',
+          borderRadius: 4, padding: '2.5rem 3rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem'
+        }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Ready to join our distributor network?</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Applications reviewed within 1–2 business days. No commitment required.</div>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <Link href="/apply" style={{
+              padding: '13px 32px', background: '#2d7dd2', color: '#fff',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              borderRadius: 2, textDecoration: 'none', display: 'inline-block',
+              boxShadow: '0 4px 16px rgba(45,125,210,0.4)'
+            }}>Apply now →</Link>
+            <Link href="/portal" style={{
+              padding: '13px 24px', background: 'transparent', color: 'rgba(255,255,255,0.6)',
+              fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+              border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 2, textDecoration: 'none', display: 'inline-block'
+            }}>Partner login</Link>
+          </div>
         </div>
       </section>
 
