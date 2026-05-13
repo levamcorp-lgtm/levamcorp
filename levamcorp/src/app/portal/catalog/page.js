@@ -333,15 +333,15 @@ function ProductCard({ product, inCart, onAdd, categoryIcon }) {
         </div>
       )}
       <div style={{ padding: '0.75rem' }}>
-        <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{product.category}</div>
+        <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{product.category}</div>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#111', marginBottom: 4, lineHeight: 1.3 }}>{product.name}</div>
-        <div style={{ fontSize: 10, color: '#ccc', marginBottom: 8 }}>{product.sku}</div>
+        <div style={{ fontSize: 10, color: '#888', marginBottom: 8 }}>{product.sku}</div>
         {product.description && <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.5, marginBottom: 8 }}>{product.description}</div>}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>${product.price}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: product.stock <= 5 ? '#b07c00' : '#2a7d4f' }}>{product.stock <= 5 ? '⚠ Low stock' : '✓ In stock'}</div>
         </div>
-        <div style={{ fontSize: 10, color: '#aaa', marginBottom: 10 }}>⏱ Ships in {product.dispatch_days}</div>
+        <div style={{ fontSize: 11, color: '#666', marginBottom: 10, fontWeight: 500 }}>⏱ Ships in {product.dispatch_days}</div>
         
         {/* Amazon & Walmart links */}
         {(product.amazon_url || product.walmart_url) && (
@@ -384,7 +384,7 @@ function ProductCard({ product, inCart, onAdd, categoryIcon }) {
             <input type="number" value={qty} onChange={e => setQty(Math.max(1, parseInt(e.target.value)||1))} style={{ width: 36, textAlign: 'center', fontSize: 12, border: 'none', outline: 'none', background: '#fff', color: '#333', fontFamily: 'inherit' }} />
             <button onClick={() => setQty(q => q+1)} style={{ width: 26, height: 28, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888' }}>+</button>
           </div>
-          <button onClick={handleAdd} style={{ flex: 1, padding: '6px 0', background: added ? '#2a7d4f' : '#2d7dd2', color: '#fff', fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>
+          <button onClick={handleAdd} style={{ flex: 1, padding: '8px 0', background: added ? '#2a7d4f' : '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2, boxShadow: added ? '0 2px 6px rgba(42,125,79,0.3)' : '0 2px 6px rgba(45,125,210,0.3)' }}>
             {added ? '✓ Added' : 'Add to quote'}
           </button>
         </div>
