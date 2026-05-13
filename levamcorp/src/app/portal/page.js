@@ -9,9 +9,10 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [shippingMethod, setShippingMethod] = useState('')
+  const [prepAddress, setPrepAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [shippingMethod, setShippingMethod] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -48,7 +49,7 @@ export default function PaymentsPage() {
         status: 'requested',
         payment_method: paymentMethod,
         client_email: user.email,
-        notes: `Payment request for order #${selected.order_number} | Shipping: ${shippingMethod}`
+        notes: `Payment request for order #${selected.order_number} | Shipping: ${shippingMethod}${prepAddress ? ' - ' + prepAddress : ''}`
       }])
       await fetch('/api/send-payment-request-email', {
         method: 'POST',
@@ -58,12 +59,15 @@ export default function PaymentsPage() {
           orderNumber: selected.order_number,
           total: selected.total,
           paymentMethod,
+          shippingMethod,
           items: selected.order_items || []
         })
       })
       setSubmitted(true)
       setSelected(null)
       setPaymentMethod('')
+      setShippingMethod('')
+      setPrepAddress('')
     } catch (e) { alert('Error submitting request. Please try again.') }
     setSubmitting(false)
   }
@@ -121,15 +125,13 @@ export default function PaymentsPage() {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 8 }}>Account balance</div>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: '1.5rem', letterSpacing: '-0.02em' }}>Payments & Billing</h1>
-
-          {/* STATS ROW */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
             {[
               { label: 'Outstanding balance', value: `$${totalOwed.toLocaleString()}`, sub: `${pendingOrders.length} pending orders`, color: totalOwed > 0 ? '#e74c3c' : '#2a7d4f', icon: '⚡' },
               { label: 'Total paid', value: `$${totalPaid.toLocaleString()}`, sub: 'completed orders', color: '#2a7d4f', icon: '✅' },
               { label: 'Total orders', value: orders.length, sub: 'all time', color: '#2d7dd2', icon: '📦' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '1.25rem 1.5rem', backdropFilter: 'blur(10px)' }}>
+              <div key={s.label} style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '1.25rem 1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
@@ -146,10 +148,9 @@ export default function PaymentsPage() {
 
       <div style={{ padding: '2rem', maxWidth: 1100, margin: '0 auto' }}>
 
-        {/* SUCCESS MESSAGE */}
         {submitted && (
-          <div style={{ background: 'linear-gradient(135deg, rgba(42,125,79,0.12), rgba(42,125,79,0.06))', border: '1px solid rgba(42,125,79,0.25)', borderRadius: 6, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, background: 'rgba(42,125,79,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>✅</div>
+          <div style={{ background: 'rgba(42,125,79,0.08)', border: '1px solid rgba(42,125,79,0.25)', borderRadius: 6, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 40, height: 40, background: 'rgba(42,125,79,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>✅</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#2a7d4f', marginBottom: 2 }}>Payment request submitted!</div>
               <div style={{ fontSize: 12, color: '#666' }}>Our team will send you payment instructions within 1 business day at <strong>{user?.email}</strong>.</div>
@@ -161,7 +162,6 @@ export default function PaymentsPage() {
 
           {/* LEFT */}
           <div>
-            {/* OUTSTANDING ORDERS */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 3, height: 14, background: '#e74c3c', borderRadius: 2, display: 'inline-block' }} />
@@ -175,8 +175,8 @@ export default function PaymentsPage() {
                     <div style={{ fontSize: 12, color: '#aaa' }}>No outstanding balances</div>
                   </div>
                 ) : pendingOrders.map(order => (
-                  <div key={order.id} onClick={() => { setSelected(order); setSubmitted(false) }} style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(45,125,210,0.03)' : '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.15s' }}>
-                    <div style={{ display: 'flex', align: 'center', gap: 14 }}>
+                  <div key={order.id} onClick={() => { setSelected(order); setSubmitted(false); setPaymentMethod(''); setShippingMethod('') }} style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(45,125,210,0.03)' : '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 42, height: 42, background: 'rgba(45,125,210,0.08)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📋</div>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>Order #{order.order_number}</div>
@@ -188,7 +188,7 @@ export default function PaymentsPage() {
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#111' }}>${order.total?.toLocaleString()}</div>
                         <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: `${statusColor[order.status]}15`, color: statusColor[order.status], fontWeight: 600 }}>{order.status}</span>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); setSelected(order); setSubmitted(false) }} style={{ padding: '8px 16px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(45,125,210,0.3)' }}>
+                      <button onClick={(e) => { e.stopPropagation(); setSelected(order); setSubmitted(false); setPaymentMethod(''); setShippingMethod('') }} style={{ padding: '8px 16px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(45,125,210,0.3)' }}>
                         Pay now
                       </button>
                     </div>
@@ -197,7 +197,7 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            {/* PAYMENT METHODS */}
+            {/* PAYMENT METHODS INFO */}
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 3, height: 14, background: '#2d7dd2', borderRadius: 2, display: 'inline-block' }} />
@@ -205,16 +205,17 @@ export default function PaymentsPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
                 {[
-                  { icon: '💳', title: 'Credit / Debit Card', desc: 'Visa, Mastercard, Amex and debit cards accepted.', tag: 'Popular', tagColor: '#2d7dd2' },
-                  { icon: '🏦', title: 'ACH Bank Transfer', desc: 'Direct bank-to-bank transfer. No fees, 1–3 business days.', tag: 'Free', tagColor: '#2a7d4f' },
-                  { icon: '⚡', title: 'Wire Transfer', desc: 'Same-day domestic wire transfer. Bank fees may apply.', tag: 'Same day', tagColor: '#854f0b' },
+                  { icon: '💳', title: 'Credit Card', desc: 'Visa, Mastercard, American Express accepted.', tag: 'Popular', tagColor: '#2d7dd2' },
+                  { icon: '💳', title: 'Debit Card', desc: 'Bank debit card accepted.', tag: 'Easy', tagColor: '#534ab7' },
+                  { icon: '🏦', title: 'ACH Bank Transfer', desc: 'Direct bank transfer. No fees, 1–3 business days.', tag: 'Free', tagColor: '#2a7d4f' },
+                  { icon: '⚡', title: 'Wire Transfer', desc: 'Same-day domestic wire. Bank fees may apply.', tag: 'Same day', tagColor: '#854f0b' },
                 ].map(m => (
                   <div key={m.title} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
                       <span style={{ fontSize: 26 }}>{m.icon}</span>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4 }}>{m.title}</div>
-                        <span style={{ fontSize: 9, background: `${m.tagColor}15`, color: m.tagColor, padding: '2px 8px', borderRadius: 10, fontWeight: 700, letterSpacing: '0.06em' }}>{m.tag}</span>
+                        <span style={{ fontSize: 9, background: `${m.tagColor}15`, color: m.tagColor, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>{m.tag}</span>
                       </div>
                     </div>
                     <div style={{ fontSize: 12, color: '#888', lineHeight: 1.6 }}>{m.desc}</div>
@@ -224,7 +225,7 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          {/* RIGHT — PAYMENT REQUEST PANEL */}
+          {/* RIGHT — PAYMENT PANEL */}
           {selected && (
             <div style={{ position: 'sticky', top: 80, height: 'fit-content' }}>
               <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}>
@@ -260,15 +261,15 @@ export default function PaymentsPage() {
 
                 {/* Payment method */}
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Select payment method</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Payment method</div>
                   {[
-                    { value: 'ach', label: 'ACH Bank Transfer', icon: '🏦', desc: '1–3 business days · Free' },
+                    { value: 'credit_card', label: 'Credit Card', icon: '💳', desc: 'Visa, Mastercard, Amex' },
+                    { value: 'debit_card', label: 'Debit Card', icon: '💳', desc: 'Bank debit card' },
+                    { value: 'ach', label: 'ACH Bank Transfer', icon: '🏦', desc: '1–3 business days · No fees' },
                     { value: 'wire', label: 'Wire Transfer', icon: '⚡', desc: 'Same day · Bank fees may apply' },
-                    { value: 'melio', label: 'Melio Pay', icon: '💳', desc: 'Card or bank · We send a payment link' },
-                    { value: 'zelle', label: 'Zelle', icon: '💵', desc: 'Instant · Free' },
                   ].map(method => (
-                    <div key={method.value} onClick={() => setPaymentMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${paymentMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: paymentMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <span style={{ fontSize: 20 }}>{method.icon}</span>
+                    <div key={method.value} onClick={() => setPaymentMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${paymentMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: paymentMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 18 }}>{method.icon}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{method.label}</div>
                         <div style={{ fontSize: 11, color: '#aaa' }}>{method.desc}</div>
@@ -280,17 +281,17 @@ export default function PaymentsPage() {
                   ))}
                 </div>
 
-                {/* SHIPPING */}
+                {/* Shipping method */}
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Shipping method</div>
                   {[
-                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: 'Pick up at our warehouse · 6315 NW 99th Ave, Doral FL', tag: 'FREE', tagColor: '#2a7d4f' },
-                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship directly to your prep center — rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping — rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders — freight rate calculated by quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: '6315 NW 99th Ave, Doral FL · Free', tag: 'FREE', tagColor: '#2a7d4f' },
+                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship to your prep center · By quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping · By quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders · By quote', tag: 'By quote', tagColor: '#854f0b' },
                   ].map(method => (
-                    <div key={method.value} onClick={() => setShippingMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <span style={{ fontSize: 20 }}>{method.icon}</span>
+                    <div key={method.value} onClick={() => setShippingMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 18 }}>{method.icon}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{method.label}</div>
@@ -303,34 +304,30 @@ export default function PaymentsPage() {
                       </div>
                     </div>
                   ))}
-                  {(shippingMethod === 'shipping' || shippingMethod === 'freight') && (
-                    <div style={{ padding: '10px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 4 }}>
-                      📋 Shipping cost will be quoted separately. We'll include it in your payment instructions.
-                    </div>
-                  )}
                   {shippingMethod === 'prep_center' && (
-                    <div style={{ marginTop: 8 }}>
-                      <input placeholder="Prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box' }} />
-                      <div style={{ padding: '8px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 6 }}>
-                        📋 Prep center shipping cost will be quoted separately and included in your payment instructions.
-                      </div>
+                    <input value={prepAddress} onChange={e => setPrepAddress(e.target.value)} placeholder="Prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box', marginTop: 4 }} />
+                  )}
+                  {(shippingMethod === 'prep_center' || shippingMethod === 'shipping' || shippingMethod === 'freight') && (
+                    <div style={{ padding: '8px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 6 }}>
+                      📋 Shipping cost will be quoted separately and included in your payment instructions.
                     </div>
                   )}
                 </div>
 
                 {/* Info */}
                 {paymentMethod && (
-                  <div style={{ padding: '1rem 1.5rem', background: 'rgba(45,125,210,0.04)', borderBottom: '0.5px solid rgba(45,125,210,0.1)' }}>
+                  <div style={{ padding: '0.75rem 1.5rem', background: 'rgba(45,125,210,0.04)', borderBottom: '0.5px solid rgba(45,125,210,0.1)' }}>
                     <div style={{ fontSize: 12, color: '#555', lineHeight: 1.7 }}>
-                      {(paymentMethod === 'credit_card' || paymentMethod === 'debit_card') ? '💳 After submitting, we\'ll send you a secure payment link to your email within 1 business day.' :
-                       '🏦 After submitting, we\'ll send you our banking details via email within 1 business day.'}
+                      {(paymentMethod === 'credit_card' || paymentMethod === 'debit_card') 
+                        ? '💳 After submitting, we\'ll send you a secure payment link within 1 business day.'
+                        : '🏦 After submitting, we\'ll send you our banking details within 1 business day.'}
                     </div>
                   </div>
                 )}
 
                 {/* Submit */}
                 <div style={{ padding: '1.25rem 1.5rem' }}>
-                  <button onClick={submitPaymentRequest} disabled={submitting || !paymentMethod} style={{ width: '100%', padding: 14, background: (!paymentMethod || !shippingMethod) ? '#e0e0e0' : submitting ? '#aaa' : '#2d7dd2', color: (!paymentMethod || !shippingMethod) ? '#aaa' : '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: (!paymentMethod || !shippingMethod) ? 'not-allowed' : 'pointer', borderRadius: 4, boxShadow: (paymentMethod && shippingMethod) ? '0 4px 16px rgba(45,125,210,0.3)' : 'none', transition: 'all 0.2s' }}>
+                  <button onClick={submitPaymentRequest} disabled={submitting || !paymentMethod || !shippingMethod} style={{ width: '100%', padding: 14, background: (!paymentMethod || !shippingMethod) ? '#e0e0e0' : submitting ? '#aaa' : '#2d7dd2', color: (!paymentMethod || !shippingMethod) ? '#aaa' : '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: (!paymentMethod || !shippingMethod) ? 'not-allowed' : 'pointer', borderRadius: 4, boxShadow: (paymentMethod && shippingMethod) ? '0 4px 16px rgba(45,125,210,0.3)' : 'none' }}>
                     {submitting ? 'Submitting...' : `Request payment — $${selected.total?.toLocaleString()}`}
                   </button>
                   <div style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 8 }}>We'll follow up within 1 business day</div>
