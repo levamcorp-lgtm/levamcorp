@@ -1,8 +1,7 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '../../lib/supabase'
 
+export default function Home() {
 export default function PortalPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
