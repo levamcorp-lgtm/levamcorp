@@ -23,7 +23,7 @@ export async function POST(request) {
 
     const { data, error } = await resend.emails.send({
       from: 'Levam Corp Distributors <onboarding@resend.dev>',
-      to: [clientEmail],
+      to: ['levamcorp@gmail.com'],
       subject: `✓ Order Received #${invoiceNum} — Levam Corp Distributors`,
       html: `
 <!DOCTYPE html>
