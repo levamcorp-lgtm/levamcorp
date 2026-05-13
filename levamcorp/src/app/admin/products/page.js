@@ -12,7 +12,7 @@ export default function AdminProducts() {
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '', amazon_url: '', walmart_url: '' })
+  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '', amazon_url: '', walmart_url: '', moq: '1', warehouse: 'WH: FL' })
   const fileRef = useRef(null)
   const editFileRef = useRef(null)
 
@@ -196,6 +196,8 @@ export default function AdminProducts() {
                   <Field label="Description" value={editing.description || ''} onChange={v => setEditing({...editing, description: v})} />
                   <Field label="Amazon URL" value={editing.amazon_url || ''} onChange={v => setEditing({...editing, amazon_url: v})} />
                   <Field label="Walmart URL" value={editing.walmart_url || ''} onChange={v => setEditing({...editing, walmart_url: v})} />
+                  <Field label="MOQ (min order qty)" value={editing.moq || '1'} onChange={v => setEditing({...editing, moq: v})} type="number" />
+                  <Field label="Warehouse location" value={editing.warehouse || 'WH: FL'} onChange={v => setEditing({...editing, warehouse: v})} />
                 </>
               ) : (
                 <>
@@ -209,6 +211,8 @@ export default function AdminProducts() {
                   <Field label="Description" value={newProduct.description} onChange={v => setNewProduct({...newProduct, description: v})} />
                   <Field label="Amazon URL" value={newProduct.amazon_url} onChange={v => setNewProduct({...newProduct, amazon_url: v})} />
                   <Field label="Walmart URL" value={newProduct.walmart_url} onChange={v => setNewProduct({...newProduct, walmart_url: v})} />
+                  <Field label="MOQ (min order qty)" value={newProduct.moq} onChange={v => setNewProduct({...newProduct, moq: v})} type="number" />
+                  <Field label="Warehouse location" value={newProduct.warehouse} onChange={v => setNewProduct({...newProduct, warehouse: v})} />
                 </>
               )}
 
