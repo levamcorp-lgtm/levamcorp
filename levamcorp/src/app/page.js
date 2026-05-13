@@ -18,8 +18,8 @@ export default function Home() {
             <div className="logo-accent" />
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: '0.18em', color: '#222', textTransform: 'uppercase' }}>Levam</div>
-            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 2 }}>Corp · Distributors</div>
+            <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: '0.18em', color: '#222', textTransform: 'uppercase' }}>Levam</div>
+            <div style={{ fontSize: 11, letterSpacing: '0.3em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 3 }}>Corp · Distributors</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
