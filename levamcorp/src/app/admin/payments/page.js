@@ -13,6 +13,7 @@ export default function AdminPayments() {
   const [bankDetails, setBankDetails] = useState('')
   const [notes, setNotes] = useState('')
   const [sending, setSending] = useState(false)
+  const [clientEmailInput, setClientEmailInput] = useState('')
   const [sent, setSent] = useState(false)
 
   useEffect(() => {
@@ -47,15 +48,13 @@ export default function AdminPayments() {
     setSending(true)
     try {
       const supabase = createClient()
-      // Extract email from order notes
-      const clientEmail = selected.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''
-      if (!clientEmail) { alert('Could not find client email. Check order notes.'); setSending(false); return }
+      if (!clientEmailInput) { alert('Please enter the client email'); setSending(false); return }
 
       const res = await fetch('/api/send-payment-link-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientEmail,
+          clientEmail: clientEmailInput,
           orderNumber: selected.orders?.order_number,
           total: selected.amount,
           paymentMethod: selected.payment_method,
@@ -131,7 +130,7 @@ export default function AdminPayments() {
                     const clientEmail = payment.notes?.match(/Email: ([^\s|]+)/)?.[1] || '—'
                     return (
                       <tr key={payment.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.04)', background: selected?.id === payment.id ? 'rgba(45,125,210,0.05)' : 'transparent', cursor: 'pointer' }}
-                        onClick={() => { setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes('') }}>
+                        onClick={() => { setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || '') }}>
                         <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#ccc' }}>#{payment.orders?.order_number}</td>
                         <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#555' }}>{clientEmail}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
@@ -144,7 +143,7 @@ export default function AdminPayments() {
                         <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#444' }}>{new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td style={{ padding: '12px 1.25rem' }}>
                           {payment.status === 'requested' && (
-                            <button onClick={(e) => { e.stopPropagation(); setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes('') }}
+                            <button onClick={(e) => { e.stopPropagation(); setSelected(payment); setSent(false); setPaymentLink(''); setBankDetails(''); setNotes(''); setClientEmailInput(payment.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || '') }}
                               style={{ fontSize: 10, padding: '4px 10px', background: 'rgba(45,125,210,0.15)', color: '#2d7dd2', border: '0.5px solid rgba(45,125,210,0.3)', borderRadius: 2, cursor: 'pointer' }}>
                               Send →
                             </button>
@@ -176,6 +175,13 @@ export default function AdminPayments() {
                 <div style={{ padding: '10px 14px', background: 'rgba(45,125,210,0.08)', border: '0.5px solid rgba(45,125,210,0.2)', borderRadius: 2, marginBottom: '1rem' }}>
                   <div style={{ fontSize: 11, color: '#555', marginBottom: 3 }}>Payment method requested</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#2d7dd2' }}>{methodIcons[selected.payment_method]} {methodLabels[selected.payment_method]}</div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: 10, color: '#555', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Client email *</label>
+                  <input type="email" value={clientEmailInput} onChange={e => setClientEmailInput(e.target.value)}
+                    placeholder="client@business.com"
+                    style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.08)', color: '#ddd', fontSize: 12, padding: '10px 12px', borderRadius: 2, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 </div>
 
                 {selected.payment_method === 'melio' ? (
