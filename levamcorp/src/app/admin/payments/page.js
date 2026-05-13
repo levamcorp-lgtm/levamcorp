@@ -26,7 +26,7 @@ export default function AdminPayments() {
   const loadPayments = async (supabase) => {
     const { data } = await supabase
       .from('payments')
-      .select('*, orders(order_number, total, submitted_at)')
+      .select('*, orders(order_number, total, submitted_at, notes)')
       .order('created_at', { ascending: false })
     setPayments(data || [])
     setLoading(false)
@@ -46,20 +46,16 @@ export default function AdminPayments() {
     if (['ach','wire','zelle'].includes(selected.payment_method) && !bankDetails) { alert('Please enter the payment details'); return }
     setSending(true)
     try {
-      // Get client email from orders
       const supabase = createClient()
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('user_id')
-        .eq('id', selected.order_id)
-        .single()
+      // Extract email from order notes
+      const clientEmail = selected.orders?.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''
+      if (!clientEmail) { alert('Could not find client email. Check order notes.'); setSending(false); return }
 
-      // Get email from auth
       const res = await fetch('/api/send-payment-link-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientEmail: selected.notes?.match(/Email: ([^\s|]+)/)?.[1] || selected.payment_method,
+          clientEmail,
           orderNumber: selected.orders?.order_number,
           total: selected.amount,
           paymentMethod: selected.payment_method,
