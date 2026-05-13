@@ -168,25 +168,27 @@ export default function Home() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9,1fr)', gap: 1, background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
           {[
-            { name: 'JBL', domain: 'jbl.com' },
-            { name: 'LG', domain: 'lg.com' },
-            { name: 'Garmin', domain: 'garmin.com' },
-            { name: 'Logitech', domain: 'logitech.com' },
-            { name: 'DJI', domain: 'dji.com' },
-            { name: 'Shark', domain: 'sharkclean.com' },
-            { name: 'Ninja', domain: 'ninjakitchen.com' },
-            { name: 'iRobot', domain: 'irobot.com' },
-            { name: 'Nutribullet', domain: 'nutribullet.com' },
+            { name: 'JBL', color: '#ff6600', weight: 900, size: 20 },
+            { name: 'LG', color: '#a50034', weight: 900, size: 22 },
+            { name: 'Garmin', color: '#007cc0', weight: 800, size: 15 },
+            { name: 'Logitech', color: '#00b900', weight: 800, size: 13 },
+            { name: 'DJI', color: '#111', weight: 900, size: 22 },
+            { name: 'Shark', color: '#003da5', weight: 900, size: 18 },
+            { name: 'Ninja', color: '#e4002b', weight: 900, size: 18 },
+            { name: 'iRobot', color: '#e31937', weight: 800, size: 15 },
+            { name: 'Nutribullet', color: '#5a9e2f', weight: 800, size: 11 },
           ].map(brand => (
-            <div key={brand.name} style={{ background: '#fff', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <img
-                src={`https://img.logo.dev/${brand.domain}?token=pk_X-1ZO13GSgeOoUrIuJ6BeQ&size=80&format=png`}
-                alt={brand.name}
-                style={{ width: 48, height: 48, objectFit: 'contain' }}
-                onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block' }}
-              />
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'none' }}>{brand.name}</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#aaa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{brand.name}</span>
+            <div key={brand.name} style={{
+              background: '#fff', padding: '1.5rem 0.75rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRight: '1px solid #f0f0f0', minHeight: 80
+            }}>
+              <span style={{
+                fontSize: brand.size, fontWeight: brand.weight,
+                color: brand.color, letterSpacing: '-0.02em',
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                textTransform: 'uppercase', lineHeight: 1
+              }}>{brand.name}</span>
             </div>
           ))}
         </div>
