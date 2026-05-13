@@ -15,16 +15,18 @@ export async function POST(request) {
     )
 
     // Generate temp password
-    const tempPassword = `Levam${Math.floor(1000 + Math.random() * 9000)}!`
+    const tempPassword = `Levam${Math.floor(1000 + Math.random() * 9000)}@Corp`
 
     // 1. Create auth user
+    console.log('Creating user with email:', email, 'password:', tempPassword)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: email.trim().toLowerCase(),
       password: tempPassword,
       email_confirm: true,
     })
 
-    if (authError) throw authError
+    console.log('Auth result:', JSON.stringify({ authData: authData?.user?.id, authError }))
+    if (authError) throw new Error(`Auth error: ${authError.message} (${authError.status})`)
 
     // 2. Create client record
     const { error: clientError } = await supabaseAdmin.from('clients').insert([{
