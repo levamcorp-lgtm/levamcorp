@@ -168,18 +168,24 @@ export default function Home() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9,1fr)', gap: 1, background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
           {[
-            { name: 'JBL', color: '#ff6600', bg: '#fff8f4' },
-            { name: 'LG', color: '#a50034', bg: '#fff4f7' },
-            { name: 'Garmin', color: '#007cc0', bg: '#f4f9ff' },
-            { name: 'Logitech', color: '#00b900', bg: '#f4fff4' },
-            { name: 'DJI', color: '#1a1a1a', bg: '#f7f8fa' },
-            { name: 'Shark', color: '#003da5', bg: '#f4f7ff' },
-            { name: 'Ninja', color: '#e4002b', bg: '#fff4f5' },
-            { name: 'Roomba', color: '#e31937', bg: '#fff4f5' },
-            { name: 'Nutribullet', color: '#6db33f', bg: '#f6fff2' },
+            { name: 'JBL', domain: 'jbl.com' },
+            { name: 'LG', domain: 'lg.com' },
+            { name: 'Garmin', domain: 'garmin.com' },
+            { name: 'Logitech', domain: 'logitech.com' },
+            { name: 'DJI', domain: 'dji.com' },
+            { name: 'Shark', domain: 'sharkclean.com' },
+            { name: 'Ninja', domain: 'ninjakitchen.com' },
+            { name: 'iRobot', domain: 'irobot.com' },
+            { name: 'Nutribullet', domain: 'nutribullet.com' },
           ].map(brand => (
-            <div key={brand.name} style={{ background: brand.bg, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: brand.color, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{brand.name}</span>
+            <div key={brand.name} style={{ background: '#fff', padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <img
+                src={`https://logo.clearbit.com/${brand.domain}`}
+                alt={brand.name}
+                style={{ width: 40, height: 40, objectFit: 'contain', filter: 'grayscale(20%)' }}
+                onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block' }}
+              />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'none' }}>{brand.name}</span>
             </div>
           ))}
         </div>
