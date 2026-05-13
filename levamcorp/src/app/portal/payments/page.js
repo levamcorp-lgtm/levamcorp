@@ -45,6 +45,7 @@ export default function PaymentsPage() {
         amount: selected.total,
         status: 'requested',
         payment_method: paymentMethod,
+        client_email: user.email,
         notes: `Payment request for order #${selected.order_number}`
       }])
 
