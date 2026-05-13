@@ -22,8 +22,8 @@ export async function POST(request) {
     `).join('')
 
     const { data, error } = await resend.emails.send({
-      from: 'Levam Corp Distributors <partners@levamcorp.com>',
-      to: [email],
+      from: 'Levam Corp Distributors <onboarding@resend.dev>',
+      to: [clientEmail],
       subject: `✓ Order Received #${invoiceNum} — Levam Corp Distributors`,
       html: `
 <!DOCTYPE html>
@@ -53,7 +53,7 @@ export async function POST(request) {
                   </div>
                 </td>
                 <td style="vertical-align:middle;">
-                  <div style="font-size:17px;font-weight:500;letter-spacing:0.18em;color:#d0d0d0;text-transform:uppercase;line-height:1;">LEVAM</div>
+                  <div style="font-size:17px;font-weight:500;letter-spacing:0.18em;color:#d0d0d0;text-transform:uppercase;line-height:1;"><img src="https://levamcorp.com/levamcorp-logo_1.png" alt="Levam Corp" style="height:44px;display:block;margin-bottom:14px;" />LEVAM</div>
                   <div style="font-size:8px;letter-spacing:0.32em;color:#2d7dd2;text-transform:uppercase;margin-top:3px;">CORP · DISTRIBUTORS</div>
                 </td>
               </tr>
