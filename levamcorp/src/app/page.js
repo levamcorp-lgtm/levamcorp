@@ -27,6 +27,7 @@ export default function Home() {
           <a href="#catalog" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', letterSpacing: '0.02em' }}>Products</a>
           <a href="#how" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>How it works</a>
           <a href="#about" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>About us</a>
+          <Link href="/contact" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Contact us</Link>
           <Link href="/portal" style={{
             fontSize: 12, fontWeight: 600, padding: '9px 22px',
             border: '0.5px solid #2d7dd2', background: 'rgba(45,125,210,0.15)',
@@ -289,7 +290,7 @@ export default function Home() {
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           {['Privacy','Terms','Contact us'].map(link => (
-            <a key={link} href="#" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{link}</a>
+            <a key={link} href={link === 'Contact us' ? '/contact' : '#'} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{link}</a>
           ))}
         </div>
       </footer>
