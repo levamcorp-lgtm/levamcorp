@@ -360,6 +360,7 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(inCart)
 
+  const maxQty = product.stock || 999
   const handleAdd = () => { onAdd(qty); setAdded(true) }
 
   return (
@@ -447,8 +448,8 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
         <div style={{ display: 'flex', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden' }}>
             <button onClick={() => setQty(q => Math.max(1, q-1))} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>−</button>
-            <input type="number" value={qty} onChange={e => setQty(Math.max(1, parseInt(e.target.value)||1))} style={{ width: 36, textAlign: 'center', fontSize: 12, fontWeight: 600, border: 'none', outline: 'none', background: '#fff', color: '#333', fontFamily: 'inherit' }} />
-            <button onClick={() => setQty(q => q+1)} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>+</button>
+            <input type="number" value={qty} onChange={e => setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value)||1)))} style={{ width: 36, textAlign: 'center', fontSize: 12, fontWeight: 600, border: 'none', outline: 'none', background: '#fff', color: '#333', fontFamily: 'inherit' }} />
+            <button onClick={() => setQty(q => Math.min(maxQty, q+1))} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>+</button>
           </div>
           <button onClick={handleAdd} style={{ flex: 1, padding: '6px 0', background: added ? '#2a7d4f' : '#2d7dd2', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3, boxShadow: added ? '0 2px 8px rgba(42,125,79,0.3)' : '0 2px 8px rgba(45,125,210,0.3)', transition: 'all 0.2s' }}>
             {added ? '✓ Added' : 'Add to quote'}
