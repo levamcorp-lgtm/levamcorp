@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
@@ -9,6 +9,25 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    // Supabase sends token_hash and type in the URL
+    const params = new URLSearchParams(window.location.search)
+    const tokenHash = params.get('token_hash')
+    const type = params.get('type')
+
+    if (tokenHash && type === 'recovery') {
+      const supabase = createClient()
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error }) => {
+          if (error) setError('This reset link has expired or is invalid. Please request a new one.')
+          else setReady(true)
+        })
+    } else {
+      setError('Invalid reset link. Please request a new password reset.')
+    }
+  }, [])
 
   const handleReset = async () => {
     if (!password || !confirm) { setError('Please fill in both fields.'); return }
@@ -41,9 +60,9 @@ export default function ResetPasswordPage() {
           </div>
         </Link>
         <div>
-          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '1rem', fontWeight: 600 }}>Password reset</div>
+          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '1rem', fontWeight: 600 }}>Security</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: '#fff', lineHeight: 1.1, marginBottom: '1rem', letterSpacing: '-0.02em' }}>Create a new password</h2>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', lineHeight: 1.8 }}>Choose a strong password to secure your partner account.</p>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', lineHeight: 1.8 }}>Choose a strong password to keep your partner account secure.</p>
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>© 2025 Levam Corp Distributors<br />6315 NW 99th Ave, Doral, FL 33178</div>
       </div>
@@ -58,9 +77,20 @@ export default function ResetPasswordPage() {
               <h3 style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: '0.75rem' }}>Password updated!</h3>
               <p style={{ fontSize: 14, color: '#aaa', marginBottom: '2rem', lineHeight: 1.7 }}>Your password has been changed successfully. You can now sign in with your new password.</p>
               <Link href="/portal" style={{ display: 'block', padding: 14, background: '#2d7dd2', color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', textAlign: 'center', boxShadow: '0 4px 16px rgba(45,125,210,0.35)' }}>
-                Sign in to portal
+                Sign in to portal →
               </Link>
             </div>
+          ) : error && !ready ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: 72, height: 72, background: 'rgba(231,76,60,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: 32 }}>⚠️</div>
+              <h3 style={{ fontSize: 22, fontWeight: 800, color: '#111', marginBottom: '0.75rem' }}>Link expired</h3>
+              <p style={{ fontSize: 14, color: '#aaa', marginBottom: '2rem', lineHeight: 1.7 }}>{error}</p>
+              <Link href="/portal" style={{ display: 'block', padding: 14, background: '#2d7dd2', color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', textAlign: 'center' }}>
+                Back to login
+              </Link>
+            </div>
+          ) : !ready ? (
+            <div style={{ textAlign: 'center', color: '#aaa', fontSize: 13 }}>Verifying link...</div>
           ) : (
             <>
               <div style={{ marginBottom: '2rem' }}>
