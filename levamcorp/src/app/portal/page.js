@@ -17,7 +17,7 @@ export default function PortalPage() {
     try {
       const supabase = createClient()
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://levamcorp.com/portal/reset-password',
+        redirectTo: `${window.location.origin}/portal/reset-password`,
       })
       if (err) throw err
       setResetSent(true)
