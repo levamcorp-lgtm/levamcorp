@@ -289,7 +289,7 @@ export default function Home() {
           © 2025 Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
-          {[['Privacy','#'],['Terms','/terms'],['Contact us','/contact']].map(([link, href]) => (
+          {[['Privacy','/privacy'],['Terms','/terms'],['Contact us','/contact']].map(([link, href]) => (
             <a key={link} href={href} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{link}</a>
           ))}
         </div>
