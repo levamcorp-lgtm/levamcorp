@@ -8,6 +8,22 @@ export default function PortalPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+
+  const handleForgotPassword = async () => {
+    if (!email) { setError('Please enter your email address first.'); return }
+    setResetLoading(true); setError('')
+    try {
+      const supabase = createClient()
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://levamcorp.com/portal/reset-password',
+      })
+      if (err) throw err
+      setResetSent(true)
+    } catch (e) { setError('Could not send reset email. Please try again.') }
+    setResetLoading(false)
+  }
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Please enter your email and password.'); return }
@@ -93,7 +109,9 @@ export default function PortalPage() {
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888', cursor: 'pointer' }}>
               <input type="checkbox" style={{ accentColor: '#2d7dd2' }} /> Keep me signed in
             </label>
-            <a href="#" style={{ fontSize: 12, color: '#2d7dd2', textDecoration: 'none', fontWeight: 600 }}>Forgot password?</a>
+            <button onClick={handleForgotPassword} disabled={resetLoading} style={{ fontSize: 12, color: resetSent ? '#2a7d4f' : '#2d7dd2', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {resetLoading ? 'Sending...' : resetSent ? '✓ Email sent!' : 'Forgot password?'}
+                  </button>
           </div>
 
           {error && <div style={{ fontSize: 12, color: '#c0392b', marginBottom: '1rem', padding: '10px 14px', background: '#fff5f5', border: '0.5px solid rgba(192,57,43,0.2)', borderRadius: 3 }}>{error}</div>}
