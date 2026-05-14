@@ -40,7 +40,15 @@ export default function AdminApplications() {
           email: selected.email,
           phone: selected.phone,
           address: selected.address,
-          ein: selected.ein,
+          ein: selected.ein_number || selected.ein,
+          ein_number: selected.ein_number || selected.ein,
+          resale_tax_number: selected.resale_tax_number,
+          ein_document_url: selected.ein_document_url,
+          resale_tax_document_url: selected.resale_tax_document_url,
+          business_type: selected.business_type,
+          monthly_volume: selected.monthly_volume,
+          years_in_business: selected.years_in_business,
+          notes: selected.notes,
           status: 'active',
         }])
         // Send approval email
