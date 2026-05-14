@@ -30,6 +30,32 @@ export default function InvoicesPage() {
     window.location.href = '/portal'
   }
 
+  const handlePrint = () => {
+    if (!selected) return
+    const printContent = document.getElementById('invoice-print-area')
+    if (!printContent) return
+    const win = window.open('', '_blank', 'width=800,height=900')
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${selected.invNum} - Levam Corp</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>${printContent.innerHTML}</body>
+      </html>
+    `)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 600)
+  }
+
   const fmtDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const dueDate = (date) => { const d = new Date(date); d.setDate(d.getDate() + 15); return fmtDate(d) }
 
@@ -184,7 +210,7 @@ export default function InvoicesPage() {
         {/* RIGHT — invoice */}
         {selected && (
           <div style={{ position: 'sticky', top: 80 }}>
-            <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.12)', position: 'relative' }}>
+            <div id="invoice-print-area" style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.12)', position: 'relative' }}>
 
               {/* WATERMARK */}
               <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%, -50%) rotate(-35deg)', fontSize: 88, fontWeight: 900, color: isPaid ? 'rgba(42,125,79,0.07)' : 'rgba(220,60,60,0.07)', letterSpacing: '0.1em', pointerEvents: 'none', zIndex: 10, userSelect: 'none', whiteSpace: 'nowrap' }}>
@@ -388,7 +414,7 @@ export default function InvoicesPage() {
 
               {/* ACTIONS */}
               <div className="no-print" style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
-                <button onClick={() => window.print()} style={{ flex: 1, padding: 11, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3, boxShadow: '0 4px 14px rgba(45,125,210,0.3)' }}>
+                <button onClick={handlePrint} style={{ flex: 1, padding: 11, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3, boxShadow: '0 4px 14px rgba(45,125,210,0.3)' }}>
                   🖨 Print / Save PDF
                 </button>
                 {!isPaid && (
