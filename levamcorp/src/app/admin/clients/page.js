@@ -219,7 +219,6 @@ export default function AdminClients() {
                       ['Email', selected.email],
                       ['Phone', selected.phone || '—'],
                       ['Business type', selected.business_type || '—'],
-                      ['EIN (Tax ID)', selected.ein || '—'],
                       ['Years in business', selected.years_in_business || '—'],
                       ['Monthly volume', selected.monthly_volume || '—'],
                       ['Address', selected.address || '—'],
@@ -230,6 +229,41 @@ export default function AdminClients() {
                         <div style={{ fontSize: 12, color: '#ccc', fontWeight: 500, wordBreak: 'break-word' }}>{val}</div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* EIN & Resale Tax */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Tax & Compliance Documents</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+
+                      {/* EIN */}
+                      <div style={{ padding: '12px', background: 'rgba(45,125,210,0.06)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4 }}>
+                        <div style={{ fontSize: 8, color: '#2d7dd2', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>📋 SS4 / EIN</div>
+                        <div style={{ fontSize: 12, color: '#ccc', fontWeight: 600, marginBottom: 6 }}>{selected.ein_number || selected.ein || '—'}</div>
+                        {selected.ein_document_url ? (
+                          <a href={`https://scmyjjnrflmqquflveca.supabase.co/storage/v1/object/public/documents/${selected.ein_document_url}`} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: '#2d7dd2', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: 'rgba(45,125,210,0.1)', borderRadius: 20, fontWeight: 600 }}>
+                            📄 View document
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 10, color: '#555' }}>No document uploaded</span>
+                        )}
+                      </div>
+
+                      {/* Resale Tax */}
+                      <div style={{ padding: '12px', background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.15)', borderRadius: 4 }}>
+                        <div style={{ fontSize: 8, color: '#2a7d4f', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>🏷 Resale Tax</div>
+                        <div style={{ fontSize: 12, color: '#ccc', fontWeight: 600, marginBottom: 6 }}>{selected.resale_tax_number || '—'}</div>
+                        {selected.resale_tax_document_url ? (
+                          <a href={`https://scmyjjnrflmqquflveca.supabase.co/storage/v1/object/public/documents/${selected.resale_tax_document_url}`} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: '#2a7d4f', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: 'rgba(42,125,79,0.1)', borderRadius: 20, fontWeight: 600 }}>
+                            📄 View document
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 10, color: '#555' }}>No document uploaded</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Revenue summary */}
