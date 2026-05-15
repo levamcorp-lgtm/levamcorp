@@ -19,7 +19,7 @@ export async function POST(request) {
     // Send email to contact@levamcorp.com
     await resend.emails.send({
       from: 'Levam Corp Website <partners@levamcorp.com>',
-      to: ['partners@levamcorp.com'],
+      to: ['contact@levamcorp.com'],
       subject: `📩 New contact message — ${name}${company ? ' · ' + company : ''}`,
       html: `
 <!DOCTYPE html>
