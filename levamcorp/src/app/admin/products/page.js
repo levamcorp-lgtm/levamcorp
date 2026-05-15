@@ -177,7 +177,10 @@ export default function AdminProducts() {
                       </button>
                     </td>
                     <td style={{ padding: '8px 1rem' }}>
-                      <button onClick={() => { setEditing({...p, image_url: p.image_url || ''}); setAdding(false) }} style={{ fontSize: 10, color: '#2d7dd2', background: 'transparent', border: '0.5px solid rgba(45,125,210,0.3)', padding: '4px 10px', borderRadius: 2, cursor: 'pointer' }}>Edit</button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => { setEditing({...p, image_url: p.image_url || ''}); setAdding(false) }} style={{ fontSize: 10, color: '#2d7dd2', background: 'transparent', border: '0.5px solid rgba(45,125,210,0.3)', padding: '4px 10px', borderRadius: 2, cursor: 'pointer' }}>Edit</button>
+                        <button onClick={() => deleteProduct(p.id, p.name)} style={{ fontSize: 10, color: '#c0392b', background: 'transparent', border: '0.5px solid rgba(192,57,43,0.3)', padding: '4px 10px', borderRadius: 2, cursor: 'pointer' }}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
