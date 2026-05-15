@@ -76,6 +76,14 @@ export default function AdminProducts() {
 
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
+  const deleteProduct = async (id, name) => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) return
+    const supabase = createClient()
+    await supabase.from('products').delete().eq('id', id)
+    setProducts(prev => prev.filter(p => p.id !== id))
+    if (editing?.id === id) setEditing(null)
+  }
+
   const Field = ({ label, value, onChange, type = 'text', options }) => (
     <div style={{ marginBottom: 10 }}>
       <label style={{ fontSize: 9, color: '#444', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{label}</label>
