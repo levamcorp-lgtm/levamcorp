@@ -302,7 +302,7 @@ export default function Home() {
                 <div style={{ fontSize: 8, letterSpacing: '0.32em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 3 }}>Corp · Distributors</div>
               </div>
             </div>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.9, marginBottom: '1.5rem', maxWidth: 300 }}>
+            <p style={{ fontSize: 15, color: '#fff', lineHeight: 1.7, marginBottom: '1.5rem', maxWidth: 320, fontStyle: 'italic', fontFamily: 'Georgia, "Times New Roman", serif', letterSpacing: '0.01em', borderLeft: '3px solid #2d7dd2', paddingLeft: '1rem' }}>
               "Your business growth isn't a question — it's a certainty. We make sure of it."
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -312,7 +312,7 @@ export default function Home() {
                 ['✉️', 'contact@levamcorp.com'],
                 ['📞', '(786) 878-4122 / (786) 546-9476'],
               ].map(([icon, text]) => (
-                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
                   <span style={{ fontSize: 14 }}>{icon}</span> {text}
                 </div>
               ))}
@@ -324,7 +324,7 @@ export default function Home() {
             <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Company</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[['About us','/#about'],['How it works','/#how'],['Products','/#catalog'],['Contact us','/contact'],['Apply to partner','/apply']].map(([label, href]) => (
-                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', transition: 'color 0.15s' }}>{label}</a>
+                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', transition: 'color 0.15s' }}>{label}</a>
               ))}
             </div>
           </div>
@@ -334,7 +334,7 @@ export default function Home() {
             <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Legal</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '2rem' }}>
               {[['Privacy Policy','/privacy'],['Terms & Conditions','/terms']].map(([label, href]) => (
-                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{label}</a>
+                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>{label}</a>
               ))}
             </div>
             <div style={{ background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.25)', borderRadius: 4, padding: '1.25rem' }}>
@@ -347,10 +347,10 @@ export default function Home() {
 
         {/* BOTTOM BAR */}
         <div style={{ padding: '1.25rem 3rem', borderTop: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>
             © 2025 Levam Corp Distributors · All rights reserved
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
             Doral, FL 33178 · B2B Wholesale Distribution
           </div>
         </div>
