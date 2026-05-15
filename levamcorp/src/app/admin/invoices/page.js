@@ -88,7 +88,10 @@ export default function AdminInvoices() {
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; }
-    @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+    @media print {
+      body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      @page { margin:0; size:letter; }
+    }
   </style>
 </head>
 <body>
@@ -115,16 +118,12 @@ export default function AdminInvoices() {
       <div style="font-size:14px;color:#2d7dd2;font-weight:700;margin-bottom:10px">${inv.invoice_number}</div>
       <div style="font-size:10px;color:#555;line-height:2.2">
         <span style="color:#666">Date:</span> ${fmtDate(inv.created_at)}<br>
-        <span style="color:#666">Status:</span> <span style="color:#2a7d4f;font-weight:700">✓ PAID</span>
+        <span style="color:#666">Terms:</span> Net 15
       </div>
     </div>
   </div>
 
-  <!-- STATUS BANNER -->
-  <div style="background:rgba(42,125,79,0.1);border-bottom:1px solid rgba(42,125,79,0.2);padding:10px 40px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:14px">✅</span>
-    <span style="font-size:12px;font-weight:700;color:#2a7d4f">Payment received — This invoice is final and confirmed.</span>
-  </div>
+
 
   <!-- PARTIES -->
   <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #ebebeb">
@@ -394,9 +393,7 @@ export default function AdminInvoices() {
                   </div>
                 </div>
 
-                <div style={{ padding: '1rem 1.5rem', background: 'rgba(42,125,79,0.06)', borderBottom: '0.5px solid rgba(42,125,79,0.15)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#2a7d4f' }}>✅ Invoice marked as PAID</span>
-                </div>
+
 
                 <div style={{ padding: '1rem 1.5rem' }}>
                   <button onClick={() => handlePrint(preview)} style={{ width: '100%', padding: 12, background: '#2a7d4f', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3, boxShadow: '0 4px 14px rgba(42,125,79,0.3)' }}>
