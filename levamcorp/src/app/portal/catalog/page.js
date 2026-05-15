@@ -360,8 +360,9 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(inCart)
 
-  const maxQty = product.stock || 999
-  const handleAdd = () => { onAdd(qty); setAdded(true) }
+  const maxQty = product.stock || 0
+  const outOfStock = product.stock === 0 || product.stock === null
+  const handleAdd = () => { if (outOfStock) return; onAdd(qty); setAdded(true) }
 
   return (
     <div
@@ -392,8 +393,8 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
         )}
         {/* Stock badge */}
         <div style={{ position: 'absolute', top: 8, right: 8 }}>
-          <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 20, background: product.stock <= 5 ? 'rgba(231,76,60,0.1)' : 'rgba(42,125,79,0.1)', color: product.stock <= 5 ? '#c0392b' : '#2a7d4f', fontWeight: 600, border: `0.5px solid ${product.stock <= 5 ? 'rgba(231,76,60,0.2)' : 'rgba(42,125,79,0.2)'}` }}>
-            {product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} in stock`}
+          <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 20, background: product.stock === 0 ? 'rgba(150,150,150,0.12)' : product.stock <= 5 ? 'rgba(231,76,60,0.1)' : 'rgba(42,125,79,0.1)', color: product.stock === 0 ? '#aaa' : product.stock <= 5 ? '#c0392b' : '#2a7d4f', fontWeight: 600, border: `0.5px solid ${product.stock <= 5 ? 'rgba(231,76,60,0.2)' : 'rgba(42,125,79,0.2)'}` }}>
+            {product.stock === 0 ? '✕ Out of stock' : product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} in stock`}
           </span>
         </div>
         {/* Category badge */}
@@ -446,13 +447,13 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
 
         {/* ADD TO QUOTE */}
         <div style={{ display: 'flex', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-            <button onClick={() => setQty(q => Math.max(1, q-1))} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>−</button>
-            <input type="number" value={qty} onChange={e => setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value)||1)))} style={{ width: 36, textAlign: 'center', fontSize: 12, fontWeight: 600, border: 'none', outline: 'none', background: '#fff', color: '#333', fontFamily: 'inherit' }} />
-            <button onClick={() => setQty(q => Math.min(maxQty, q+1))} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>+</button>
+          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden', opacity: outOfStock ? 0.4 : 1 }}>
+            <button onClick={() => setQty(q => Math.max(1, q-1))} disabled={outOfStock} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>−</button>
+            <input type="number" value={qty} disabled={outOfStock} onChange={e => setQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value)||1)))} style={{ width: 36, textAlign: 'center', fontSize: 12, fontWeight: 600, border: 'none', outline: 'none', background: '#fff', color: '#333', fontFamily: 'inherit' }} />
+            <button onClick={() => setQty(q => Math.min(maxQty, q+1))} disabled={outOfStock} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>+</button>
           </div>
-          <button onClick={handleAdd} style={{ flex: 1, padding: '6px 0', background: added ? '#2a7d4f' : '#2d7dd2', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3, boxShadow: added ? '0 2px 8px rgba(42,125,79,0.3)' : '0 2px 8px rgba(45,125,210,0.3)', transition: 'all 0.2s' }}>
-            {added ? '✓ Added' : 'Add to quote'}
+          <button onClick={handleAdd} disabled={outOfStock} style={{ flex: 1, padding: '6px 0', background: outOfStock ? '#e0e0e0' : added ? '#2a7d4f' : '#2d7dd2', color: outOfStock ? '#aaa' : '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', cursor: outOfStock ? 'not-allowed' : 'pointer', borderRadius: 3, boxShadow: outOfStock ? 'none' : added ? '0 2px 8px rgba(42,125,79,0.3)' : '0 2px 8px rgba(45,125,210,0.3)', transition: 'all 0.2s' }}>
+            {outOfStock ? '⏳ Out of stock' : added ? '✓ Added' : 'Add to quote'}
           </button>
         </div>
       </div>
