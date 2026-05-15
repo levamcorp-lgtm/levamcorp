@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 
-export default function RMAPage() {
+export default function rmaPage() {
   return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh' }}>
 
