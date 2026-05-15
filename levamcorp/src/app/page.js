@@ -333,7 +333,7 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Legal</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '2rem' }}>
-              {[['Privacy Policy','/privacy'],['Terms & Conditions','/terms']].map(([label, href]) => (
+              {[['Privacy Policy','/privacy'],['Terms & Conditions','/terms'],['RMA Policy','/rma']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>{label}</a>
               ))}
             </div>
