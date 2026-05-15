@@ -284,14 +284,75 @@ export default function Home() {
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: '2rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          © 2025 Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178
+      <footer style={{ background: '#0d0d0d', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+
+        {/* MAIN FOOTER */}
+        <div style={{ padding: '3.5rem 3rem', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '3rem' }}>
+
+          {/* BRAND */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.25rem' }}>
+              <div style={{ position: 'relative', width: 34, height: 34 }}>
+                <div style={{ position: 'absolute', left: 7, top: 0, width: 2.5, height: 27, background: '#333' }} />
+                <div style={{ position: 'absolute', left: 7, bottom: 0, width: 20, height: 2.5, background: '#333' }} />
+                <div style={{ position: 'absolute', left: 12, bottom: 7, width: 12, height: 2.5, background: '#2d7dd2' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '0.18em', color: '#fff', textTransform: 'uppercase', lineHeight: 1 }}>Levam</div>
+                <div style={{ fontSize: 8, letterSpacing: '0.32em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 3 }}>Corp · Distributors</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.9, marginBottom: '1.5rem', maxWidth: 300 }}>
+              "Your business growth isn't a question — it's a certainty. We make sure of it."
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                ['📍', '6315 NW 99th Ave, Doral, FL 33178'],
+                ['📧', 'partners@levamcorp.com'],
+                ['✉️', 'contact@levamcorp.com'],
+                ['📞', '(786) 878-4122 / (786) 546-9476'],
+              ].map(([icon, text]) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                  <span style={{ fontSize: 14 }}>{icon}</span> {text}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* LINKS */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Company</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[['About us','/#about'],['How it works','/#how'],['Products','/#catalog'],['Contact us','/contact'],['Apply to partner','/apply']].map(([label, href]) => (
+                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', transition: 'color 0.15s' }}>{label}</a>
+              ))}
+            </div>
+          </div>
+
+          {/* LEGAL + CTA */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>Legal</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '2rem' }}>
+              {[['Privacy Policy','/privacy'],['Terms & Conditions','/terms']].map(([label, href]) => (
+                <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{label}</a>
+              ))}
+            </div>
+            <div style={{ background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.25)', borderRadius: 4, padding: '1.25rem' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Ready to grow?</div>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: '1rem' }}>Join our exclusive distributor network today.</p>
+              <Link href="/apply" style={{ display: 'block', textAlign: 'center', padding: '9px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none' }}>Apply now →</Link>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '2rem' }}>
-          {[['Privacy','/privacy'],['Terms','/terms'],['Contact us','/contact']].map(([link, href]) => (
-            <a key={link} href={href} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{link}</a>
-          ))}
+
+        {/* BOTTOM BAR */}
+        <div style={{ padding: '1.25rem 3rem', borderTop: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.05em' }}>
+            © 2025 Levam Corp Distributors · All rights reserved
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+            Doral, FL 33178 · B2B Wholesale Distribution
+          </div>
         </div>
       </footer>
 
