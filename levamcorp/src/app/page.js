@@ -112,13 +112,13 @@ export default function Home() {
 
           {/* LEMA PRINCIPAL */}
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: '1rem' }}>Nuestra promesa</div>
+            <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: '1rem' }}>Our promise</div>
             <h2 style={{ fontSize: 42, fontWeight: 800, color: '#111', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '1.5rem', maxWidth: 700, margin: '0 auto 1.5rem' }}>
-              Tu crecimiento es nuestro{' '}
+              Your growth is our{' '}
               <em style={{ color: '#2d7dd2', fontStyle: 'normal' }}>compromiso.</em>
             </h2>
             <p style={{ fontSize: 17, color: '#555', lineHeight: 1.9, maxWidth: 640, margin: '0 auto 1.5rem', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
-              "Nuestro compromiso con cada cliente es total — estar siempre al día, nunca fallar en lo más mínimo, y ofrecerte una experiencia de compra al mayor donde te sientas como en casa."
+              "Our commitment to every client is absolute — always available, never dropping the ball, and delivering a wholesale buying experience where you feel right at home."
             </p>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 13, color: '#2d7dd2', fontWeight: 600, background: 'rgba(45,125,210,0.06)', padding: '10px 20px', borderRadius: 30, border: '0.5px solid rgba(45,125,210,0.2)' }}>
               <span>🇺🇸</span> English & <span>🇪🇸</span> Español — We speak your language
@@ -130,39 +130,39 @@ export default function Home() {
             {[
               {
                 icon: '🤝',
-                title: 'Confianza total',
-                title2: 'Total trust',
-                desc: 'Trabajamos con distribuidores verificados. Cada socio es revisado personalmente para garantizar relaciones de negocios serias y de largo plazo. Tu información y tus órdenes están en las mejores manos.'
+                title: 'Total trust',
+                
+                desc: 'We work exclusively with verified distributors. Every partner is personally reviewed to ensure serious, long-term business relationships. Your information and orders are in the best hands.'
               },
               {
                 icon: '💰',
-                title: 'Precios imbatibles',
-                title2: 'Unbeatable pricing',
-                desc: 'Accede a algunos de los mejores precios del mercado en electrónicos, electrodomésticos y cocina. Precios exclusivos para distribuidores aprobados — sin intermediarios, sin costos escondidos.'
+                title: 'Unbeatable pricing',
+                
+                desc: 'Access some of the best market prices on electronics, home appliances, and kitchen products. Exclusive pricing for approved distributors — no middlemen, no hidden fees.'
               },
               {
                 icon: '⚡',
-                title: 'Servicio sin igual',
-                title2: 'Unmatched service',
-                desc: 'Desde que aplicas hasta que recibes tu orden, estamos contigo. Respuesta rápida, comunicación clara y un equipo que habla tu idioma — en inglés y en español.'
+                title: 'Unmatched service',
+                
+                desc: 'From the moment you apply to when your order arrives, we're with you every step. Fast responses, clear communication, and a team that speaks your language — English and Spanish.'
               },
               {
                 icon: '📦',
-                title: 'Inventario listo',
-                title2: 'Ready inventory',
-                desc: 'Despacho promedio de 48 horas desde nuestro warehouse en Doral, FL. Inventario verificado, productos auténticos de marcas reconocidas como JBL, LG, Ninja, Shark y más.'
+                title: 'Ready inventory',
+                
+                desc: 'Average 48-hour dispatch from our warehouse in Doral, FL. Verified inventory, authentic products from top brands like JBL, LG, Ninja, Shark, and more.'
               },
               {
                 icon: '🏠',
-                title: 'Como en casa',
-                title2: 'Feel at home',
-                desc: 'Somos una empresa con raíces latinas en el corazón de Doral, FL. Entendemos tu negocio, hablamos tu idioma y nos importa tu éxito tanto como el nuestro.'
+                title: 'Feel at home',
+                
+                desc: 'We're a company with Latin roots in the heart of Doral, FL. We understand your business, speak your language, and care about your success as much as our own.'
               },
               {
                 icon: '📈',
-                title: 'Tu éxito es el nuestro',
-                title2: 'Your success is ours',
-                desc: 'No solo te vendemos productos — somos tu aliado estratégico. Nuestro portal privado te da acceso a cotizaciones, facturas y todo lo que necesitas para que tu negocio crezca.'
+                title: 'Your success is ours',
+                
+                desc: 'We don't just sell you products — we're your strategic business partner. Our private portal gives you access to quotes, invoices, and everything you need to scale your business.'
               },
             ].map(item => (
               <div key={item.title} style={{ padding: '2rem', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
@@ -178,21 +178,21 @@ export default function Home() {
           {/* TESTIMONIAL / CONVICTION BOX */}
           <div style={{ background: '#111', borderRadius: 8, padding: '3rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: '1rem' }}>¿Por qué Levam Corp?</div>
+              <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: '1rem' }}>Why Levam Corp?</div>
               <h3 style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>
-                La experiencia de compra al mayor que siempre quisiste.
+                The wholesale buying experience you always wanted.
               </h3>
               <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.9, marginBottom: '1.5rem' }}>
-                Sabemos lo que significa arriesgar tu capital en inventario. Por eso en Levam Corp nos tomamos en serio cada orden, cada cliente y cada producto. No somos solo un proveedor — somos tu socio de negocios.
+                We know what it means to put your capital on the line. That's why at Levam Corp we take every order, every client, and every product seriously. We're not just a supplier — we're your business partner.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  '✓ Productos 100% verificados y auténticos',
-                  '✓ Portal privado con facturas automáticas',
-                  '✓ Soporte en inglés y español',
-                  '✓ Equipo basado en Doral, FL — cerca de ti',
-                  '✓ Respuesta en menos de 24 horas',
-                  '✓ Precios exclusivos para distribuidores aprobados',
+                  '✓ 100% verified and authentic products',
+                  '✓ Private portal with automatic invoices',
+                  '✓ Support in English and Spanish',
+                  '✓ Team based in Doral, FL — close to you',
+                  '✓ Response within 24 hours',
+                  '✓ Exclusive pricing for approved distributors',
                 ].map(item => (
                   <div key={item} style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: '#2d7dd2', fontWeight: 700 }}>{item.split(' ')[0]}</span>
