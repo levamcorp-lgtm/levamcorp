@@ -128,7 +128,7 @@ export default function AdminOrders() {
     new: orders.filter(o => o.status === 'new').length,
     active: orders.filter(o => ['review','confirmed','dispatched'].includes(o.status)).length,
     completed: orders.filter(o => o.status === 'completed').length,
-    revenue: orders.filter(o => o.status === 'completed').reduce((s, o) => s + (o.total || 0), 0),
+    revenue: orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status)).reduce((s, o) => s + (o.total || 0), 0),
   }
 
   const OrderCard = ({ order }) => {
