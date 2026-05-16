@@ -5,26 +5,22 @@ import { createClient } from '../../../lib/supabase'
 
 export default function PaymentsPage() {
   const [user, setUser] = useState(null)
+  const [payments, setPayments] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(null)
-  const [paymentMethod, setPaymentMethod] = useState('')
-  const [shippingMethod, setShippingMethod] = useState('')
-  const [prepAddress, setPrepAddress] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [uploading, setUploading] = useState({})
+  const [uploaded, setUploaded] = useState({})
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .eq('user_id', data.user.id)
-        .not('status', 'eq', 'cancelled')
-        .order('submitted_at', { ascending: false })
+      const [{ data: paymentsData }, { data: ordersData }] = await Promise.all([
+        supabase.from('payments').select('*, orders(order_number, total, submitted_at, order_items(*))').eq('user_id', data.user.id).order('created_at', { ascending: false }),
+        supabase.from('orders').select('*').eq('user_id', data.user.id).eq('status', 'completed'),
+      ])
+      setPayments(paymentsData || [])
       setOrders(ordersData || [])
       setLoading(false)
     })
@@ -36,50 +32,36 @@ export default function PaymentsPage() {
     window.location.href = '/portal'
   }
 
-  const submitPaymentRequest = async () => {
-    if (!paymentMethod) { alert('Please select a payment method'); return }
-    if (!shippingMethod) { alert('Please select a shipping method'); return }
-    setSubmitting(true)
+  const uploadProof = async (paymentId, file) => {
+    if (!file) return
+    setUploading(prev => ({ ...prev, [paymentId]: true }))
     try {
       const supabase = createClient()
-      await supabase.from('payments').insert([{
-        user_id: user.id,
-        order_id: selected.id,
-        amount: selected.total,
-        status: 'requested',
-        payment_method: paymentMethod,
-        client_email: user.email,
-        notes: `Payment request for order #${selected.order_number} | Shipping: ${shippingMethod}${prepAddress ? ' - ' + prepAddress : ''}`
-      }])
-      await fetch('/api/send-payment-request-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientEmail: user.email,
-          orderNumber: selected.order_number,
-          total: selected.total,
-          paymentMethod,
-          shippingMethod,
-          items: selected.order_items || []
-        })
-      })
-      setSubmitted(true)
-      setSelected(null)
-      setPaymentMethod('')
-      setShippingMethod('')
-      setPrepAddress('')
-    } catch (e) { alert('Error submitting request. Please try again.') }
-    setSubmitting(false)
+      const ext = file.name.split('.').pop()
+      const path = `proof/${paymentId}-${Date.now()}.${ext}`
+      const { data, error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type, upsert: true })
+      if (error) throw error
+      await supabase.from('payments').update({ payment_proof_url: path, status: 'processing' }).eq('id', paymentId)
+      setUploaded(prev => ({ ...prev, [paymentId]: true }))
+      setPayments(prev => prev.map(p => p.id === paymentId ? { ...p, payment_proof_url: path, status: 'processing' } : p))
+    } catch (e) { alert('Upload failed. Please try again.') }
+    setUploading(prev => ({ ...prev, [paymentId]: false }))
   }
 
-  const pendingOrders = orders.filter(o => !['completed'].includes(o.status))
-  const totalOwed = pendingOrders.reduce((sum, o) => sum + (o.total || 0), 0)
-  const totalPaid = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total || 0), 0)
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-  const statusColor = {
-    new: '#2d7dd2', review: '#854f0b', confirmed: '#2a7d4f',
-    dispatched: '#2a7d4f', completed: '#2a7d4f', cancelled: '#c0392b'
+  const methodLabels = { credit_card: 'Credit Card', debit_card: 'Debit Card', ach: 'ACH Transfer', wire: 'Wire Transfer' }
+  const methodIcons = { credit_card: '💳', debit_card: '💳', ach: '🏦', wire: '⚡' }
+  const shippingLabels = { pickup: '🏭 Pickup — Doral, FL', prep_center: '📦 Prep Center', shipping: '🚚 Standard Shipping', freight: '🚛 Freight / LTL' }
+
+  const statusConfig = {
+    requested: { label: 'Awaiting payment', color: '#854f0b', bg: 'rgba(186,117,23,0.1)' },
+    processing: { label: 'Proof submitted', color: '#2d7dd2', bg: 'rgba(45,125,210,0.1)' },
+    paid: { label: 'Paid', color: '#2a7d4f', bg: 'rgba(42,125,79,0.12)' },
   }
+
+  const totalOwed = payments.filter(p => p.status === 'requested').reduce((s, p) => s + (p.amount || 0), 0)
+  const totalPaid = orders.reduce((s, o) => s + (o.total || 0), 0)
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -120,16 +102,16 @@ export default function PaymentsPage() {
         <button onClick={handleLogout} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
       </nav>
 
-      {/* HERO HEADER */}
+      {/* HERO */}
       <div style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 60%, #0d1a2e 100%)', padding: '2.5rem 2rem', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 8 }}>Account balance</div>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: '1.5rem', letterSpacing: '-0.02em' }}>Payments & Billing</h1>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
             {[
-              { label: 'Outstanding balance', value: `$${totalOwed.toLocaleString()}`, sub: `${pendingOrders.length} pending orders`, color: totalOwed > 0 ? '#e74c3c' : '#2a7d4f', icon: '⚡' },
+              { label: 'Outstanding balance', value: `$${totalOwed.toLocaleString()}`, sub: `${payments.filter(p=>p.status==='requested').length} pending`, color: totalOwed > 0 ? '#e74c3c' : '#2a7d4f', icon: '⚡' },
+              { label: 'Proof submitted', value: payments.filter(p=>p.status==='processing').length, sub: 'awaiting confirmation', color: '#2d7dd2', icon: '📤' },
               { label: 'Total paid', value: `$${totalPaid.toLocaleString()}`, sub: 'completed orders', color: '#2a7d4f', icon: '✅' },
-              { label: 'Total orders', value: orders.length, sub: 'all time', color: '#2d7dd2', icon: '📦' },
             ].map(s => (
               <div key={s.label} style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '1.25rem 1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -148,194 +130,93 @@ export default function PaymentsPage() {
 
       <div style={{ padding: '2rem', maxWidth: 1100, margin: '0 auto' }}>
 
-        {submitted && (
-          <div style={{ background: 'rgba(42,125,79,0.08)', border: '1px solid rgba(42,125,79,0.25)', borderRadius: 6, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, background: 'rgba(42,125,79,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>✅</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#2a7d4f', marginBottom: 2 }}>Payment request submitted!</div>
-              <div style={{ fontSize: 12, color: '#666' }}>Our team will send you payment instructions within 1 business day at <strong>{user?.email}</strong>.</div>
-            </div>
+        {payments.length === 0 ? (
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '4rem', textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>💳</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 6 }}>No payments yet</div>
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: '1.5rem' }}>Place an order from the catalog to get started</div>
+            <Link href="/portal/catalog" style={{ padding: '10px 24px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', display: 'inline-block' }}>Browse catalog</Link>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {payments.map(payment => {
+              const s = statusConfig[payment.status] || statusConfig.requested
+              const isUploaded = uploaded[payment.id] || payment.payment_proof_url
+              return (
+                <div key={payment.id} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+
+                  {/* Header */}
+                  <div style={{ background: 'linear-gradient(135deg, #0d0d0d, #1a1a2e)', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Order #{payment.orders?.order_number}</div>
+                      <div style={{ fontSize: 11, color: '#555' }}>{fmtDate(payment.created_at)}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#2d7dd2' }}>${payment.amount?.toLocaleString()}</div>
+                      <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 10, background: s.bg, color: s.color, fontWeight: 700 }}>{s.label}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+
+                    {/* Order details */}
+                    <div style={{ padding: '1.25rem 1.5rem', borderRight: '0.5px solid rgba(0,0,0,0.08)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#333', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Order details</div>
+                      {payment.orders?.order_items?.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '0.5px solid rgba(0,0,0,0.05)' }}>
+                          <span style={{ color: '#555' }}>{item.product_name} ×{item.quantity}</span>
+                          <span style={{ fontWeight: 600, color: '#111' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                        <span style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 10, fontWeight: 600 }}>{methodIcons[payment.payment_method]} {methodLabels[payment.payment_method]}</span>
+                        <span style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(0,0,0,0.04)', color: '#888', borderRadius: 10, fontWeight: 600 }}>{shippingLabels[payment.shipping_method] || payment.shipping_method}</span>
+                      </div>
+                    </div>
+
+                    {/* Payment proof upload */}
+                    <div style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#333', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Payment confirmation</div>
+
+                      {isUploaded ? (
+                        <div style={{ background: 'rgba(42,125,79,0.06)', border: '1px solid rgba(42,125,79,0.2)', borderRadius: 6, padding: '1.25rem', textAlign: 'center' }}>
+                          <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#2a7d4f', marginBottom: 4 }}>Proof submitted!</div>
+                          <div style={{ fontSize: 11, color: '#888' }}>Our team will verify and confirm your payment shortly.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p style={{ fontSize: 12, color: '#888', lineHeight: 1.7, marginBottom: '1rem' }}>
+                            Upload your payment confirmation — screenshot, receipt, or bank transfer confirmation (image or PDF).
+                          </p>
+                          <label style={{
+                            display: 'block', border: '2px dashed #e5e7eb', borderRadius: 6, padding: '1.5rem', textAlign: 'center', cursor: 'pointer',
+                            background: uploading[payment.id] ? 'rgba(45,125,210,0.04)' : '#fafafa'
+                          }}>
+                            <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                              onChange={e => e.target.files[0] && uploadProof(payment.id, e.target.files[0])} />
+                            {uploading[payment.id] ? (
+                              <div>
+                                <div style={{ fontSize: 24, marginBottom: 6 }}>⏳</div>
+                                <div style={{ fontSize: 12, color: '#2d7dd2', fontWeight: 600 }}>Uploading...</div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div style={{ fontSize: 28, marginBottom: 8 }}>📤</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 4 }}>Upload payment proof</div>
+                                <div style={{ fontSize: 11, color: '#bbb' }}>Image or PDF · Click or drag & drop</div>
+                              </div>
+                            )}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 420px' : '1fr', gap: '1.5rem' }}>
-
-          {/* LEFT */}
-          <div>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 3, height: 14, background: '#e74c3c', borderRadius: 2, display: 'inline-block' }} />
-                Outstanding orders
-              </div>
-              <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                {pendingOrders.length === 0 ? (
-                  <div style={{ padding: '3rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#2a7d4f', marginBottom: 4 }}>All clear!</div>
-                    <div style={{ fontSize: 12, color: '#aaa' }}>No outstanding balances</div>
-                  </div>
-                ) : pendingOrders.map(order => (
-                  <div key={order.id} onClick={() => { setSelected(order); setSubmitted(false); setPaymentMethod(''); setShippingMethod('') }} style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer', background: selected?.id === order.id ? 'rgba(45,125,210,0.03)' : '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 42, height: 42, background: 'rgba(45,125,210,0.08)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📋</div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3 }}>Order #{order.order_number}</div>
-                        <div style={{ fontSize: 11, color: '#aaa' }}>{new Date(order.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · {order.order_items?.length || 0} items</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#111' }}>${order.total?.toLocaleString()}</div>
-                        <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: `${statusColor[order.status]}15`, color: statusColor[order.status], fontWeight: 600 }}>{order.status}</span>
-                      </div>
-                      <button onClick={(e) => { e.stopPropagation(); setSelected(order); setSubmitted(false); setPaymentMethod(''); setShippingMethod('') }} style={{ padding: '8px 16px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(45,125,210,0.3)' }}>
-                        Pay now
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* PAYMENT METHODS INFO */}
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 3, height: 14, background: '#2d7dd2', borderRadius: 2, display: 'inline-block' }} />
-                Accepted payment methods
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-                {[
-                  { icon: '💳', title: 'Credit Card', desc: 'Visa, Mastercard, American Express accepted.', tag: 'Popular', tagColor: '#2d7dd2' },
-                  { icon: '💳', title: 'Debit Card', desc: 'Bank debit card accepted.', tag: 'Easy', tagColor: '#534ab7' },
-                  { icon: '🏦', title: 'ACH Bank Transfer', desc: 'Direct bank transfer. No fees, 1–3 business days.', tag: 'Free', tagColor: '#2a7d4f' },
-                  { icon: '⚡', title: 'Wire Transfer', desc: 'Same-day domestic wire. Bank fees may apply.', tag: 'Same day', tagColor: '#854f0b' },
-                ].map(m => (
-                  <div key={m.title} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
-                      <span style={{ fontSize: 26 }}>{m.icon}</span>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4 }}>{m.title}</div>
-                        <span style={{ fontSize: 9, background: `${m.tagColor}15`, color: m.tagColor, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>{m.tag}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#888', lineHeight: 1.6 }}>{m.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT — PAYMENT PANEL */}
-          {selected && (
-            <div style={{ position: 'sticky', top: 80, height: 'fit-content' }}>
-              <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}>
-
-                {/* Header */}
-                <div style={{ background: 'linear-gradient(135deg, #0d0d0d, #1a1a2e)', padding: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 6 }}>Payment request</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Order #{selected.order_number}</div>
-                      <div style={{ fontSize: 11, color: '#555' }}>{new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                    </div>
-                    <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#888', cursor: 'pointer', fontSize: 16, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                  </div>
-                </div>
-
-                {/* Order items */}
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', background: '#fafafa' }}>
-                  {selected.order_items?.map(item => (
-                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 12 }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#333' }}>{item.product_name}</div>
-                        <div style={{ color: '#bbb', fontSize: 10 }}>Qty: {item.quantity} × ${item.unit_price?.toLocaleString()}</div>
-                      </div>
-                      <div style={{ fontWeight: 700, color: '#111' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</div>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid rgba(0,0,0,0.08)', fontSize: 18, fontWeight: 800 }}>
-                    <span style={{ color: '#111' }}>Total due</span>
-                    <span style={{ color: '#2d7dd2' }}>${selected.total?.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {/* Payment method */}
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Payment method</div>
-                  {[
-                    { value: 'credit_card', label: 'Credit Card', icon: '💳', desc: 'Visa, Mastercard, Amex' },
-                    { value: 'debit_card', label: 'Debit Card', icon: '💳', desc: 'Bank debit card' },
-                    { value: 'ach', label: 'ACH Bank Transfer', icon: '🏦', desc: '1–3 business days · No fees' },
-                    { value: 'wire', label: 'Wire Transfer', icon: '⚡', desc: 'Same day · Bank fees may apply' },
-                  ].map(method => (
-                    <div key={method.value} onClick={() => setPaymentMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${paymentMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: paymentMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
-                      <span style={{ fontSize: 18 }}>{method.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{method.label}</div>
-                        <div style={{ fontSize: 11, color: '#aaa' }}>{method.desc}</div>
-                      </div>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${paymentMethod === method.value ? '#2d7dd2' : '#ddd'}`, background: paymentMethod === method.value ? '#2d7dd2' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {paymentMethod === method.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Shipping method */}
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Shipping method</div>
-                  {[
-                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: '6315 NW 99th Ave, Doral FL · Free', tag: 'FREE', tagColor: '#2a7d4f' },
-                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship to your prep center · By quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping · By quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders · By quote', tag: 'By quote', tagColor: '#854f0b' },
-                  ].map(method => (
-                    <div key={method.value} onClick={() => setShippingMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
-                      <span style={{ fontSize: 18 }}>{method.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{method.label}</div>
-                          <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: `${method.tagColor}15`, color: method.tagColor, fontWeight: 700 }}>{method.tag}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: '#aaa' }}>{method.desc}</div>
-                      </div>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${shippingMethod === method.value ? '#2d7dd2' : '#ddd'}`, background: shippingMethod === method.value ? '#2d7dd2' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {shippingMethod === method.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
-                      </div>
-                    </div>
-                  ))}
-                  {shippingMethod === 'prep_center' && (
-                    <input value={prepAddress} onChange={e => setPrepAddress(e.target.value)} placeholder="Prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box', marginTop: 4 }} />
-                  )}
-                  {(shippingMethod === 'prep_center' || shippingMethod === 'shipping' || shippingMethod === 'freight') && (
-                    <div style={{ padding: '8px 12px', background: 'rgba(186,117,23,0.06)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 3, fontSize: 12, color: '#854f0b', marginTop: 6 }}>
-                      📋 Shipping cost will be quoted separately and included in your payment instructions.
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                {paymentMethod && (
-                  <div style={{ padding: '0.75rem 1.5rem', background: 'rgba(45,125,210,0.04)', borderBottom: '0.5px solid rgba(45,125,210,0.1)' }}>
-                    <div style={{ fontSize: 12, color: '#555', lineHeight: 1.7 }}>
-                      {(paymentMethod === 'credit_card' || paymentMethod === 'debit_card') 
-                        ? '💳 After submitting, we\'ll send you a secure payment link within 1 business day.'
-                        : '🏦 After submitting, we\'ll send you our banking details within 1 business day.'}
-                    </div>
-                  </div>
-                )}
-
-                {/* Submit */}
-                <div style={{ padding: '1.25rem 1.5rem' }}>
-                  <button onClick={submitPaymentRequest} disabled={submitting || !paymentMethod || !shippingMethod} style={{ width: '100%', padding: 14, background: (!paymentMethod || !shippingMethod) ? '#e0e0e0' : submitting ? '#aaa' : '#2d7dd2', color: (!paymentMethod || !shippingMethod) ? '#aaa' : '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: (!paymentMethod || !shippingMethod) ? 'not-allowed' : 'pointer', borderRadius: 4, boxShadow: (paymentMethod && shippingMethod) ? '0 4px 16px rgba(45,125,210,0.3)' : 'none' }}>
-                    {submitting ? 'Submitting...' : `Request payment — $${selected.total?.toLocaleString()}`}
-                  </button>
-                  <div style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 8 }}>We'll follow up within 1 business day</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
