@@ -66,7 +66,7 @@ export default function AdminClients() {
     c.email?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const totalRevenue = (client) => getClientOrders(client).filter(o => o.status === 'completed').reduce((s, o) => s + (o.total || 0), 0)
+  const totalRevenue = (client) => getClientOrders(client).filter(o => ['confirmed','dispatched','completed'].includes(o.status)).reduce((s, o) => s + (o.total || 0), 0)
   const totalOrdered = (client) => getClientOrders(client).reduce((s, o) => s + (o.total || 0), 0)
 
   const statusColor = { new: '#2d7dd2', review: '#854f0b', confirmed: '#534ab7', dispatched: '#2a7d4f', completed: '#2a7d4f', cancelled: '#c0392b' }
