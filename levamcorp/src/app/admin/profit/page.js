@@ -48,11 +48,13 @@ export default function ProfitPage() {
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
   // Current month calculations
-  const completedOrders = orders.filter(o => o.status === 'completed')
+  const completedOrders = orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
   const currentMonthOrders = completedOrders.filter(o => {
     const d = new Date(o.submitted_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
   })
+  // Status label for revenue counting
+  const revenueNote = '(confirmed + dispatched + completed)'
 
   const calcOrderRevenue = (order) => order.total || 0
   const calcOrderCost = (order) => {
