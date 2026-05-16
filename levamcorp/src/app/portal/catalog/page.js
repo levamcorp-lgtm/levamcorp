@@ -320,12 +320,12 @@ export default function CatalogPage() {
                 <div style={{ padding: '1.25rem 2rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#333', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Shipping method *</div>
                   {[
-                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: '6315 NW 99th Ave · Free', tag: 'FREE', tagColor: '#2a7d4f' },
-                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'Ship to your prep center · By quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic · By quote', tag: 'By quote', tagColor: '#854f0b' },
-                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large orders · By quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'pickup', label: 'Pickup — Doral, FL', icon: '🏭', desc: '6315 NW 99th Ave, Doral, FL 33178 · Free', tag: 'FREE', tagColor: '#2a7d4f' },
+                    { value: 'prep_center', label: 'Prep Center Delivery', icon: '📦', desc: 'We ship from our warehouse to your prep center · By quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'shipping', label: 'Standard Shipping', icon: '🚚', desc: 'Domestic shipping to your address · By quote', tag: 'By quote', tagColor: '#854f0b' },
+                    { value: 'freight', label: 'Freight / LTL', icon: '🚛', desc: 'Large palletized orders · By quote', tag: 'By quote', tagColor: '#854f0b' },
                   ].map(method => (
-                    <div key={method.value} onClick={() => setShippingMethod(method.value)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
+                    <div key={method.value} onClick={() => { setShippingMethod(method.value); setPrepAddress('') }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, borderRadius: 4, border: `1.5px solid ${shippingMethod === method.value ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, background: shippingMethod === method.value ? 'rgba(45,125,210,0.05)' : '#fff', cursor: 'pointer' }}>
                       <span style={{ fontSize: 18 }}>{method.icon}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -339,8 +339,28 @@ export default function CatalogPage() {
                       </div>
                     </div>
                   ))}
-                  {shippingMethod === 'prep_center' && (
-                    <input value={prepAddress} onChange={e => setPrepAddress(e.target.value)} placeholder="Enter prep center address..." style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, fontSize: 12, padding: '8px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box', marginTop: 4 }} />
+
+                  {/* Pickup — show our address */}
+                  {shippingMethod === 'pickup' && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 3, marginTop: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#2a7d4f', marginBottom: 4 }}>📍 Pickup address</div>
+                      <div style={{ fontSize: 12, color: '#555', lineHeight: 1.7 }}>
+                        Levam Corp Distributors<br />
+                        6315 NW 99th Ave<br />
+                        Doral, FL 33178<br />
+                        <span style={{ color: '#888', fontSize: 11 }}>Mon–Fri · 9:00 AM – 6:00 PM ET</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shipping/Freight — ask for address */}
+                  {(shippingMethod === 'shipping' || shippingMethod === 'freight') && (
+                    <div style={{ marginTop: 6 }}>
+                      <input value={prepAddress} onChange={e => setPrepAddress(e.target.value)}
+                        placeholder="Enter your shipping address..."
+                        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 3, fontSize: 12, padding: '9px 12px', outline: 'none', fontFamily: 'inherit', color: '#333', boxSizing: 'border-box' }} />
+                      <div style={{ fontSize: 10, color: '#aaa', marginTop: 4 }}>Shipping cost will be quoted separately and included in your payment instructions.</div>
+                    </div>
                   )}
                 </div>
 
