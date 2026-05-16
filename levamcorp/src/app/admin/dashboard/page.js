@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
   // Calculations
-  const completedOrders = data.orders.filter(o => o.status === 'completed')
+  const completedOrders = data.orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
   const newOrders = data.orders.filter(o => o.status === 'new')
   const activeOrders = data.orders.filter(o => ['review','confirmed','dispatched'].includes(o.status))
   const pendingApps = data.applications.filter(a => a.status === 'pending' || !a.status)
@@ -59,6 +59,7 @@ export default function AdminDashboard() {
   const totalCost = completedOrders.reduce((s, o) => s + calcCost(o), 0)
   const totalProfit = totalRevenue - totalCost
 
+  // Revenue includes confirmed, dispatched and completed orders
   const monthOrders = completedOrders.filter(o => {
     const d = new Date(o.submitted_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
