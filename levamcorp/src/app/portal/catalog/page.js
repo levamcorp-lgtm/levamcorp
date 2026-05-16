@@ -392,6 +392,7 @@ export default function CatalogPage() {
 function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover }) {
   const [qty, setQty] = useState(product.moq || 1)
   const [added, setAdded] = useState(inCart)
+  const [expanded, setExpanded] = useState(false)
   const maxQty = product.stock || 0
   const outOfStock = product.stock === 0 || product.stock === null
   const handleAdd = () => { if (outOfStock) return; onAdd(qty); setAdded(true) }
@@ -400,7 +401,8 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
     <div onMouseEnter={() => onHover(product.id)} onMouseLeave={() => onHover(null)}
       style={{ background: '#fff', border: `1px solid ${added ? 'rgba(45,125,210,0.4)' : isHovered ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 6, overflow: 'hidden', transition: 'all 0.2s ease', boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.1)' : '0 1px 4px rgba(0,0,0,0.04)', transform: isHovered ? 'translateY(-2px)' : 'none' }}>
 
-      <div style={{ position: 'relative', width: '100%', paddingBottom: '75%', overflow: 'hidden', background: '#fafafa', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+      {/* IMAGE */}
+      <div style={{ position: 'relative', width: '100%', paddingBottom: '72%', overflow: 'hidden', background: '#fafafa', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
         {product.image_url ? (
           <img src={product.image_url} alt={product.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 12 }} />
         ) : (
@@ -411,28 +413,70 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
             {outOfStock ? '✕ Out of stock' : product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} in stock`}
           </span>
         </div>
-        <div style={{ position: 'absolute', top: 8, left: 8 }}>
-          <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 20, background: 'rgba(0,0,0,0.5)', color: '#fff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{product.category}</span>
+        <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 4, flexDirection: 'column' }}>
+          <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(0,0,0,0.55)', color: '#fff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{product.category}</span>
+          {product.condition && product.condition !== 'New' && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(133,79,11,0.85)', color: '#fff', fontWeight: 600 }}>{product.condition}</span>}
         </div>
       </div>
 
+      {/* MAIN INFO */}
       <div style={{ padding: '0.875rem' }}>
+        {product.brand && <div style={{ fontSize: 9, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{product.brand}</div>}
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3, lineHeight: 1.3 }}>{product.name}</div>
         <div style={{ fontSize: 10, color: '#bbb', marginBottom: 8, fontFamily: 'monospace' }}>{product.sku}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>${product.price?.toLocaleString()}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>${product.price?.toLocaleString()}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: '#bbb' }}>⏱ {product.dispatch_days}</div>
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 2, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.15)' }}>Min. order: {product.moq || 1} units</span>
+
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+          <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 2, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.15)' }}>Min. {product.moq || 1} units</span>
           <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(0,0,0,0.04)', color: '#888', borderRadius: 2, fontWeight: 600, border: '0.5px solid rgba(0,0,0,0.08)' }}>📍 {product.warehouse || 'WH: FL'}</span>
+          {product.upc && <span style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(0,0,0,0.03)', color: '#aaa', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.06)' }}>UPC: {product.upc}</span>}
         </div>
-        {(product.amazon_url || product.walmart_url) && (
-          <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
-            {product.amazon_url && <a href={product.amazon_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px', background: '#FF9900', borderRadius: 3, textDecoration: 'none' }}><span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>Amazon</span></a>}
-            {product.walmart_url && <a href={product.walmart_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px', background: '#0071CE', borderRadius: 3, textDecoration: 'none' }}><span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>Walmart</span></a>}
+
+        {/* EXPAND BUTTON */}
+        <button onClick={() => setExpanded(!expanded)} style={{ width: '100%', padding: '6px', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 3, fontSize: 10, color: '#888', cursor: 'pointer', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+          {expanded ? '▲ Less details' : '▼ More details'}
+        </button>
+
+        {/* EXPANDED DETAILS */}
+        {expanded && (
+          <div style={{ marginBottom: 8, padding: '10px', background: '#f7f8fa', borderRadius: 4, border: '0.5px solid rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
+              {[
+                ['Condition', product.condition || 'New'],
+                ['Brand', product.brand || '—'],
+                ['Weight', product.weight || '—'],
+                ['Dimensions', product.dimensions || '—'],
+                ['ASIN', product.asin || '—'],
+                ['UPC', product.upc || '—'],
+              ].map(([label, val]) => (
+                <div key={label} style={{ padding: '5px 8px', background: '#fff', borderRadius: 3, border: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <div style={{ fontSize: 8, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555' }}>{val}</div>
+                </div>
+              ))}
+            </div>
+            {product.description && (
+              <div>
+                <div style={{ fontSize: 8, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Description</div>
+                <div style={{ fontSize: 11, color: '#777', lineHeight: 1.7, maxHeight: 100, overflowY: 'auto' }}>{product.description}</div>
+              </div>
+            )}
           </div>
         )}
+
+        {/* MARKETPLACE LINKS */}
+        {(product.amazon_url || product.walmart_url) && (
+          <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
+            {product.amazon_url && <a href={product.amazon_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px', background: '#FF9900', borderRadius: 3, textDecoration: 'none' }}><span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>Amazon</span></a>}
+            {product.walmart_url && <a href={product.walmart_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px', background: '#0071CE', borderRadius: 3, textDecoration: 'none' }}><span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>Walmart</span></a>}
+          </div>
+        )}
+
+        {/* ADD TO QUOTE */}
         <div style={{ display: 'flex', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden', opacity: outOfStock ? 0.4 : 1 }}>
             <button onClick={() => setQty(q => Math.max(product.moq || 1, q-1))} disabled={outOfStock} style={{ width: 28, height: 30, background: '#f7f8fa', border: 'none', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 14, color: '#888', fontWeight: 700 }}>−</button>
