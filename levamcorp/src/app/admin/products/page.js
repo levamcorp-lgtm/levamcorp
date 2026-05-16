@@ -12,7 +12,7 @@ export default function AdminProducts() {
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '', amazon_url: '', walmart_url: '', moq: '1', warehouse: 'WH: FL' })
+  const [newProduct, setNewProduct] = useState({ name: '', sku: '', category: 'electronics', price: '', cost_price: '', stock: '', dispatch_days: '1-2 days', description: '', active: true, image_url: '', amazon_url: '', walmart_url: '', moq: '1', warehouse: 'WH: FL' })
   const fileRef = useRef(null)
   const editFileRef = useRef(null)
 
@@ -125,7 +125,7 @@ export default function AdminProducts() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.15em', color: '#ccc', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices']].map(([label, href]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Products' ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Products' ? '2px solid #2d7dd2' : '2px solid transparent' }}>{label}</Link>
             ))}
           </div>
@@ -207,6 +207,7 @@ export default function AdminProducts() {
                   <Field label="Description" value={editing.description || ''} onChange={v => setEditing({...editing, description: v})} />
                   <Field label="Amazon URL" value={editing.amazon_url || ''} onChange={v => setEditing({...editing, amazon_url: v})} />
                   <Field label="Walmart URL" value={editing.walmart_url || ''} onChange={v => setEditing({...editing, walmart_url: v})} />
+                  <Field label="Cost price ($)" value={editing.cost_price || ''} onChange={v => setEditing({...editing, cost_price: v})} type="number" />
                   <Field label="MOQ (min order qty)" value={editing.moq || '1'} onChange={v => setEditing({...editing, moq: v})} type="number" />
                   <Field label="Warehouse location" value={editing.warehouse || 'WH: FL'} onChange={v => setEditing({...editing, warehouse: v})} />
                 </>
@@ -222,6 +223,7 @@ export default function AdminProducts() {
                   <Field label="Description" value={newProduct.description} onChange={v => setNewProduct({...newProduct, description: v})} />
                   <Field label="Amazon URL" value={newProduct.amazon_url} onChange={v => setNewProduct({...newProduct, amazon_url: v})} />
                   <Field label="Walmart URL" value={newProduct.walmart_url} onChange={v => setNewProduct({...newProduct, walmart_url: v})} />
+                  <Field label="Cost price ($)" value={newProduct.cost_price} onChange={v => setNewProduct({...newProduct, cost_price: v})} type="number" />
                   <Field label="MOQ (min order qty)" value={newProduct.moq} onChange={v => setNewProduct({...newProduct, moq: v})} type="number" />
                   <Field label="Warehouse location" value={newProduct.warehouse} onChange={v => setNewProduct({...newProduct, warehouse: v})} />
                 </>
