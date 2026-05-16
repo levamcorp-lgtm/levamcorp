@@ -6,170 +6,291 @@ import { createClient } from '../../../lib/supabase'
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
 
 export default function AdminApplications() {
-  const [apps, setApps] = useState([])
-  const [selected, setSelected] = useState(null)
+  const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(null)
+  const [approving, setApproving] = useState(null)
+  const [deleting, setDeleting] = useState(null)
   const [filter, setFilter] = useState('pending')
-  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user || data.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
-      loadApps(supabase)
+      await loadApps(supabase)
     })
   }, [])
 
   const loadApps = async (supabase) => {
-    const { data } = await supabase.from('applications').select('*').order('submitted_at', { ascending: false })
-    setApps(data || [])
+    const { data } = await supabase.from('applications').select('*').order('created_at', { ascending: false })
+    setApplications(data || [])
     setLoading(false)
   }
 
-  const updateApp = async (id, status) => {
-    setUpdating(true)
-    try {
-      const supabase = createClient()
-      await supabase.from('applications').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id)
-      
-      if (status === 'approved' && selected) {
-        // Create client record
-        await supabase.from('clients').insert([{
-          business_name: selected.business_name,
-          contact_name: selected.contact_name,
-          email: selected.email,
-          phone: selected.phone,
-          address: selected.address,
-          ein: selected.ein_number || selected.ein,
-          ein_number: selected.ein_number || selected.ein,
-          resale_tax_number: selected.resale_tax_number,
-          ein_document_url: selected.ein_document_url,
-          resale_tax_document_url: selected.resale_tax_document_url,
-          business_type: selected.business_type,
-          monthly_volume: selected.monthly_volume,
-          years_in_business: selected.years_in_business,
-          notes: selected.notes,
-          status: 'active',
-        }])
-        // Send approval email
-        await fetch('/api/send-approval-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: selected.email,
-            businessName: selected.business_name,
-            contactName: selected.contact_name,
-          })
-        })
-        alert(`✓ ${selected.business_name} approved! Notification email sent. Now go to Supabase → Authentication → Add user to create their login.`)
-      }
-      await loadApps(supabase)
-      setSelected(prev => prev ? { ...prev, status } : null)
-    } catch (e) {
-      alert('Error: ' + e.message)
-    }
-    setUpdating(false)
+  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
+
+  const approveApp = async (app) => {
+    setApproving(app.id)
+    const supabase = createClient()
+    await supabase.from('applications').update({ status: 'approved' }).eq('id', app.id)
+    await supabase.from('clients').upsert([{
+      email: app.email,
+      business_name: app.business_name,
+      contact_name: app.contact_name,
+      phone: app.phone,
+      address: app.address,
+      business_type: app.business_type,
+      monthly_volume: app.monthly_volume,
+      years_in_business: app.years_in_business,
+      ein_number: app.ein_number,
+      resale_tax_number: app.resale_tax_number,
+      ein_document_url: app.ein_document_url,
+      resale_tax_document_url: app.resale_tax_document_url,
+    }])
+    await fetch('/api/send-approval-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientEmail: app.email, clientName: app.contact_name, businessName: app.business_name })
+    })
+    await loadApps(supabase)
+    setApproving(null)
   }
 
-  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
-  const filtered = filter === 'all' ? apps : apps.filter(a => a.status === filter)
+  const rejectApp = async (id) => {
+    const supabase = createClient()
+    await supabase.from('applications').update({ status: 'rejected' }).eq('id', id)
+    await loadApps(supabase)
+  }
+
+  const deleteApp = async (id) => {
+    setDeleting(id)
+    const supabase = createClient()
+    await supabase.from('applications').delete().eq('id', id)
+    setApplications(prev => prev.filter(a => a.id !== id))
+    if (expanded === id) setExpanded(null)
+    setDeleting(null)
+  }
+
+  const getDocUrl = async (path) => {
+    if (!path) return
+    const supabase = createClient()
+    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+  }
+
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+  const statusConfig = {
+    pending:  { label: 'Pending review', color: '#854f0b', bg: 'rgba(186,117,23,0.12)', icon: '⏳' },
+    approved: { label: 'Approved',       color: '#2a7d4f', bg: 'rgba(42,125,79,0.12)',  icon: '✅' },
+    rejected: { label: 'Rejected',       color: '#e74c3c', bg: 'rgba(231,76,60,0.12)',  icon: '✕'  },
+  }
+
+  const filtered = applications.filter(a => {
+    if (filter === 'all') return true
+    if (filter === 'pending') return !a.status || a.status === 'pending'
+    return a.status === filter
+  })
+
+  const pending = applications.filter(a => !a.status || a.status === 'pending').length
+  const approved = applications.filter(a => a.status === 'approved').length
+  const rejected = applications.filter(a => a.status === 'rejected').length
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading...</div>
 
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
+
+      {/* NAV */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.15em', color: '#ccc', textTransform: 'uppercase' }}>Levam Admin</div>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
             {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Applications' ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Applications' ? '2px solid #2d7dd2' : '2px solid transparent' }}>{label}</Link>
+              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Applications' ? '#2d7dd2' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Applications' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
+                {label}
+                {label === 'Applications' && pending > 0 && <span style={{ position: 'absolute', top: 0, right: 4, width: 8, height: 8, background: '#e74c3c', borderRadius: '50%' }} />}
+              </Link>
             ))}
           </div>
         </div>
         <button onClick={handleLogout} style={{ fontSize: 11, color: '#555', border: '0.5px solid rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
       </nav>
 
-      <div style={{ padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: 18, fontWeight: 500, color: '#fff', marginBottom: 4 }}>Applications</h2>
-            <p style={{ fontSize: 12, color: '#444' }}>{filtered.length} applications</p>
+      {/* STATS */}
+      <div style={{ background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', padding: '1.25rem 2rem', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+        {[
+          { label: 'Total applications', value: applications.length, color: '#2d7dd2', icon: '📋' },
+          { label: 'Pending review', value: pending, color: pending > 0 ? '#854f0b' : '#555', icon: '⏳' },
+          { label: 'Approved', value: approved, color: '#2a7d4f', icon: '✅' },
+          { label: 'Rejected', value: rejected, color: rejected > 0 ? '#e74c3c' : '#555', icon: '✕' },
+        ].map(s => (
+          <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
+            </div>
+            <span style={{ fontSize: 20, opacity: 0.25 }}>{s.icon}</span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {['all','pending','approved','rejected'].map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{ fontSize: 10, padding: '5px 12px', border: '0.5px solid', borderColor: filter === f ? '#2d7dd2' : 'rgba(255,255,255,0.08)', background: filter === f ? 'rgba(45,125,210,0.15)' : 'transparent', color: filter === f ? '#2d7dd2' : '#555', borderRadius: 2, cursor: 'pointer', textTransform: 'capitalize' }}>{f}</button>
-            ))}
-          </div>
-        </div>
+        ))}
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: '1rem' }}>
-          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-            {filtered.map(app => (
-              <div key={app.id} onClick={() => setSelected(selected?.id === app.id ? null : app)} style={{ padding: '1rem 1.25rem', borderBottom: '0.5px solid rgba(255,255,255,0.04)', cursor: 'pointer', background: selected?.id === app.id ? 'rgba(45,125,210,0.05)' : 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* FILTERS */}
+      <div style={{ padding: '1.25rem 2rem', display: 'flex', gap: 8, alignItems: 'center' }}>
+        {[['pending','⏳ Pending',pending,'#854f0b'],['approved','✅ Approved',approved,'#2a7d4f'],['rejected','✕ Rejected',rejected,'#e74c3c'],['all','All',applications.length,'#2d7dd2']].map(([val, label, count, color]) => (
+          <button key={val} onClick={() => setFilter(val)} style={{ fontSize: 11, fontWeight: filter === val ? 700 : 400, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${filter === val ? color : 'rgba(255,255,255,0.08)'}`, background: filter === val ? color + '20' : 'transparent', color: filter === val ? color : '#777', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {label} <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '1px 6px' }}>{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* APPLICATIONS */}
+      <div style={{ padding: '0 2rem 2rem' }}>
+        {filtered.length === 0 ? (
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '4rem', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+            <div style={{ fontSize: 14, color: '#555' }}>No applications in this category</div>
+          </div>
+        ) : filtered.map(app => {
+          const s = statusConfig[app.status || 'pending']
+          const isExpanded = expanded === app.id
+          return (
+            <div key={app.id} style={{ background: '#111', border: `1px solid ${isExpanded ? s.color + '50' : 'rgba(255,255,255,0.06)'}`, borderLeft: `4px solid ${s.color}`, borderRadius: 6, marginBottom: 10, overflow: 'hidden', transition: 'all 0.2s' }}>
+
+              {/* HEADER ROW */}
+              <div onClick={() => setExpanded(isExpanded ? null : app.id)}
+                style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '1rem', alignItems: 'center', cursor: 'pointer' }}>
+
+                {/* Avatar */}
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: s.bg, border: `2px solid ${s.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: s.color, flexShrink: 0 }}>
+                  {app.business_name?.[0]?.toUpperCase() || '?'}
+                </div>
+
+                {/* Info */}
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc', marginBottom: 3 }}>{app.business_name}</div>
-                  <div style={{ fontSize: 11, color: '#555' }}>{app.contact_name} · {app.email} · {app.phone}</div>
-                  <div style={{ fontSize: 10, color: '#444', marginTop: 3 }}>{app.business_type} · {app.ein} · {app.monthly_volume}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{app.business_name}</div>
+                    <span style={{ fontSize: 9, padding: '3px 10px', borderRadius: 10, background: s.bg, color: s.color, fontWeight: 700 }}>{s.icon} {s.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: '#888' }}>👤 {app.contact_name}</span>
+                    <span style={{ fontSize: 12, color: '#888' }}>📧 {app.email}</span>
+                    <span style={{ fontSize: 12, color: '#888' }}>📞 {app.phone}</span>
+                    <span style={{ fontSize: 12, color: '#555' }}>📅 {fmtDate(app.created_at)}</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <span style={{ fontSize: 9, padding: '3px 10px', borderRadius: 2, background: app.status === 'approved' ? 'rgba(42,125,79,0.12)' : app.status === 'rejected' ? 'rgba(231,76,60,0.1)' : 'rgba(186,117,23,0.1)', color: app.status === 'approved' ? '#2a7d4f' : app.status === 'rejected' ? '#c0392b' : '#854f0b' }}>
-                    {app.status}
-                  </span>
-                  <div style={{ fontSize: 10, color: '#444' }}>{new Date(app.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                </div>
-              </div>
-            ))}
-            {filtered.length === 0 && <div style={{ padding: '3rem', textAlign: 'center', color: '#444', fontSize: 13 }}>No applications found</div>}
-          </div>
 
-          {selected && (
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '1.5rem', height: 'fit-content', position: 'sticky', top: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>{selected.business_name}</h3>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 18 }}>×</button>
+                {/* Documents status */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ textAlign: 'center', padding: '6px 10px', background: app.ein_document_url ? 'rgba(42,125,79,0.1)' : 'rgba(231,76,60,0.1)', border: `0.5px solid ${app.ein_document_url ? 'rgba(42,125,79,0.3)' : 'rgba(231,76,60,0.3)'}`, borderRadius: 4 }}>
+                    <div style={{ fontSize: 14, marginBottom: 2 }}>{app.ein_document_url ? '✅' : '❌'}</div>
+                    <div style={{ fontSize: 8, color: '#666', letterSpacing: '0.08em' }}>EIN DOC</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '6px 10px', background: app.resale_tax_document_url ? 'rgba(42,125,79,0.1)' : 'rgba(231,76,60,0.1)', border: `0.5px solid ${app.resale_tax_document_url ? 'rgba(42,125,79,0.3)' : 'rgba(231,76,60,0.3)'}`, borderRadius: 4 }}>
+                    <div style={{ fontSize: 14, marginBottom: 2 }}>{app.resale_tax_document_url ? '✅' : '❌'}</div>
+                    <div style={{ fontSize: 8, color: '#666', letterSpacing: '0.08em' }}>RESALE</div>
+                  </div>
+                </div>
+
+                {/* Expand arrow */}
+                <div style={{ fontSize: 18, color: '#444', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</div>
               </div>
-              {[
-                ['Contact', selected.contact_name],
-                ['Email', selected.email],
-                ['Phone', selected.phone],
-                ['Address', selected.address],
-                ['Business type', selected.business_type],
-                ['EIN', selected.ein],
-                ['Years in business', selected.years_in_business],
-                ['Monthly volume', selected.monthly_volume],
-                ['Referral source', selected.referral_source],
-                ['Categories', selected.categories?.join(', ')],
-              ].filter(([,v]) => v).map(([label, val]) => (
-                <div key={label} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 9, color: '#444', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
-                  <div style={{ fontSize: 12, color: '#ccc' }}>{val}</div>
-                </div>
-              ))}
-              {selected.notes && (
-                <div style={{ marginBottom: 10, padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 2 }}>
-                  <div style={{ fontSize: 9, color: '#444', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4 }}>Notes</div>
-                  <div style={{ fontSize: 12, color: '#888', lineHeight: 1.6 }}>{selected.notes}</div>
-                </div>
-              )}
-              {selected.status === 'pending' && (
-                <div style={{ marginTop: '1.25rem', display: 'flex', gap: 8 }}>
-                  <button onClick={() => updateApp(selected.id, 'approved')} disabled={updating} style={{ flex: 1, padding: 10, background: '#2a7d4f', color: '#fff', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 2 }}>
-                    ✓ Approve
-                  </button>
-                  <button onClick={() => updateApp(selected.id, 'rejected')} disabled={updating} style={{ flex: 1, padding: 10, background: 'transparent', color: '#c0392b', fontSize: 11, border: '0.5px solid rgba(231,76,60,0.3)', cursor: 'pointer', borderRadius: 2 }}>
-                    ✕ Reject
-                  </button>
-                </div>
-              )}
-              {selected.status === 'approved' && (
-                <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(42,125,79,0.08)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 2, fontSize: 11, color: '#2a7d4f' }}>
-                  ✓ Approved — Create their login in Supabase Authentication → Add user
+
+              {/* EXPANDED DETAILS */}
+              {isExpanded && (
+                <div style={{ borderTop: `0.5px solid ${s.color}30` }}>
+
+                  {/* FULL DETAILS GRID */}
+                  <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>📋 Complete application details</div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: '1.5rem' }}>
+                      {[
+                        ['Business name', app.business_name, '🏢'],
+                        ['Contact name', app.contact_name, '👤'],
+                        ['Email address', app.email, '📧'],
+                        ['Phone number', app.phone, '📞'],
+                        ['Business type', app.business_type, '🏭'],
+                        ['Monthly volume', app.monthly_volume, '📊'],
+                        ['Years in business', app.years_in_business, '📅'],
+                        ['EIN number', app.ein_number, '🔢'],
+                        ['Resale tax number', app.resale_tax_number, '📄'],
+                        ['Address', app.address, '📍'],
+                        ['Applied on', fmtDate(app.created_at) + ' at ' + fmtTime(app.created_at), '🕐'],
+                        ['Application ID', app.id?.slice(0,8).toUpperCase(), '🆔'],
+                      ].map(([label, val, icon]) => (
+                        <div key={label} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 5 }}>
+                          <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span>{icon}</span> {label}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: val ? '#e0e0e0' : '#444' }}>{val || '—'}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* DOCUMENTS */}
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#888', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>📁 Documents submitted</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: '1.5rem' }}>
+                      {[
+                        { label: 'EIN / SS4 Letter', number: app.ein_number, url: app.ein_document_url, icon: '🏛' },
+                        { label: 'Resale Tax Certificate', number: app.resale_tax_number, url: app.resale_tax_document_url, icon: '📜' },
+                      ].map(doc => (
+                        <div key={doc.label} style={{ padding: '1.25rem', background: doc.url ? 'rgba(42,125,79,0.06)' : 'rgba(231,76,60,0.06)', border: `1px solid ${doc.url ? 'rgba(42,125,79,0.2)' : 'rgba(231,76,60,0.2)'}`, borderRadius: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                            <span style={{ fontSize: 24 }}>{doc.icon}</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{doc.label}</div>
+                              <div style={{ fontSize: 11, color: '#666' }}>Number: {doc.number || '—'}</div>
+                            </div>
+                          </div>
+                          {doc.url ? (
+                            <button onClick={() => getDocUrl(doc.url)} style={{ width: '100%', padding: '10px', background: '#2d7dd2', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 4, letterSpacing: '0.06em' }}>
+                              📄 View / Download PDF
+                            </button>
+                          ) : (
+                            <div style={{ padding: '10px', background: 'rgba(231,76,60,0.1)', borderRadius: 4, fontSize: 11, color: '#e74c3c', textAlign: 'center', fontWeight: 600 }}>
+                              ❌ Document not submitted
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ACTION BUTTONS */}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {(!app.status || app.status === 'pending') && (
+                        <>
+                          <button onClick={() => approveApp(app)} disabled={approving === app.id}
+                            style={{ flex: 1, padding: '13px', background: approving === app.id ? '#333' : '#2a7d4f', color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 4, boxShadow: '0 4px 14px rgba(42,125,79,0.3)' }}>
+                            {approving === app.id ? 'Approving...' : '✅ Approve & create client'}
+                          </button>
+                          <button onClick={() => rejectApp(app.id)}
+                            style={{ flex: 1, padding: '13px', background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid rgba(231,76,60,0.3)', cursor: 'pointer', borderRadius: 4 }}>
+                            ✕ Reject application
+                          </button>
+                        </>
+                      )}
+                      {app.status === 'approved' && (
+                        <Link href="/admin/clients" style={{ flex: 1, padding: '13px', background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid rgba(42,125,79,0.3)', cursor: 'pointer', borderRadius: 4, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+                          👤 View in clients →
+                        </Link>
+                      )}
+                      <button onClick={() => deleteApp(app.id)} disabled={deleting === app.id}
+                        style={{ padding: '13px 20px', background: 'rgba(231,76,60,0.08)', color: '#e74c3c', fontSize: 13, fontWeight: 600, border: '0.5px solid rgba(231,76,60,0.25)', cursor: 'pointer', borderRadius: 4 }}>
+                        {deleting === app.id ? 'Deleting...' : '🗑 Delete'}
+                      </button>
+                      <a href={`mailto:${app.email}?subject=Re: Your Levam Corp application`}
+                        style={{ padding: '13px 20px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', fontSize: 13, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.25)', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
+                        📧 Email
+                      </a>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
     </div>
   )
