@@ -101,9 +101,15 @@ export default function PortalPage() {
 
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: '#444', display: 'block', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••"
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 3, fontSize: 14, padding: '12px 14px', outline: 'none', fontFamily: 'inherit', color: '#111', background: '#fafafa' }} />
+            <div style={{ position: 'relative' }}>
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••"
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 3, fontSize: 14, padding: '12px 44px 12px 14px', outline: 'none', fontFamily: 'inherit', color: '#111', background: '#fafafa', boxSizing: 'border-box' }} />
+              <button type="button" onClick={() => setShowPassword(s => !s)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#bbb', padding: 0, lineHeight: 1 }}>
+                {showPassword ? '🙈' : '👁'}
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
