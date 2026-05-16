@@ -156,13 +156,13 @@ export default function Home() {
                 icon: '🏠',
                 title: 'Feel at home',
                 
-                desc: 'We're a company with Latin roots in the heart of Doral, FL. We understand your business, speak your language, and care about your success as much as our own.'
+                desc: 'We are a company with Latin roots in the heart of Doral, FL. We understand your business, speak your language, and care about your success as much as our own.'
               },
               {
                 icon: '📈',
                 title: 'Your success is ours',
                 
-                desc: 'We don't just sell you products — we are your strategic business partner. Our private portal gives you access to quotes, invoices, and everything you need to scale your business.'
+                desc: 'We do not just sell you products — we are your strategic business partner. Our private portal gives you access to quotes, invoices, and everything you need to scale your business.'
               },
             ].map(item => (
               <div key={item.title} style={{ padding: '2rem', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
@@ -183,7 +183,7 @@ export default function Home() {
                 The wholesale buying experience you always wanted.
               </h3>
               <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.9, marginBottom: '1.5rem' }}>
-                We know what it means to put your capital on the line. That's why at Levam Corp we take every order, every client, and every product seriously. We're not just a supplier — we are your business partner.
+                We know what it means to put your capital on the line. That's why at Levam Corp we take every order, every client, and every product seriously. We are not just a supplier — we are your business partner.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
@@ -420,7 +420,7 @@ export default function Home() {
               </div>
             </div>
             <p style={{ fontSize: 15, color: '#fff', lineHeight: 1.7, marginBottom: '1.5rem', maxWidth: 320, fontStyle: 'italic', fontFamily: 'Georgia, "Times New Roman", serif', letterSpacing: '0.01em', borderLeft: '3px solid #2d7dd2', paddingLeft: '1rem' }}>
-              "Your business growth isn't a question — it's a certainty. We make sure of it."
+              "Your business growth is not a question — it is a certainty. We make sure of it."
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
