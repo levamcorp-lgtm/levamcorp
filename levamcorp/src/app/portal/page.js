@@ -9,6 +9,7 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resetSent, setResetSent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
 
   const handleForgotPassword = async () => {
