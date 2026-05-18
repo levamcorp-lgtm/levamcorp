@@ -428,6 +428,7 @@ export default function Home() {
                 ['📧', 'partners@levamcorp.com'],
                 ['✉️', 'contact@levamcorp.com'],
                 ['📞', '(786) 878-4122 / (786) 546-9476'],
+              ['💬', 'WhatsApp: (786) 490-9005'],
               ].map(([icon, text]) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
                   <span style={{ fontSize: 14 }}>{icon}</span> {text}
