@@ -8,7 +8,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
-  const [filter, setFilter] = useState('all')
+  const [uploading, setUploading] = useState({})
+  const [uploaded, setUploaded] = useState({})
 
   useEffect(() => {
     const supabase = createClient()
@@ -25,38 +26,39 @@ export default function OrdersPage() {
     })
   }, [])
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    window.location.href = '/portal'
+  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/portal' }
+
+  const uploadDoc = async (orderId, file, type) => {
+    if (!file) return
+    const key = `${orderId}-${type}`
+    setUploading(prev => ({ ...prev, [key]: true }))
+    try {
+      const supabase = createClient()
+      const ext = file.name.split('.').pop()
+      const path = `${type}/${orderId}-${Date.now()}.${ext}`
+      await supabase.storage.from('documents').upload(path, file, { contentType: file.type, upsert: true })
+      const field = type === 'bol' ? 'bol_url' : 'labels_url'
+      await supabase.from('orders').update({ [field]: path }).eq('id', orderId)
+      setUploaded(prev => ({ ...prev, [key]: true }))
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, [field]: path } : o))
+      if (selected?.id === orderId) setSelected(prev => ({ ...prev, [field]: path }))
+    } catch (e) { alert('Upload failed. Please try again.') }
+    setUploading(prev => ({ ...prev, [key]: false }))
   }
 
   const statusConfig = {
-    new:       { label: 'Received',   color: '#2d7dd2', bg: 'rgba(45,125,210,0.1)',   icon: '📥', step: 0 },
-    review:    { label: 'In review',  color: '#854f0b', bg: 'rgba(186,117,23,0.1)',   icon: '🔍', step: 1 },
-    confirmed: { label: 'Confirmed',  color: '#534ab7', bg: 'rgba(83,74,183,0.1)',    icon: '✅', step: 2 },
-    dispatched:{ label: 'Dispatched', color: '#2a7d4f', bg: 'rgba(42,125,79,0.12)',   icon: '🚚', step: 3 },
-    completed: { label: 'Completed',  color: '#2a7d4f', bg: 'rgba(42,125,79,0.08)',   icon: '🎉', step: 4 },
-    cancelled: { label: 'Cancelled',  color: '#c0392b', bg: 'rgba(231,76,60,0.08)',   icon: '✕',  step: -1 },
+    new:        { label: 'Received',   color: '#2d7dd2', bg: 'rgba(45,125,210,0.1)',  icon: '📥', step: 0, desc: 'Your order has been received and is pending review.' },
+    review:     { label: 'In review',  color: '#854f0b', bg: 'rgba(186,117,23,0.1)',  icon: '🔍', step: 1, desc: 'Our team is reviewing your order.' },
+    confirmed:  { label: 'Confirmed',  color: '#534ab7', bg: 'rgba(83,74,183,0.1)',   icon: '✅', step: 2, desc: 'Order confirmed! Please upload your BOL and shipping labels below.' },
+    dispatched: { label: 'Dispatched', color: '#2a7d4f', bg: 'rgba(42,125,79,0.1)',   icon: '🚚', step: 3, desc: 'Your order is on its way!' },
+    completed:  { label: 'Completed',  color: '#2a7d4f', bg: 'rgba(42,125,79,0.08)',  icon: '🎉', step: 4, desc: 'Order delivered successfully. Thank you!' },
+    cancelled:  { label: 'Cancelled',  color: '#c0392b', bg: 'rgba(231,76,60,0.08)',  icon: '✕',  step: -1, desc: 'This order has been cancelled.' },
   }
 
-  const steps = [
-    { key: 'new',        label: 'Received',   icon: '📥', desc: 'Order received by our team' },
-    { key: 'review',     label: 'In review',  icon: '🔍', desc: 'Being reviewed & verified' },
-    { key: 'confirmed',  label: 'Confirmed',  icon: '✅', desc: 'Order confirmed, payment pending' },
-    { key: 'dispatched', label: 'Dispatched', icon: '🚚', desc: 'Shipped and on its way' },
-    { key: 'completed',  label: 'Completed',  icon: '🎉', desc: 'Delivered & order closed' },
-  ]
-
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
-  const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
-
-  const totalOrders = orders.length
-  const totalValue = orders.reduce((s, o) => s + (o.total || 0), 0)
-  const activeOrders = orders.filter(o => !['completed','cancelled'].includes(o.status)).length
-  const completedOrders = orders.filter(o => o.status === 'completed').length
+  const steps = ['Received', 'In review', 'Confirmed', 'Dispatched', 'Completed']
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -66,7 +68,7 @@ export default function OrdersPage() {
           <div style={{ position: 'absolute', left: 10, bottom: 0, width: 26, height: 3, background: '#333' }} />
           <div style={{ position: 'absolute', left: 16, bottom: 10, width: 16, height: 3, background: '#2d7dd2' }} />
         </div>
-        <div style={{ fontSize: 12, color: '#444', letterSpacing: '0.1em' }}>Loading orders...</div>
+        <div style={{ fontSize: 12, color: '#444' }}>Loading orders...</div>
       </div>
     </div>
   )
@@ -97,195 +99,215 @@ export default function OrdersPage() {
         <button onClick={handleLogout} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
       </nav>
 
-      {/* HERO */}
-      <div style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 60%, #0d1a2e 100%)', padding: '2.5rem 2rem', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 8 }}>Order history</div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>My Orders</h1>
-            </div>
-            <Link href="/portal/catalog" style={{ padding: '11px 24px', background: '#2d7dd2', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', boxShadow: '0 4px 14px rgba(45,125,210,0.35)' }}>+ New order</Link>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
-            {[
-              { label: 'Total orders', value: totalOrders, color: '#2d7dd2', icon: '📦', sub: 'all time' },
-              { label: 'Active orders', value: activeOrders, color: '#854f0b', icon: '⏳', sub: 'in progress' },
-              { label: 'Completed', value: completedOrders, color: '#2a7d4f', icon: '✅', sub: 'delivered' },
-              { label: 'Total value', value: `$${totalValue.toLocaleString()}`, color: '#2a7d4f', icon: '💰', sub: 'ordered' },
-            ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '1.25rem 1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: s.color, fontWeight: 500 }}>{s.sub}</div>
-                  </div>
-                  <div style={{ fontSize: 22, opacity: 0.35 }}>{s.icon}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div style={{ padding: '2rem', maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: selected ? '1fr 420px' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
 
-      <div style={{ padding: '2rem', maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
-
-        {/* LEFT */}
+        {/* LEFT — orders list */}
         <div>
-          {/* FILTER TABS */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
-            {[['all','All'],['new','Received'],['review','In review'],['confirmed','Confirmed'],['dispatched','Dispatched'],['completed','Completed'],['cancelled','Cancelled']].map(([val, label]) => {
-              const count = val === 'all' ? orders.length : orders.filter(o => o.status === val).length
-              return (
-                <button key={val} onClick={() => setFilter(val)} style={{ fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', border: `1.5px solid ${filter === val ? '#2d7dd2' : 'rgba(0,0,0,0.1)'}`, background: filter === val ? '#2d7dd2' : '#fff', color: filter === val ? '#fff' : '#666', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {label}
-                  <span style={{ fontSize: 9, background: filter === val ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)', borderRadius: 10, padding: '1px 6px', fontWeight: 700 }}>{count}</span>
-                </button>
-              )
-            })}
-          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#111', marginBottom: '1.5rem', letterSpacing: '-0.01em' }}>My Orders <span style={{ fontSize: 14, color: '#aaa', fontWeight: 400 }}>· {orders.length} total</span></div>
 
-          {/* ORDERS */}
-          {filtered.length === 0 ? (
-            <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '4rem', textAlign: 'center' }}>
+          {orders.length === 0 ? (
+            <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 8, padding: '4rem', textAlign: 'center' }}>
               <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 6 }}>No orders found</div>
-              <div style={{ fontSize: 12, color: '#aaa', marginBottom: '1.5rem' }}>Start by browsing our product catalog</div>
-              <Link href="/portal/catalog" style={{ padding: '9px 22px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 2, textDecoration: 'none', display: 'inline-block' }}>Browse catalog</Link>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 6 }}>No orders yet</div>
+              <Link href="/portal/catalog" style={{ display: 'inline-block', padding: '10px 24px', background: '#2d7dd2', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', marginTop: 8 }}>Browse catalog</Link>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {filtered.map(order => {
-                const s = statusConfig[order.status] || statusConfig.new
-                const isSelected = selected?.id === order.id
-                const isCompleted = order.status === 'completed'
-                return (
-                  <div key={order.id} onClick={() => setSelected(isSelected ? null : order)} style={{ background: '#fff', border: `1px solid ${isSelected ? '#2d7dd2' : 'rgba(0,0,0,0.08)'}`, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', boxShadow: isSelected ? '0 4px 20px rgba(45,125,210,0.15)' : '0 1px 4px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}>
-                    {/* Status bar on top */}
-                    <div style={{ height: 3, background: s.color, opacity: 0.7 }} />
-                    <div style={{ padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 46, height: 46, borderRadius: 4, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{s.icon}</div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Order #{order.order_number}</div>
-                            <span style={{ fontSize: 10, padding: '2px 10px', borderRadius: 20, background: s.bg, color: s.color, fontWeight: 700 }}>{s.label}</span>
-                          </div>
-                          <div style={{ fontSize: 11, color: '#aaa' }}>{fmtDate(order.submitted_at)} · {order.order_items?.length || 0} items</div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: isCompleted ? '#2a7d4f' : '#111', marginBottom: 2 }}>${order.total?.toLocaleString()}</div>
-                        <div style={{ fontSize: 10, color: '#bbb' }}>{isCompleted ? '✅ Paid' : '⏳ Pending payment'}</div>
-                      </div>
+          ) : orders.map(order => {
+            const s = statusConfig[order.status] || statusConfig.new
+            const isSelected = selected?.id === order.id
+            const needsDocs = order.status === 'confirmed' && order.shipment_weight && (!order.bol_url || !order.labels_url)
+            const totalUnits = order.order_items?.reduce((sum, i) => sum + i.quantity, 0) || 0
+
+            return (
+              <div key={order.id} onClick={() => setSelected(isSelected ? null : order)}
+                style={{ background: '#fff', border: `1.5px solid ${isSelected ? '#2d7dd2' : needsDocs ? 'rgba(83,74,183,0.4)' : 'rgba(0,0,0,0.08)'}`, borderLeft: `5px solid ${s.color}`, borderRadius: 8, padding: '1.25rem 1.5rem', marginBottom: 10, cursor: 'pointer', boxShadow: isSelected ? '0 4px 20px rgba(45,125,210,0.12)' : '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#111' }}>Order #{order.order_number}</div>
+                      <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 10, background: s.bg, color: s.color, fontWeight: 700 }}>{s.icon} {s.label}</span>
+                      {needsDocs && <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 10, background: 'rgba(83,74,183,0.1)', color: '#534ab7', fontWeight: 700 }}>⚡ Upload docs needed</span>}
                     </div>
-                    {/* Items preview */}
-                    {order.order_items && order.order_items.length > 0 && (
-                      <div style={{ padding: '0 1.5rem 1rem', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {order.order_items.slice(0,4).map((item, i) => (
-                          <span key={i} style={{ fontSize: 10, padding: '3px 10px', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 20, color: '#666', fontWeight: 500 }}>
-                            {item.product_name} ×{item.quantity}
-                          </span>
-                        ))}
-                        {order.order_items.length > 4 && (
-                          <span style={{ fontSize: 10, padding: '3px 10px', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 20, color: '#aaa' }}>+{order.order_items.length - 4} more</span>
-                        )}
-                      </div>
-                    )}
+                    <div style={{ fontSize: 12, color: '#aaa' }}>{fmtDate(order.submitted_at)} · {order.order_items?.length || 0} products · {totalUnits} units</div>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>${order.total?.toLocaleString()}</div>
+                </div>
+
+                {/* Progress bar */}
+                {order.status !== 'cancelled' && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', marginBottom: 4 }}>
+                      <div style={{ position: 'absolute', top: 8, left: '5%', right: '5%', height: 2, background: '#f0f0f0' }} />
+                      <div style={{ position: 'absolute', top: 8, left: '5%', height: 2, background: s.color, width: `${Math.max(0, (s.step / 4) * 90)}%` }} />
+                      {steps.map((step, i) => {
+                        const done = i <= s.step
+                        return (
+                          <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, position: 'relative' }}>
+                            <div style={{ width: 16, height: 16, borderRadius: '50%', background: done ? s.color : '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {done && <span style={{ fontSize: 8, color: '#fff', fontWeight: 700 }}>✓</span>}
+                            </div>
+                            <div style={{ fontSize: 8, color: done ? s.color : '#bbb', fontWeight: done ? 700 : 400, marginTop: 3, whiteSpace: 'nowrap' }}>{step}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {order.order_items?.slice(0,3).map((item, i) => (
+                    <span key={i} style={{ fontSize: 10, padding: '3px 10px', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 10, color: '#888' }}>{item.product_name} ×{item.quantity}</span>
+                  ))}
+                  {order.order_items?.length > 3 && <span style={{ fontSize: 10, color: '#bbb' }}>+{order.order_items.length - 3} more</span>}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
-        {/* RIGHT — ORDER DETAIL */}
-        {selected && (
-          <div style={{ position: 'sticky', top: 80 }}>
-            <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}>
-              {/* Header */}
-              <div style={{ background: 'linear-gradient(135deg, #0d0d0d, #1a1a2e)', padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 6 }}>Order details</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 3 }}>#{selected.order_number}</div>
-                    <div style={{ fontSize: 11, color: '#555' }}>{fmtDate(selected.submitted_at)} at {fmtTime(selected.submitted_at)}</div>
-                  </div>
-                  <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#888', cursor: 'pointer', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>×</button>
-                </div>
-              </div>
+        {/* RIGHT — order detail */}
+        {selected && (() => {
+          const s = statusConfig[selected.status] || statusConfig.new
+          const hasShipmentInfo = selected.shipment_weight || selected.shipment_pallets
+          const hasBol = selected.bol_url || uploaded[`${selected.id}-bol`]
+          const hasLabels = selected.labels_url || uploaded[`${selected.id}-labels`]
+          const totalUnits = selected.order_items?.reduce((sum, i) => sum + i.quantity, 0) || 0
 
-              {/* STATUS TIMELINE */}
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)', background: '#fafafa' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1rem' }}>Order status</div>
-                {selected.status === 'cancelled' ? (
-                  <div style={{ padding: '10px 14px', background: 'rgba(231,76,60,0.08)', border: '0.5px solid rgba(231,76,60,0.2)', borderRadius: 3, fontSize: 12, fontWeight: 600, color: '#c0392b' }}>✕ This order has been cancelled</div>
-                ) : (
-                  <div style={{ position: 'relative' }}>
-                    {steps.map((step, i) => {
-                      const currentStep = statusConfig[selected.status]?.step || 0
-                      const isDone = i < currentStep
-                      const isActive = i === currentStep
-                      const isFuture = i > currentStep
-                      return (
-                        <div key={step.key} style={{ display: 'flex', gap: 12, marginBottom: i < steps.length - 1 ? 0 : 0, position: 'relative' }}>
-                          {/* Line */}
-                          {i < steps.length - 1 && (
-                            <div style={{ position: 'absolute', left: 11, top: 24, width: 2, height: '100%', background: isDone ? '#2d7dd2' : '#e0e0e0', zIndex: 0 }} />
-                          )}
-                          {/* Dot */}
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: isDone || isActive ? '#2d7dd2' : '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1, boxShadow: isActive ? '0 0 0 4px rgba(45,125,210,0.15)' : 'none', marginTop: 2 }}>
-                            {isDone ? <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</span> : isActive ? <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'block' }} /> : <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ccc', display: 'block' }} />}
-                          </div>
-                          <div style={{ paddingBottom: i < steps.length - 1 ? '1rem' : 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isFuture ? '#bbb' : '#222', marginBottom: 1 }}>{step.icon} {step.label}</div>
-                            <div style={{ fontSize: 10, color: isFuture ? '#ddd' : '#aaa' }}>{step.desc}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+          return (
+            <div style={{ position: 'sticky', top: 80 }}>
+              <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
 
-              {/* ITEMS */}
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Items ordered</div>
-                {selected.order_items?.map((item, i) => (
-                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < selected.order_items.length - 1 ? '0.5px solid rgba(0,0,0,0.05)' : 'none' }}>
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg,#0d0d0d,#1a1a2e)', padding: '1.25rem 1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#333', marginBottom: 2 }}>{item.product_name}</div>
-                      <div style={{ fontSize: 10, color: '#bbb', fontFamily: 'monospace' }}>{item.product_sku} · Qty: {item.quantity}</div>
+                      <div style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: s.color, fontWeight: 600, marginBottom: 4 }}>{s.icon} {s.label}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 2 }}>Order #{selected.order_number}</div>
+                      <div style={{ fontSize: 11, color: '#555' }}>{fmtDate(selected.submitted_at)} at {fmtTime(selected.submitted_at)}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</div>
-                      <div style={{ fontSize: 10, color: '#bbb' }}>${item.unit_price?.toLocaleString()}/unit</div>
+                    <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#888', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>×</button>
+                  </div>
+                  <div style={{ padding: '10px 14px', background: `${s.color}15`, border: `0.5px solid ${s.color}30`, borderRadius: 6, fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>
+                    {s.desc}
+                  </div>
+                </div>
+
+                <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+
+                  {/* SHIPMENT INFO — shown when confirmed */}
+                  {hasShipmentInfo && (
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', background: 'rgba(83,74,183,0.04)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#534ab7', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>📦 Shipment information</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: selected.shipment_notes ? 8 : 0 }}>
+                        {[
+                          ['Total weight', selected.shipment_weight],
+                          ['Dimensions', selected.shipment_dimensions],
+                          ['Number of pallets', selected.shipment_pallets ? `${selected.shipment_pallets} pallet${selected.shipment_pallets > 1 ? 's' : ''}` : null],
+                        ].filter(([,v]) => v).map(([label, val]) => (
+                          <div key={label} style={{ padding: '10px 12px', background: '#fff', border: '0.5px solid rgba(83,74,183,0.15)', borderRadius: 4 }}>
+                            <div style={{ fontSize: 9, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>{label}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#333' }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {selected.shipment_notes && (
+                        <div style={{ padding: '10px 12px', background: '#fff', border: '0.5px solid rgba(83,74,183,0.15)', borderRadius: 4 }}>
+                          <div style={{ fontSize: 9, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Notes</div>
+                          <div style={{ fontSize: 12, color: '#555', lineHeight: 1.7 }}>{selected.shipment_notes}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* BOL & LABELS UPLOAD */}
+                  {selected.status === 'confirmed' && (
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)', background: (!hasBol || !hasLabels) ? 'rgba(83,74,183,0.03)' : 'rgba(42,125,79,0.03)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: (!hasBol || !hasLabels) ? '#534ab7' : '#2a7d4f', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                        {(!hasBol || !hasLabels) ? '⚡ Upload required documents' : '✅ Documents uploaded'}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* BOL */}
+                        <div style={{ padding: '1rem', background: '#fff', border: `1px solid ${hasBol ? 'rgba(42,125,79,0.3)' : 'rgba(83,74,183,0.2)'}`, borderRadius: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hasBol ? 0 : 10 }}>
+                            <span style={{ fontSize: 24 }}>📋</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Bill of Lading (BOL)</div>
+                              <div style={{ fontSize: 10, color: '#aaa' }}>PDF or image</div>
+                            </div>
+                            {hasBol && <span style={{ marginLeft: 'auto', fontSize: 9, padding: '3px 10px', background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', borderRadius: 10, fontWeight: 700 }}>✅ Uploaded</span>}
+                          </div>
+                          {!hasBol && (
+                            <label style={{ display: 'block', border: '2px dashed #e0e0e0', borderRadius: 4, padding: '12px', textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
+                              <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                                onChange={e => e.target.files[0] && uploadDoc(selected.id, e.target.files[0], 'bol')} />
+                              {uploading[`${selected.id}-bol`] ? (
+                                <div style={{ fontSize: 12, color: '#2d7dd2', fontWeight: 600 }}>⏳ Uploading...</div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: '#aaa' }}>📤 Click to upload BOL</div>
+                              )}
+                            </label>
+                          )}
+                        </div>
+
+                        {/* LABELS */}
+                        <div style={{ padding: '1rem', background: '#fff', border: `1px solid ${hasLabels ? 'rgba(42,125,79,0.3)' : 'rgba(83,74,183,0.2)'}`, borderRadius: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hasLabels ? 0 : 10 }}>
+                            <span style={{ fontSize: 24 }}>🏷</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Shipping Labels</div>
+                              <div style={{ fontSize: 10, color: '#aaa' }}>PDF or image</div>
+                            </div>
+                            {hasLabels && <span style={{ marginLeft: 'auto', fontSize: 9, padding: '3px 10px', background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', borderRadius: 10, fontWeight: 700 }}>✅ Uploaded</span>}
+                          </div>
+                          {!hasLabels && (
+                            <label style={{ display: 'block', border: '2px dashed #e0e0e0', borderRadius: 4, padding: '12px', textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
+                              <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                                onChange={e => e.target.files[0] && uploadDoc(selected.id, e.target.files[0], 'labels')} />
+                              {uploading[`${selected.id}-labels`] ? (
+                                <div style={{ fontSize: 12, color: '#2d7dd2', fontWeight: 600 }}>⏳ Uploading...</div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: '#aaa' }}>📤 Click to upload labels</div>
+                              )}
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ITEMS */}
+                  <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem' }}>Items · {selected.order_items?.length} products · {totalUnits} units</div>
+                    {selected.order_items?.map((item, i) => (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < selected.order_items.length - 1 ? '0.5px solid rgba(0,0,0,0.06)' : 'none' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 2 }}>{item.product_name}</div>
+                          <div style={{ fontSize: 10, color: '#aaa', fontFamily: 'monospace' }}>{item.product_sku} · {item.quantity} units × ${item.unit_price?.toLocaleString()}</div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</div>
+                      </div>
+                    ))}
+                    <div style={{ marginTop: 10, padding: '10px 14px', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.08)', borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>Order total</span>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>${selected.total?.toLocaleString()}</span>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* TOTAL */}
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 4 }}><span>Subtotal</span><span>${selected.subtotal?.toLocaleString()}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa', marginBottom: 8 }}><span>Shipping</span><span>TBD</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: selected.status === 'completed' ? 'rgba(42,125,79,0.08)' : 'rgba(45,125,210,0.06)', border: `0.5px solid ${selected.status === 'completed' ? 'rgba(42,125,79,0.2)' : 'rgba(45,125,210,0.15)'}`, borderRadius: 4, padding: '10px 14px' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>Total</span>
-                  <span style={{ fontSize: 22, fontWeight: 800, color: selected.status === 'completed' ? '#2a7d4f' : '#2d7dd2' }}>${selected.total?.toLocaleString()}</span>
+                  {/* QUICK ACTIONS */}
+                  <div style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: 8 }}>
+                    <Link href="/portal/payments" style={{ flex: 1, padding: '10px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 4, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+                      💳 View payments
+                    </Link>
+                    <Link href="/portal/invoices" style={{ flex: 1, padding: '10px', background: '#f7f8fa', color: '#555', fontSize: 11, fontWeight: 600, border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 4, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+                      🧾 View invoices
+                    </Link>
+                  </div>
                 </div>
-              </div>
-
-              {/* ACTIONS */}
-              <div style={{ padding: '1rem 1.5rem', display: 'flex', gap: 8 }}>
-                <Link href="/portal/invoices" style={{ flex: 1, padding: 11, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 3, textDecoration: 'none', textAlign: 'center', boxShadow: '0 4px 14px rgba(45,125,210,0.3)', display: 'block' }}>🧾 View invoice</Link>
-                {!['completed','cancelled'].includes(selected.status) && (
-                  <Link href="/portal/payments" style={{ padding: '11px 14px', background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontSize: 11, fontWeight: 600, border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 3, textDecoration: 'none', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>💳 Pay</Link>
-                )}
               </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )
