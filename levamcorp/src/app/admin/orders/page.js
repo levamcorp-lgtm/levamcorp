@@ -17,6 +17,9 @@ export default function AdminOrders() {
   const [editForm, setEditForm] = useState({})
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [search, setSearch] = useState('')
+  const [shipmentForm, setShipmentForm] = useState({})
+  const [showShipment, setShowShipment] = useState(false)
+  const [savingShipment, setSavingShipment] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -105,6 +108,28 @@ export default function AdminOrders() {
     setSelected(null)
     setDeleteConfirm(false)
     setUpdating(false)
+  }
+
+  const saveShipment = async () => {
+    setSavingShipment(true)
+    const supabase = createClient()
+    await supabase.from('orders').update({
+      shipment_weight: shipmentForm.shipment_weight,
+      shipment_dimensions: shipmentForm.shipment_dimensions,
+      shipment_pallets: parseInt(shipmentForm.shipment_pallets) || null,
+      shipment_notes: shipmentForm.shipment_notes,
+    }).eq('id', selected.id)
+    await loadAll(supabase)
+    setSelected(prev => ({ ...prev, ...shipmentForm }))
+    setShowShipment(false)
+    setSavingShipment(false)
+  }
+
+  const getDocUrl = async (path) => {
+    if (!path) return
+    const supabase = createClient()
+    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
   const getProofUrl = async (path) => {
@@ -446,6 +471,64 @@ export default function AdminOrders() {
                       </div>
                     </div>
                   )}
+
+                  {/* SHIPMENT INFO */}
+                  <div style={{ padding: '1rem 1.5rem', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>📦 Shipment details</div>
+                      <button onClick={() => { setShowShipment(!showShipment); setShipmentForm({ shipment_weight: selected.shipment_weight || '', shipment_dimensions: selected.shipment_dimensions || '', shipment_pallets: selected.shipment_pallets || '', shipment_notes: selected.shipment_notes || '' }) }}
+                        style={{ fontSize: 10, color: '#2d7dd2', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.3)', padding: '4px 10px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>
+                        ✏️ {selected.shipment_weight ? 'Edit' : 'Add info'}
+                      </button>
+                    </div>
+
+                    {showShipment ? (
+                      <div style={{ background: 'rgba(45,125,210,0.04)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4, padding: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                          {[['Weight (lbs)', 'shipment_weight', 'e.g. 250 lbs'],['Dimensions (L×W×H)', 'shipment_dimensions', 'e.g. 48×40×60 in'],['Number of pallets', 'shipment_pallets', 'e.g. 2'],['Notes for client', 'shipment_notes', 'e.g. Stack max 2 high']].map(([label, field, ph]) => (
+                            <div key={field} style={{ gridColumn: field === 'shipment_notes' ? 'span 2' : 'auto' }}>
+                              <label style={{ fontSize: 8, color: '#777', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{label}</label>
+                              <input value={shipmentForm[field] || ''} onChange={e => setShipmentForm(f => ({...f, [field]: e.target.value}))} placeholder={ph}
+                                style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 11, padding: '7px 10px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={saveShipment} disabled={savingShipment} style={{ flex: 1, padding: 8, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 3 }}>
+                            {savingShipment ? 'Saving...' : '✓ Save — client will see this'}
+                          </button>
+                          <button onClick={() => setShowShipment(false)} style={{ padding: '8px 12px', background: 'transparent', color: '#555', fontSize: 11, border: '0.5px solid rgba(255,255,255,0.08)', cursor: 'pointer', borderRadius: 3 }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : selected.shipment_weight || selected.shipment_pallets ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        {[['Weight', selected.shipment_weight],['Dimensions', selected.shipment_dimensions],['Pallets', selected.shipment_pallets ? `${selected.shipment_pallets} pallet${selected.shipment_pallets > 1 ? 's' : ''}` : null],['Notes', selected.shipment_notes]].filter(([,v]) => v).map(([label, val]) => (
+                          <div key={label} style={{ padding: '7px 10px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 3, gridColumn: label === 'Notes' ? 'span 2' : 'auto' }}>
+                            <div style={{ fontSize: 8, color: '#555', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{label}</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, color: '#444', fontStyle: 'italic' }}>No shipment info added yet — add it so the client can upload BOL and labels</div>
+                    )}
+
+                    {/* BOL & Labels uploaded by client */}
+                    {(selected.bol_url || selected.labels_url) && (
+                      <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                        {selected.bol_url && (
+                          <button onClick={() => getDocUrl(selected.bol_url)} style={{ flex: 1, padding: '8px', background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontSize: 11, fontWeight: 600, border: '0.5px solid rgba(42,125,79,0.3)', borderRadius: 3, cursor: 'pointer' }}>
+                            📋 View BOL
+                          </button>
+                        )}
+                        {selected.labels_url && (
+                          <button onClick={() => getDocUrl(selected.labels_url)} style={{ flex: 1, padding: '8px', background: 'rgba(45,125,210,0.1)', color: '#2d7dd2', fontSize: 11, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.3)', borderRadius: 3, cursor: 'pointer' }}>
+                            🏷 View Labels
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* ITEMS */}
                   <div style={{ padding: '1rem 1.5rem' }}>
