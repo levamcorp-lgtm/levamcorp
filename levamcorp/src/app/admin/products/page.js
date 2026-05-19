@@ -205,6 +205,13 @@ export default function AdminProducts() {
                     <option value="false">Hidden — not visible</option>
                   </select>
                 </div>
+                <div>
+                  <label style={lbl}>Top Pick ⭐</label>
+                  <select style={inp} value={form.is_top_pick ? 'true' : 'false'} onChange={e => setField('is_top_pick', e.target.value === 'true')}>
+                    <option value="false">No — regular product</option>
+                    <option value="true">Yes — featured on homepage</option>
+                  </select>
+                </div>
               </div>
 
               {/* SECTION: Category */}
@@ -384,6 +391,7 @@ export default function AdminProducts() {
                       {product.brand && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(83,74,183,0.15)', color: '#a89af0', fontWeight: 600 }}>{product.brand}</span>}
                       {product.condition && product.condition !== 'New' && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(133,79,11,0.15)', color: '#c4893a', fontWeight: 600 }}>{product.condition}</span>}
                       {!product.active && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(100,100,100,0.15)', color: '#666', fontWeight: 600 }}>Hidden</span>}
+                      {product.is_top_pick && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(255,180,0,0.15)', color: '#c49a00', fontWeight: 700 }}>⭐ Top Pick</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ fontSize: 11, color: '#555', fontFamily: 'monospace' }}>{product.sku}</span>
@@ -398,6 +406,13 @@ export default function AdminProducts() {
 
                   {/* ACTIONS */}
                   <div style={{ display: 'flex', gap: 6, padding: '0 1rem', alignItems: 'center', flexShrink: 0 }}>
+                    <button onClick={async () => {
+                      const supabase = createClient()
+                      await supabase.from('products').update({ is_top_pick: !product.is_top_pick }).eq('id', product.id)
+                      setProducts(prev => prev.map(p => p.id === product.id ? {...p, is_top_pick: !p.is_top_pick} : p))
+                    }} style={{ fontSize: 11, color: product.is_top_pick ? '#c49a00' : '#555', background: product.is_top_pick ? 'rgba(255,180,0,0.1)' : 'rgba(255,255,255,0.04)', border: `0.5px solid ${product.is_top_pick ? 'rgba(255,180,0,0.3)' : 'rgba(255,255,255,0.08)'}`, padding: '5px 10px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }} title={product.is_top_pick ? 'Remove from Top Picks' : 'Add to Top Picks'}>
+                      {product.is_top_pick ? '⭐' : '☆'}
+                    </button>
                     <button onClick={() => startEdit(product)} style={{ fontSize: 11, color: '#2d7dd2', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.3)', padding: '5px 12px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
                     <button onClick={() => deleteProduct(product.id, product.name)} style={{ fontSize: 11, color: '#e74c3c', background: 'rgba(231,76,60,0.08)', border: '0.5px solid rgba(231,76,60,0.25)', padding: '5px 12px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                     <div onClick={() => setExpanded(isExpanded ? null : product.id)} style={{ fontSize: 16, color: '#444', cursor: 'pointer', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', padding: '0 4px' }}>⌄</div>
