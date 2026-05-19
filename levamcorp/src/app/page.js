@@ -78,6 +78,10 @@ export default function Home() {
           <a href="#how" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>How it works</a>
           <a href="#about" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>About us</a>
           <Link href="/contact" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Contact us</Link>
+          <Link href="/insights" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, background: '#2a7d4f', borderRadius: '50%', display: 'inline-block' }} />
+            Market Insights
+          </Link>
           <Link href="/portal" style={{
             fontSize: 12, fontWeight: 600, padding: '9px 22px',
             border: '0.5px solid #2d7dd2', background: 'rgba(45,125,210,0.15)',
