@@ -40,7 +40,7 @@ export default function AdminClients() {
   const openDoc = async (path) => {
     if (!path) return
     const supabase = createClient()
-    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    const { data } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
     else alert('Could not open document. Please check storage permissions.')
   }
