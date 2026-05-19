@@ -128,13 +128,13 @@ export default function AdminOrders() {
   const getDocUrl = async (path) => {
     if (!path) return
     const supabase = createClient()
-    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    const { data } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
   const getProofUrl = async (path) => {
     const supabase = createClient()
-    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    const { data } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
