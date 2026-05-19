@@ -133,9 +133,14 @@ export default function AdminOrders() {
   }
 
   const getProofUrl = async (path) => {
-    const supabase = createClient()
-    const { data } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    if (!path) { alert('No file path found'); return }
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
+      if (error) { alert('Storage error: ' + error.message); return }
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+      else alert('Could not generate URL for: ' + path)
+    } catch(e) { alert('Error: ' + e.message) }
   }
 
   const nextStatus = { new: 'review', review: 'confirmed', confirmed: 'dispatched', dispatched: 'completed' }
