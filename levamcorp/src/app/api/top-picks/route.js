@@ -10,8 +10,8 @@ export async function GET() {
       .from('products')
       .select('id, name, brand, category, image_url, stock')
       .eq('active', true)
-      .gt('stock', 0)
-      .order('created_at', { ascending: false })
+      .eq('is_top_pick', true)
+      .order('name', { ascending: true })
       .limit(8)
 
     return Response.json({ products: data || [] })
