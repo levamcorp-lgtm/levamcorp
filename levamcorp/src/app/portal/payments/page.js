@@ -39,7 +39,7 @@ export default function PaymentsPage() {
       const supabase = createClient()
       const ext = file.name.split('.').pop()
       const path = `proof/${paymentId}-${Date.now()}.${ext}`
-      const { data, error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type, upsert: true })
+      const { data, error } = await supabase.storage.from('Documents').upload(path, file, { contentType: file.type, upsert: true })
       if (error) throw error
       await supabase.from('payments').update({ payment_proof_url: path, status: 'processing' }).eq('id', paymentId)
       setUploaded(prev => ({ ...prev, [paymentId]: true }))
