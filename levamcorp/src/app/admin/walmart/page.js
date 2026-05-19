@@ -5,496 +5,362 @@ import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
 
-export default function WalmartPage() {
-  const [analyses, setAnalyses] = useState([])
+export default function AdminDashboard() {
+  const [data, setData] = useState({
+    orders: [], clients: [], applications: [], products: [],
+    payments: [], messages: [], investments: []
+  })
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [showUpload, setShowUpload] = useState(false)
-  const [analysisName, setAnalysisName] = useState('')
-  const [files, setFiles] = useState({ settlement: null, rts: null })
-  const [activeTab, setActiveTab] = useState('overview')
-  const [costInputs, setCostInputs] = useState({ productCost: '', inboundCost: '' })
+
+  const now = new Date()
+  const currentMonth = now.toLocaleString('en-US', { month: 'long' })
+  const currentYear = now.getFullYear()
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
-      await loadAnalyses(supabase)
+    supabase.auth.getUser().then(async ({ data: authData }) => {
+      if (!authData.user || authData.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
+      const [
+        { data: orders }, { data: clients }, { data: applications },
+        { data: products }, { data: payments }, { data: messages },
+        { data: investments }
+      ] = await Promise.all([
+        supabase.from('orders').select('*, order_items(*, products(cost_price))').order('submitted_at', { ascending: false }),
+        supabase.from('clients').select('*').order('created_at', { ascending: false }),
+        supabase.from('applications').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('*').order('name'),
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+        supabase.from('partner_investments').select('*'),
+      ])
+      setData({ orders: orders||[], clients: clients||[], applications: applications||[], products: products||[], payments: payments||[], messages: messages||[], investments: investments||[] })
+      setLoading(false)
     })
   }, [])
 
-  const loadAnalyses = async (supabase) => {
-    const { data } = await supabase.from('walmart_analyses').select('*').order('created_at', { ascending: false })
-    setAnalyses(data || [])
-    setLoading(false)
-  }
-
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
-  const runAnalysis = async () => {
-    if (!files.settlement) { alert('Settlement report is required'); return }
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('name', analysisName || `Analysis ${new Date().toLocaleDateString()}`)
-      formData.append('settlement', files.settlement)
-      if (files.rts) formData.append('rts', files.rts)
+  // Calculations
+  const completedOrders = data.orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
+  const newOrders = data.orders.filter(o => o.status === 'new')
+  const activeOrders = data.orders.filter(o => ['review','confirmed','dispatched'].includes(o.status))
+  const pendingApps = data.applications.filter(a => a.status === 'pending' || !a.status)
+  const unreadMessages = data.messages.filter(m => m.status === 'new')
+  const pendingPayments = data.payments.filter(p => p.status === 'requested')
+  const proofSubmitted = data.payments.filter(p => p.status === 'processing')
+  const outOfStock = data.products.filter(p => p.stock === 0)
+  const lowStock = data.products.filter(p => p.stock > 0 && p.stock <= 5)
 
-      const res = await fetch('/api/walmart-analyze', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error)
-      const supabase = createClient()
-      await loadAnalyses(supabase)
-      setSelected(data.analysis)
-      setShowUpload(false)
-      setFiles({ settlement: null, rts: null })
-      setAnalysisName('')
-    } catch (e) { alert('Error: ' + e.message) }
-    setUploading(false)
-  }
+  const totalRevenue = completedOrders.reduce((s, o) => s + (o.total || 0), 0)
+  const calcCost = (order) => (order.order_items || []).reduce((s, i) => s + ((i.products?.cost_price || 0) * i.quantity), 0)
+  const totalCost = completedOrders.reduce((s, o) => s + calcCost(o), 0)
+  const totalProfit = totalRevenue - totalCost
 
-  const fmtMoney = (n) => `$${(parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  // Revenue includes confirmed, dispatched and completed orders
+  const monthOrders = completedOrders.filter(o => {
+    const d = new Date(o.submitted_at)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
+  })
+  const monthRevenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0)
+  const monthCost = monthOrders.reduce((s, o) => s + calcCost(o), 0)
+  const monthProfit = monthRevenue - monthCost
 
-  const severityColor = { high: '#e74c3c', medium: '#854f0b', low: '#2d7dd2', info: '#2d7dd2' }
-  const severityBg = { high: 'rgba(231,76,60,0.1)', medium: 'rgba(133,79,11,0.1)', low: 'rgba(45,125,210,0.1)', info: 'rgba(45,125,210,0.08)' }
+  const currentInvestments = data.investments.filter(i => i.month === currentMonth && i.year === currentYear)
+  const victorInvested = currentInvestments.filter(i => i.partner_name === 'Victor').reduce((s, i) => s + i.amount, 0)
+  const leopoldoInvested = currentInvestments.filter(i => i.partner_name === 'Leopoldo').reduce((s, i) => s + i.amount, 0)
+  const totalInvested = victorInvested + leopoldoInvested
+  const victorShare = totalInvested > 0 ? victorInvested / totalInvested : 0.5
+  const leopoldoShare = totalInvested > 0 ? leopoldoInvested / totalInvested : 0.5
 
-  // Profit calculator
-  const calcProfit = (s) => {
-    if (!s) return null
-    const revenue = parseFloat(costInputs.revenue) || 0
-    const productCost = parseFloat(costInputs.productCost) || 0
-    const inboundCost = parseFloat(costInputs.inboundCost) || 0
-    const fees = (s.summary?.settlement?.fulfillmentFees || 0) +
-                 (s.summary?.settlement?.returnProcessingFees || 0) +
-                 (s.summary?.settlement?.storageFees || 0) +
-                 (s.summary?.settlement?.inventoryRemoval || 0) +
-                 (s.summary?.settlement?.rtvFees || 0) +
-                 (s.summary?.settlement?.refundsIssued || 0) +
-                 inboundCost
-    const credits = s.summary?.settlement?.lostInventoryCredit || 0
-    const profit = revenue - productCost - fees + credits
-    const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : 0
-    return { revenue, productCost, fees, credits, profit, margin, inboundCost }
-  }
-
-  if (loading) return <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading...</div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ position: 'relative', width: 48, height: 48, margin: '0 auto 16px' }}>
+          <div style={{ position: 'absolute', left: 10, top: 0, width: 3, height: 38, background: '#333' }} />
+          <div style={{ position: 'absolute', left: 10, bottom: 0, width: 26, height: 3, background: '#333' }} />
+          <div style={{ position: 'absolute', left: 16, bottom: 10, width: 16, height: 3, background: '#2d7dd2' }} />
+        </div>
+        <div style={{ fontSize: 12, color: '#444', letterSpacing: '0.1em' }}>Loading dashboard...</div>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative', width: 28, height: 28 }}>
+              <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#333' }} />
+              <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#333' }} />
+              <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2.5, background: '#2d7dd2' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
+              <div style={{ fontSize: 7, color: '#444', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Staff only</div>
+            </div>
+          </div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Products','/admin/products'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Walmart' ? '#0071CE' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Walmart' ? '2px solid #0071CE' : '2px solid transparent', fontWeight: label === 'Walmart' ? 700 : 400 }}>{label}</Link>
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
+              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#666', textDecoration: 'none', padding: '4px 12px', borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
+                {label}
+                {label === 'Orders' && newOrders.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+                {label === 'Messages' && unreadMessages.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+                {label === 'Applications' && pendingApps.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+              </Link>
             ))}
           </div>
         </div>
-        <button onClick={handleLogout} style={{ fontSize: 11, color: '#555', border: '0.5px solid rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 11, color: '#444' }}>{now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+          <button onClick={handleLogout} style={{ fontSize: 11, color: '#555', border: '0.5px solid rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        </div>
       </nav>
 
-      {/* HEADER */}
-      <div style={{ background: 'linear-gradient(135deg, #001a33 0%, #0071CE20 100%)', padding: '2rem', borderBottom: '0.5px solid rgba(0,113,206,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 28 }}>🛒</span>
-              <div>
-                <div style={{ fontSize: 10, color: '#0071CE', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Walmart WFS</div>
-                <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: 0 }}>Financial Audit Tool</h1>
+      {/* HERO HEADER */}
+      <div style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #111 50%, #0d1a0d 100%)', padding: '2rem 2rem 1.5rem', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 6 }}>Command center</div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginBottom: 4, letterSpacing: '-0.01em' }}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, Levam Corp 👋</h1>
+          <p style={{ fontSize: 12, color: '#444' }}>{currentMonth} {currentYear} · Here is everything happening right now</p>
+        </div>
+
+        {/* TOP STATS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8 }}>
+          {[
+            { label: 'New orders', value: newOrders.length, color: newOrders.length > 0 ? '#e74c3c' : '#555', bg: newOrders.length > 0 ? 'rgba(231,76,60,0.1)' : 'rgba(255,255,255,0.03)', icon: '📥', href: '/admin/orders', alert: newOrders.length > 0 },
+            { label: 'Active orders', value: activeOrders.length, color: '#854f0b', bg: 'rgba(255,255,255,0.03)', icon: '⏳', href: '/admin/orders' },
+            { label: 'Pending apps', value: pendingApps.length, color: pendingApps.length > 0 ? '#e74c3c' : '#555', bg: pendingApps.length > 0 ? 'rgba(231,76,60,0.08)' : 'rgba(255,255,255,0.03)', icon: '📋', href: '/admin/applications', alert: pendingApps.length > 0 },
+            { label: 'Unread messages', value: unreadMessages.length, color: unreadMessages.length > 0 ? '#2d7dd2' : '#555', bg: unreadMessages.length > 0 ? 'rgba(45,125,210,0.08)' : 'rgba(255,255,255,0.03)', icon: '📩', href: '/admin/messages', alert: unreadMessages.length > 0 },
+            { label: 'Payment proofs', value: proofSubmitted.length, color: proofSubmitted.length > 0 ? '#2a7d4f' : '#555', bg: proofSubmitted.length > 0 ? 'rgba(42,125,79,0.08)' : 'rgba(255,255,255,0.03)', icon: '💳', href: '/admin/payments', alert: proofSubmitted.length > 0 },
+            { label: 'Approved clients', value: data.clients.length, color: '#2d7dd2', bg: 'rgba(255,255,255,0.03)', icon: '🤝', href: '/admin/clients' },
+          ].map(s => (
+            <Link key={s.label} href={s.href} style={{ textDecoration: 'none' }}>
+              <div style={{ background: s.bg, border: `0.5px solid ${s.alert ? s.color + '40' : 'rgba(255,255,255,0.05)'}`, borderRadius: 6, padding: '1rem', cursor: 'pointer', position: 'relative' }}>
+                {s.alert && <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, background: '#e74c3c', borderRadius: '50%' }} />}
+                <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color, marginBottom: 3 }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.label}</div>
               </div>
-            </div>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Upload your Walmart reports to detect discrepancies, duplicate charges, and profit leaks</p>
-          </div>
-          <button onClick={() => setShowUpload(true)} style={{ padding: '11px 24px', background: '#0071CE', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 4, letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 4px 16px rgba(0,113,206,0.4)' }}>
-            + New Analysis
-          </button>
+            </Link>
+          ))}
         </div>
       </div>
 
-      <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: selected ? '300px 1fr' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
-        {/* LEFT — analyses list */}
-        <div>
-          {analyses.length === 0 ? (
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '3rem', textAlign: 'center' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
-              <div style={{ fontSize: 14, color: '#555', marginBottom: 8 }}>No analyses yet</div>
-              <div style={{ fontSize: 12, color: '#444' }}>Upload your Walmart reports to get started</div>
+        {/* COLUMN 1 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* FINANCIALS */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: 'rgba(42,125,79,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#2a7d4f' }}>💰 Financials</div>
+              <Link href="/admin/profit" style={{ fontSize: 10, color: '#2a7d4f', textDecoration: 'none' }}>View profit →</Link>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {analyses.map(a => {
-                const alertCount = a.alerts?.filter(x => x.severity === 'high').length || 0
-                const isSelected = selected?.id === a.id
-                return (
-                  <div key={a.id} onClick={() => { setSelected(a); setActiveTab('overview'); setCostInputs({ productCost: '', inboundCost: '', revenue: '' }) }}
-                    style={{ background: '#111', border: `1px solid ${isSelected ? '#0071CE' : 'rgba(255,255,255,0.06)'}`, borderLeft: `4px solid ${alertCount > 0 ? '#e74c3c' : '#0071CE'}`, borderRadius: 6, padding: '1rem 1.25rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{a.name}</div>
-                      {alertCount > 0 && <span style={{ fontSize: 9, padding: '2px 8px', background: 'rgba(231,76,60,0.15)', color: '#e74c3c', borderRadius: 10, fontWeight: 700 }}>{alertCount} alert{alertCount > 1 ? 's' : ''}</span>}
-                    </div>
-                    {a.summary?.period?.start && (
-                      <div style={{ fontSize: 10, color: '#555', marginBottom: 6 }}>{a.summary.period.start} → {a.summary.period.end}</div>
-                    )}
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <div style={{ fontSize: 11, color: '#777' }}>
-                        <span style={{ color: '#e74c3c', fontWeight: 600 }}>{fmtMoney(a.summary?.settlement?.totalFees)}</span> fees
-                      </div>
-                      <div style={{ fontSize: 11, color: '#777' }}>
-                        <span style={{ color: '#2a7d4f', fontWeight: 600 }}>{fmtMoney(a.summary?.settlement?.totalCredits)}</span> credits
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 10, color: '#444', marginTop: 4 }}>{fmtDate(a.created_at)}</div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT — analysis detail */}
-        {selected && (
-          <div>
-            {/* TABS */}
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '6px 6px 0 0', display: 'flex', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-              {[['overview','📊 Overview'],['alerts','🚨 Alerts'],['fees','💰 Fees breakdown'],['profit','📈 Profit calculator'],['transactions','📋 All transactions']].map(([key, label]) => {
-                const alertCount = key === 'alerts' ? (selected.alerts?.length || 0) : 0
-                return (
-                  <button key={key} onClick={() => setActiveTab(key)} style={{ flex: 1, padding: '12px 8px', fontSize: 11, fontWeight: activeTab === key ? 700 : 400, color: activeTab === key ? '#0071CE' : '#555', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === key ? '#0071CE' : 'transparent'}`, cursor: 'pointer', position: 'relative' }}>
-                    {label}
-                    {alertCount > 0 && <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
-                  </button>
-                )
-              })}
-            </div>
-
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderTop: 'none', borderRadius: '0 0 6px 6px', padding: '1.5rem' }}>
-
-              {/* OVERVIEW TAB */}
-              {activeTab === 'overview' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{selected.name}</div>
-                      <div style={{ fontSize: 12, color: '#555' }}>
-                        Settlement period: {selected.summary?.period?.start} → {selected.summary?.period?.end}
-                      </div>
-                    </div>
-                    {selected.alerts?.some(a => a.severity === 'high') && (
-                      <div style={{ padding: '8px 14px', background: 'rgba(231,76,60,0.1)', border: '0.5px solid rgba(231,76,60,0.3)', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#e74c3c' }}>
-                        ⚠️ {selected.alerts.filter(a => a.severity === 'high').length} High priority alert(s)
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Big numbers */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: '1.5rem' }}>
-                    {[
-                      { label: 'Total fees paid', value: fmtMoney(selected.summary?.settlement?.totalFees), color: '#e74c3c', icon: '💸' },
-                      { label: 'Total credits', value: fmtMoney(selected.summary?.settlement?.totalCredits), color: '#2a7d4f', icon: '💚' },
-                      { label: 'Net payable', value: fmtMoney(selected.summary?.settlement?.netPayable), color: '#0071CE', icon: '💰' },
-                      { label: 'Alerts found', value: selected.alerts?.length || 0, color: selected.alerts?.length > 0 ? '#e74c3c' : '#555', icon: '🚨' },
-                    ].map(s => (
-                      <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1rem' }}>
-                        <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>
-                        <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Fee breakdown visual */}
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1.25rem', marginBottom: '1rem' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Fee breakdown</div>
-                    {[
-                      ['WFS Fulfillment Fee', selected.summary?.settlement?.fulfillmentFees, '#0071CE', selected.summary?.counts?.fulfillmentFeeOrders + ' orders'],
-                      ['Inbound Transportation', selected.summary?.settlement?.inboundTransportation, '#534ab7', ''],
-                      ['Return Processing', selected.summary?.settlement?.returnProcessingFees, '#854f0b', selected.summary?.counts?.returnFeeCount + ' returns'],
-                      ['Storage Fee', selected.summary?.settlement?.storageFees, '#e74c3c', ''],
-                      ['Inventory Removal', selected.summary?.settlement?.inventoryRemoval, '#e74c3c', ''],
-                      ['RTV Fees', selected.summary?.settlement?.rtvFees, '#666', ''],
-                    ].filter(([,v]) => v > 0).map(([label, val, color, note]) => {
-                      const total = selected.summary?.settlement?.totalFees || 1
-                      const pct = ((val / total) * 100).toFixed(0)
-                      return (
-                        <div key={label} style={{ marginBottom: 10 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <div style={{ fontSize: 12, color: '#ccc' }}>{label} {note && <span style={{ fontSize: 10, color: '#555' }}>({note})</span>}</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color }}>{fmtMoney(val)} <span style={{ fontSize: 10, color: '#555' }}>{pct}%</span></div>
-                          </div>
-                          <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2 }} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Credits */}
-                  {(selected.summary?.settlement?.lostInventoryCredit > 0 || selected.summary?.settlement?.refundsIssued > 0) && (
-                    <div style={{ background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.15)', borderRadius: 6, padding: '1.25rem' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#2a7d4f', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Credits received</div>
-                      {[
-                        ['Lost Inventory Credit', selected.summary?.settlement?.lostInventoryCredit],
-                      ].filter(([,v]) => v > 0).map(([label, val]) => (
-                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0' }}>
-                          <span style={{ color: '#888' }}>{label}</span>
-                          <span style={{ fontWeight: 700, color: '#2a7d4f' }}>{fmtMoney(val)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ALERTS TAB */}
-              {activeTab === 'alerts' && (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-                    {selected.alerts?.length || 0} alerts found
-                  </div>
-                  {!selected.alerts?.length ? (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#555' }}>
-                      <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                      <div>No alerts found for this period</div>
-                    </div>
-                  ) : selected.alerts.map((alert, i) => (
-                    <div key={i} style={{ background: severityBg[alert.severity] || severityBg.info, border: `0.5px solid ${severityColor[alert.severity] || '#555'}30`, borderLeft: `4px solid ${severityColor[alert.severity] || '#555'}`, borderRadius: 6, padding: '1.25rem', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{alert.severity === 'high' ? '🚨' : alert.severity === 'medium' ? '⚠️' : 'ℹ️'}</span>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{alert.title}</div>
-                          <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.7 }}>{alert.description}</div>
-                        </div>
-                        <span style={{ marginLeft: 'auto', fontSize: 9, padding: '3px 8px', background: `${severityColor[alert.severity]}20`, color: severityColor[alert.severity], borderRadius: 8, fontWeight: 700, flexShrink: 0, textTransform: 'uppercase' }}>{alert.severity}</span>
-                      </div>
-                      {alert.details?.length > 0 && (
-                        <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 4 }}>
-                          {alert.details.map((d, j) => (
-                            <div key={j} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#888', padding: '3px 0', borderBottom: j < alert.details.length - 1 ? '0.5px solid rgba(255,255,255,0.04)' : 'none' }}>
-                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{d.item || d.order || '—'}</span>
-                              <span style={{ color: '#ccc', fontWeight: 600, flexShrink: 0 }}>${parseFloat(d.amount || 0).toFixed(2)}</span>
-                              {d.date && <span style={{ color: '#555', marginLeft: 8, flexShrink: 0 }}>{d.date?.split('T')[0]}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* FEES BREAKDOWN TAB */}
-              {activeTab === 'fees' && (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>All charges by type</div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: '#0d0d0d' }}>
-                        {['Transaction type', 'Count', 'Total amount', '% of fees'].map(h => (
-                          <th key={h} style={{ fontSize: 9, color: '#555', padding: '10px 12px', textAlign: 'left', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selected.summary?.byType?.map((row, i) => {
-                        const totalAbs = selected.summary?.settlement?.totalFees || 1
-                        const pct = row.total > 0 ? ((row.total / totalAbs) * 100).toFixed(1) : '—'
-                        const isNeg = row.total < 0
-                        return (
-                          <tr key={i} style={{ borderTop: '0.5px solid rgba(255,255,255,0.04)' }}>
-                            <td style={{ padding: '12px', fontSize: 13, color: '#ccc', fontWeight: 500 }}>{row.type}</td>
-                            <td style={{ padding: '12px', fontSize: 12, color: '#777' }}>{row.count}</td>
-                            <td style={{ padding: '12px', fontSize: 13, fontWeight: 700, color: isNeg ? '#2a7d4f' : '#e74c3c' }}>
-                              {isNeg ? '+' : '-'}{fmtMoney(Math.abs(row.total))}
-                              <span style={{ fontSize: 10, color: '#555', marginLeft: 4 }}>{isNeg ? 'credit' : 'charge'}</span>
-                            </td>
-                            <td style={{ padding: '12px', fontSize: 12, color: '#555' }}>{row.total > 0 ? pct + '%' : '—'}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,113,206,0.06)' }}>
-                        <td colSpan={2} style={{ padding: '12px', fontSize: 12, fontWeight: 700, color: '#888' }}>NET PAYABLE TO WALMART</td>
-                        <td colSpan={2} style={{ padding: '12px', fontSize: 16, fontWeight: 800, color: '#0071CE' }}>{fmtMoney(selected.summary?.settlement?.netPayable)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-
-              {/* PROFIT CALCULATOR TAB */}
-              {activeTab === 'profit' && (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Profit calculator</div>
-                  <p style={{ fontSize: 12, color: '#555', marginBottom: '1.5rem', lineHeight: 1.7 }}>Enter your revenue and costs to calculate your real profit after all Walmart fees for this settlement period.</p>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: '1.5rem' }}>
-                    {[
-                      ['revenue', 'Total revenue (GMV)', 'Total sales amount in this period', '#2a7d4f'],
-                      ['productCost', 'Product cost (COGS)', 'What you paid for the inventory', '#854f0b'],
-                      ['inboundCost', 'Inbound shipping cost', 'Cost to ship to Walmart warehouse', '#534ab7'],
-                    ].map(([field, label, hint, color]) => (
-                      <div key={field}>
-                        <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{label}</label>
-                        <div style={{ position: 'relative' }}>
-                          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#555', fontSize: 13 }}>$</span>
-                          <input type="number" value={costInputs[field] || ''} onChange={e => setCostInputs(p => ({...p, [field]: e.target.value}))} placeholder="0.00"
-                            style={{ width: '100%', background: '#1a1a1a', border: `0.5px solid ${color}40`, color: '#ddd', fontSize: 13, padding: '10px 10px 10px 24px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                        </div>
-                        <div style={{ fontSize: 10, color: '#444', marginTop: 3 }}>{hint}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {costInputs.revenue && (() => {
-                    const p = calcProfit(selected)
-                    if (!p) return null
-                    return (
-                      <div>
-                        {/* Waterfall */}
-                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1.25rem', marginBottom: '1rem' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>Profit waterfall</div>
-                          {[
-                            ['Revenue (GMV)', p.revenue, '#2a7d4f', '+'],
-                            ['Product cost', p.productCost, '#e74c3c', '-'],
-                            ['Walmart fees', p.fees, '#e74c3c', '-'],
-                            ['Credits received', p.credits, '#2a7d4f', '+'],
-                          ].map(([label, val, color, sign]) => val > 0 ? (
-                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                              <span style={{ fontSize: 12, color: '#888' }}>{label}</span>
-                              <span style={{ fontSize: 13, fontWeight: 600, color }}>{sign}{fmtMoney(val)}</span>
-                            </div>
-                          ) : null)}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 0', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Net profit</span>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 24, fontWeight: 800, color: p.profit >= 0 ? '#2a7d4f' : '#e74c3c' }}>{fmtMoney(p.profit)}</div>
-                              <div style={{ fontSize: 11, color: p.profit >= 0 ? '#2a7d4f' : '#e74c3c' }}>{p.margin}% margin</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ padding: '1rem', background: p.profit >= 0 ? 'rgba(42,125,79,0.08)' : 'rgba(231,76,60,0.08)', border: `0.5px solid ${p.profit >= 0 ? 'rgba(42,125,79,0.2)' : 'rgba(231,76,60,0.2)'}`, borderRadius: 6, textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: p.profit >= 0 ? '#2a7d4f' : '#e74c3c', fontWeight: 600 }}>
-                            {p.profit >= 0 ? `✅ Profitable — you made ${fmtMoney(p.profit)} this period` : `⚠️ Loss — you are ${fmtMoney(Math.abs(p.profit))} in the red this period`}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              )}
-
-              {/* TRANSACTIONS TAB */}
-              {activeTab === 'transactions' && (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-                    All transactions <span style={{ fontSize: 11, color: '#555', fontWeight: 400 }}>· {selected.settlement_data?.length || 0} rows</span>
-                  </div>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                      <thead>
-                        <tr style={{ background: '#0d0d0d' }}>
-                          {['Order #', 'Type', 'Item', 'Date', 'Amount'].map(h => (
-                            <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: '#555', fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: 9, borderBottom: '0.5px solid rgba(255,255,255,0.04)', whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(selected.settlement_data || []).slice(0, 100).map((row, i) => {
-                          const amount = parseFloat(row['Net Payable']) || 0
-                          const isNeg = amount < 0
-                          return (
-                            <tr key={i} style={{ borderTop: '0.5px solid rgba(255,255,255,0.03)' }}>
-                              <td style={{ padding: '8px 10px', color: '#2d7dd2', fontFamily: 'monospace', fontSize: 10 }}>{(row['Walmart.com Order #'] || '').replace(/[="]/g, '').slice(-8)}</td>
-                              <td style={{ padding: '8px 10px' }}>
-                                <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: isNeg ? 'rgba(42,125,79,0.15)' : 'rgba(231,76,60,0.1)', color: isNeg ? '#2a7d4f' : '#e74c3c', fontWeight: 600 }}>
-                                  {row['Transaction Type']}
-                                </span>
-                              </td>
-                              <td style={{ padding: '8px 10px', color: '#888', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Partner Item Name']}</td>
-                              <td style={{ padding: '8px 10px', color: '#555', whiteSpace: 'nowrap' }}>{row['Transaction Date/Time']?.split('T')[0]}</td>
-                              <td style={{ padding: '8px 10px', fontWeight: 700, color: isNeg ? '#2a7d4f' : '#e74c3c', whiteSpace: 'nowrap' }}>
-                                {isNeg ? '+' : '-'}{fmtMoney(Math.abs(amount))}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                    {selected.settlement_data?.length > 100 && (
-                      <div style={{ padding: '12px', textAlign: 'center', fontSize: 11, color: '#444' }}>Showing first 100 of {selected.settlement_data.length} transactions</div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* UPLOAD MODAL */}
-      {showUpload && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 500, overflow: 'hidden' }}>
-            <div style={{ background: '#0d0d0d', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>🛒 New Walmart Analysis</div>
-              <button onClick={() => setShowUpload(false)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#888', cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
+            <div style={{ padding: '1rem 1.25rem' }}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Analysis name</label>
-                <input value={analysisName} onChange={e => setAnalysisName(e.target.value)} placeholder={`Analysis ${new Date().toLocaleDateString()}`}
-                  style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 13, padding: '10px 12px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: 9, color: '#444', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>All-time revenue</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#2d7dd2' }}>{fmtMoney(totalRevenue)}</div>
               </div>
-
-              <div style={{ background: 'rgba(0,113,206,0.06)', border: '0.5px solid rgba(0,113,206,0.15)', borderRadius: 6, padding: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: 10, color: '#0071CE', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>How to download from Walmart Seller Center</div>
-                <div style={{ fontSize: 12, color: '#888', lineHeight: 1.8 }}>
-                  1. Go to <strong style={{ color: '#ccc' }}>Reports → Financial → Settlement</strong> and download settlement CSV<br />
-                  2. Go to <strong style={{ color: '#ccc' }}>Returns → Returned to Seller</strong> and download CSV<br />
-                  3. Make sure dates match for accurate analysis
-                </div>
-              </div>
-
               {[
-                ['settlement', '📄 Settlement Report (CSV) *', 'Required — the main financial report', true],
-                ['rts', '📦 Returned to Seller (CSV)', 'Optional — items sent back to your warehouse', false],
-              ].map(([key, label, hint, required]) => (
-                <div key={key} style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{label}</label>
-                  <label style={{ display: 'block', border: `2px dashed ${files[key] ? '#0071CE' : 'rgba(255,255,255,0.1)'}`, borderRadius: 4, padding: '1rem', textAlign: 'center', cursor: 'pointer', background: files[key] ? 'rgba(0,113,206,0.06)' : 'transparent', transition: 'all 0.15s' }}>
-                    <input type="file" accept=".csv,.xlsx" style={{ display: 'none' }} onChange={e => setFiles(f => ({...f, [key]: e.target.files[0]}))} />
-                    {files[key] ? (
-                      <div style={{ fontSize: 12, color: '#0071CE', fontWeight: 600 }}>✓ {files[key].name}</div>
-                    ) : (
-                      <div>
-                        <div style={{ fontSize: 13, color: '#555', marginBottom: 2 }}>📤 Click to upload {required ? '' : '(optional)'}</div>
-                        <div style={{ fontSize: 10, color: '#444' }}>{hint}</div>
-                      </div>
-                    )}
-                  </label>
+                ['Total cost', fmtMoney(totalCost), '#854f0b'],
+                ['Total profit', fmtMoney(totalProfit), totalProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
+                ['This month revenue', fmtMoney(monthRevenue), '#2d7dd2'],
+                ['This month profit', fmtMoney(monthProfit), monthProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: 11, color: '#555' }}>{label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color }}>{val}</span>
                 </div>
               ))}
+            </div>
+          </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: '1.5rem' }}>
-                <button onClick={runAnalysis} disabled={uploading || !files.settlement}
-                  style={{ flex: 1, padding: 13, background: uploading || !files.settlement ? '#333' : '#0071CE', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: uploading || !files.settlement ? 'not-allowed' : 'pointer', borderRadius: 4, letterSpacing: '0.06em' }}>
-                  {uploading ? '⏳ Analyzing...' : '🔍 Run analysis'}
-                </button>
-                <button onClick={() => setShowUpload(false)} style={{ padding: '13px 20px', background: 'transparent', color: '#555', fontSize: 12, border: '0.5px solid rgba(255,255,255,0.08)', cursor: 'pointer', borderRadius: 4 }}>Cancel</button>
-              </div>
+          {/* PARTNER SPLIT */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc' }}>👥 Partner split — {currentMonth}</div>
+              <Link href="/admin/profit" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>Manage →</Link>
+            </div>
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                { name: 'Victor', invested: victorInvested, profit: monthProfit * victorShare, share: victorShare, color: '#2d7dd2' },
+                { name: 'Leopoldo', invested: leopoldoInvested, profit: monthProfit * leopoldoShare, share: leopoldoShare, color: '#534ab7' },
+              ].map(p => (
+                <div key={p.name} style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: p.color }}>{p.name}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>{fmtMoney(p.profit)}</div>
+                      <div style={{ fontSize: 9, color: '#444' }}>Invested: {fmtMoney(p.invested)}</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 2 }}>
+                    <div style={{ height: '100%', width: `${p.share * 100}%`, background: p.color, borderRadius: 2 }} />
+                  </div>
+                </div>
+              ))}
+              {totalInvested === 0 && <div style={{ fontSize: 11, color: '#444', textAlign: 'center', padding: '0.5rem' }}>No investments recorded this month</div>}
+            </div>
+          </div>
+
+          {/* INVENTORY */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc' }}>📦 Inventory</div>
+              <Link href="/admin/products" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>Manage →</Link>
+            </div>
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                ['Total products', data.products.length, '#ccc'],
+                ['In stock', data.products.filter(p => p.stock > 5).length, '#2a7d4f'],
+                ['Low stock (≤5)', lowStock.length, lowStock.length > 0 ? '#854f0b' : '#555'],
+                ['Out of stock', outOfStock.length, outOfStock.length > 0 ? '#e74c3c' : '#555'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: 11, color: '#555' }}>{label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
+                </div>
+              ))}
+              {outOfStock.length > 0 && (
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(231,76,60,0.06)', border: '0.5px solid rgba(231,76,60,0.2)', borderRadius: 3 }}>
+                  <div style={{ fontSize: 9, color: '#e74c3c', fontWeight: 700, marginBottom: 4 }}>OUT OF STOCK</div>
+                  {outOfStock.slice(0,3).map(p => <div key={p.id} style={{ fontSize: 10, color: '#888' }}>{p.name}</div>)}
+                  {outOfStock.length > 3 && <div style={{ fontSize: 10, color: '#555' }}>+{outOfStock.length - 3} more</div>}
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+
+        {/* COLUMN 2 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* RECENT ORDERS */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc' }}>📋 Recent orders</div>
+              <Link href="/admin/orders" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>View all →</Link>
+            </div>
+            <div>
+              {data.orders.slice(0, 6).map(order => {
+                const statusConfig = { new: { color: '#2d7dd2', label: 'New' }, review: { color: '#854f0b', label: 'Review' }, confirmed: { color: '#534ab7', label: 'Confirmed' }, dispatched: { color: '#2a7d4f', label: 'Dispatched' }, completed: { color: '#2a7d4f', label: 'Done' }, cancelled: { color: '#e74c3c', label: 'Cancelled' } }
+                const s = statusConfig[order.status] || statusConfig.new
+                return (
+                  <Link key={order.id} href="/admin/orders" style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc', marginBottom: 2 }}>#{order.order_number}</div>
+                        <div style={{ fontSize: 10, color: '#444' }}>{fmtDate(order.submitted_at)} at {fmtTime(order.submitted_at)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fmtMoney(order.total)}</div>
+                        <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 10, background: s.color + '20', color: s.color, fontWeight: 600 }}>{s.label}</span>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* PAYMENTS */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc' }}>💳 Payments</div>
+              <Link href="/admin/payments" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>Manage →</Link>
+            </div>
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                ['Pending requests', pendingPayments.length, pendingPayments.length > 0 ? '#854f0b' : '#555'],
+                ['Proof submitted', proofSubmitted.length, proofSubmitted.length > 0 ? '#2d7dd2' : '#555'],
+                ['Paid', data.payments.filter(p => p.status === 'paid').length, '#2a7d4f'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: 11, color: '#555' }}>{label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 3 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* PENDING APPLICATIONS */}
+          <div style={{ background: '#111', border: `0.5px solid ${pendingApps.length > 0 ? 'rgba(231,76,60,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: pendingApps.length > 0 ? 'rgba(231,76,60,0.06)' : '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: pendingApps.length > 0 ? '#e74c3c' : '#ccc' }}>📋 Applications {pendingApps.length > 0 && `(${pendingApps.length} pending)`}</div>
+              <Link href="/admin/applications" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>Review →</Link>
+            </div>
+            {pendingApps.length === 0 ? (
+              <div style={{ padding: '1.25rem', fontSize: 11, color: '#444', textAlign: 'center' }}>No pending applications</div>
+            ) : pendingApps.slice(0,4).map(app => (
+              <Link key={app.id} href="/admin/applications" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc', marginBottom: 1 }}>{app.business_name}</div>
+                    <div style={{ fontSize: 10, color: '#444' }}>{app.contact_name} · {fmtDate(app.created_at)}</div>
+                  </div>
+                  <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 10, background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontWeight: 700 }}>Review</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* RECENT CLIENTS */}
+          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc' }}>🤝 Recent clients</div>
+              <Link href="/admin/clients" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>View all →</Link>
+            </div>
+            {data.clients.slice(0,4).map(client => (
+              <Link key={client.id} href="/admin/clients" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(45,125,210,0.15)', border: '1px solid rgba(45,125,210,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2d7dd2' }}>{client.business_name?.[0]}</div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{client.business_name}</div>
+                      <div style={{ fontSize: 10, color: '#444' }}>{client.contact_name}</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontWeight: 600 }}>Active</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* MESSAGES */}
+          <div style={{ background: '#111', border: `0.5px solid ${unreadMessages.length > 0 ? 'rgba(45,125,210,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: unreadMessages.length > 0 ? '#2d7dd2' : '#ccc' }}>📩 Messages {unreadMessages.length > 0 && `(${unreadMessages.length} new)`}</div>
+              <Link href="/admin/messages" style={{ fontSize: 10, color: '#555', textDecoration: 'none' }}>View all →</Link>
+            </div>
+            {data.messages.slice(0,4).map(msg => (
+              <Link key={msg.id} href="/admin/messages" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, marginRight: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{msg.name}</div>
+                      {msg.status === 'new' && <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 8, background: 'rgba(45,125,210,0.2)', color: '#2d7dd2', fontWeight: 700 }}>NEW</span>}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#444', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: 160 }}>{msg.message}</div>
+                  </div>
+                  <div style={{ fontSize: 9, color: '#333', flexShrink: 0 }}>{fmtDate(msg.created_at)}</div>
+                </div>
+              </Link>
+            ))}
+            {data.messages.length === 0 && <div style={{ padding: '1.25rem', fontSize: 11, color: '#444', textAlign: 'center' }}>No messages yet</div>}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
