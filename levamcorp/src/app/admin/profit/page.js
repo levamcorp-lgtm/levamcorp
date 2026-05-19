@@ -146,8 +146,8 @@ export default function ProfitPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Profit' ? '#2a7d4f' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Profit' ? '2px solid #2a7d4f' : '2px solid transparent', fontWeight: label === 'Profit' ? 700 : 400 }}>{label}</Link>
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
+              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Profit' ? '#2a7d4f' : label === 'Walmart' ? '#0071CE' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Profit' ? '2px solid #2a7d4f' : label === 'Walmart' ? '2px solid #0071CE' : '2px solid transparent', fontWeight: label === 'Profit' ? 700 : 400 }}>{label}</Link>
             ))}
           </div>
         </div>
