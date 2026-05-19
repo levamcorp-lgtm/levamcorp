@@ -2,6 +2,27 @@
 import React from 'react'
 import Link from 'next/link'
 
+function NavLink({ href, label, dot }) {
+  const [hovered, setHovered] = React.useState(false)
+  return (
+    <Link href={href}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontSize: 13, fontWeight: hovered ? 600 : 500,
+        color: hovered ? '#fff' : 'rgba(255,255,255,0.55)',
+        textDecoration: 'none', letterSpacing: '0.02em',
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '6px 2px',
+        borderBottom: `1.5px solid ${hovered ? '#2d7dd2' : 'transparent'}`,
+        transition: 'all 0.2s ease',
+      }}>
+      {dot && <span style={{ width: 6, height: 6, background: hovered ? '#2a7d4f' : '#2a7d4f', borderRadius: '50%', display: 'inline-block', boxShadow: hovered ? '0 0 8px rgba(42,125,79,0.8)' : 'none', transition: 'all 0.2s' }} />}
+      {label}
+    </Link>
+  )
+}
+
 function TopPicksGrid() {
   const [products, setProducts] = React.useState([])
   const [loading, setLoading] = React.useState(true)
