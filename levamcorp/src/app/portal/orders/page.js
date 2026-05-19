@@ -36,7 +36,7 @@ export default function OrdersPage() {
       const supabase = createClient()
       const ext = file.name.split('.').pop()
       const path = `${type}/${orderId}-${Date.now()}.${ext}`
-      await supabase.storage.from('documents').upload(path, file, { contentType: file.type, upsert: true })
+      await supabase.storage.from('Documents').upload(path, file, { contentType: file.type, upsert: true })
       const field = type === 'bol' ? 'bol_url' : 'labels_url'
       await supabase.from('orders').update({ [field]: path }).eq('id', orderId)
       setUploaded(prev => ({ ...prev, [key]: true }))
