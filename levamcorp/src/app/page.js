@@ -2,25 +2,24 @@
 import React from 'react'
 import Link from 'next/link'
 
-function NavLink({ href, label, dot }) {
+function NavLink({ href, label, dot, useA }) {
   const [hovered, setHovered] = React.useState(false)
-  return (
-    <Link href={href}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        fontSize: 13, fontWeight: hovered ? 600 : 500,
-        color: hovered ? '#fff' : 'rgba(255,255,255,0.55)',
-        textDecoration: 'none', letterSpacing: '0.02em',
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '6px 2px',
-        borderBottom: `1.5px solid ${hovered ? '#2d7dd2' : 'transparent'}`,
-        transition: 'all 0.2s ease',
-      }}>
-      {dot && <span style={{ width: 6, height: 6, background: hovered ? '#2a7d4f' : '#2a7d4f', borderRadius: '50%', display: 'inline-block', boxShadow: hovered ? '0 0 8px rgba(42,125,79,0.8)' : 'none', transition: 'all 0.2s' }} />}
-      {label}
-    </Link>
-  )
+  const style = {
+    fontSize: 13, fontWeight: hovered ? 600 : 500,
+    color: hovered ? '#fff' : 'rgba(255,255,255,0.55)',
+    textDecoration: 'none', letterSpacing: '0.02em',
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '6px 2px',
+    borderBottom: `1.5px solid ${hovered ? '#2d7dd2' : 'transparent'}`,
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+  }
+  const inner = <>
+    {dot && <span style={{ width: 6, height: 6, background: '#2a7d4f', borderRadius: '50%', display: 'inline-block', boxShadow: hovered ? '0 0 8px rgba(42,125,79,0.9)' : '0 0 4px rgba(42,125,79,0.4)', transition: 'all 0.2s' }} />}
+    {label}
+  </>
+  if (useA) return <a href={href} style={style} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>{inner}</a>
+  return <Link href={href} style={style} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>{inner}</Link>
 }
 
 function TopPicksGrid() {
@@ -95,14 +94,15 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <a href="#catalog" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', letterSpacing: '0.02em' }}>Products</a>
-          <a href="#how" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>How it works</a>
-          <a href="#about" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>About us</a>
-          <Link href="/contact" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Contact us</Link>
-          <Link href="/insights" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 6, height: 6, background: '#2a7d4f', borderRadius: '50%', display: 'inline-block' }} />
-            Market Insights
-          </Link>
+          {[
+            { href: '#catalog', label: 'Products', tag: 'a' },
+            { href: '#how', label: 'How it works', tag: 'a' },
+            { href: '#about', label: 'About us', tag: 'a' },
+            { href: '/contact', label: 'Contact us', tag: 'link' },
+            { href: '/insights', label: 'Market Insights', tag: 'link', dot: true },
+          ].map(item => (
+            <NavLink key={item.label} href={item.href} label={item.label} dot={item.dot} useA={item.tag === 'a'} />
+          ))}
           <Link href="/portal" style={{
             fontSize: 12, fontWeight: 600, padding: '9px 22px',
             border: '0.5px solid #2d7dd2', background: 'rgba(45,125,210,0.15)',
