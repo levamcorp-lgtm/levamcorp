@@ -416,6 +416,7 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
         <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 4, flexDirection: 'column' }}>
           <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(0,0,0,0.55)', color: '#fff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{product.category}</span>
           {product.condition && product.condition !== 'New' && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(133,79,11,0.85)', color: '#fff', fontWeight: 600 }}>{product.condition}</span>}
+          {product.is_top_pick && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(255,180,0,0.9)', color: '#111', fontWeight: 700 }}>⭐ Top Pick</span>}
         </div>
       </div>
 
