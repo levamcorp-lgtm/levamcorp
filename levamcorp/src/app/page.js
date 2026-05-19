@@ -302,6 +302,75 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* WEEKLY STOCK */}
+      <section style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #111 60%, #0d1a0d 100%)', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+
+          {/* LEFT */}
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#2a7d4f', fontWeight: 700, marginBottom: '1.25rem', background: 'rgba(42,125,79,0.1)', border: '0.5px solid rgba(42,125,79,0.25)', padding: '6px 14px', borderRadius: 20 }}>
+              <span style={{ width: 7, height: 7, background: '#2a7d4f', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 6px rgba(42,125,79,0.8)', animation: 'none' }} />
+              Updated every week
+            </div>
+            <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '1.25rem' }}>
+              Fresh inventory.<br />
+              <em style={{ color: '#2a7d4f', fontStyle: 'normal' }}>Hottest products.</em><br />
+              Best prices.
+            </h2>
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.9, marginBottom: '2rem' }}>
+              Every week we update our inventory with the most in-demand products on the market — the ones flying off shelves on Amazon and Walmart. Our team sources the best deals so you can maximize your margins and keep your business moving.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '2rem' }}>
+              {[
+                ['🔄', 'Weekly stock updates', 'New products added every week — stay ahead of the market'],
+                ['🔥', 'Trending products only', 'We track what sells best on Amazon, Walmart and major platforms'],
+                ['💰', 'Wholesale margins', 'Prices negotiated directly with suppliers so you profit more'],
+                ['⚡', '48h dispatch', 'Ready to ship within 48 hours from our Doral, FL warehouse'],
+              ].map(([icon, title, desc]) => (
+                <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(42,125,79,0.12)', border: '0.5px solid rgba(42,125,79,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{title}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Link href="/apply" style={{ display: 'inline-block', padding: '13px 32px', background: '#2a7d4f', color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 4, textDecoration: 'none', boxShadow: '0 4px 20px rgba(42,125,79,0.4)' }}>
+              Get access to our catalog →
+            </Link>
+          </div>
+
+          {/* RIGHT */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { label: 'Electronics', icon: '📺', items: 'Smart TVs · Smartwatches · Cameras · Speakers', color: '#2d7dd2' },
+              { label: 'Home appliances', icon: '🏠', items: 'Air purifiers · Washers · Robot vacuums · Fans', color: '#534ab7' },
+              { label: 'Kitchen', icon: '🍳', items: 'Blenders · Air fryers · Coffee makers · Juicers', color: '#854f0b' },
+            ].map(cat => (
+              <div key={cat.label} style={{ background: 'rgba(255,255,255,0.04)', border: `0.5px solid ${cat.color}30`, borderLeft: `3px solid ${cat.color}`, borderRadius: 6, padding: '1.25rem 1.5rem', display: 'flex', gap: 14, alignItems: 'center' }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{cat.icon}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{cat.label}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{cat.items}</div>
+                </div>
+                <div style={{ marginLeft: 'auto', fontSize: 10, color: cat.color, fontWeight: 700, background: `${cat.color}15`, border: `0.5px solid ${cat.color}30`, padding: '4px 10px', borderRadius: 10, flexShrink: 0 }}>Weekly drops</div>
+              </div>
+            ))}
+
+            <div style={{ background: 'rgba(42,125,79,0.08)', border: '1px solid rgba(42,125,79,0.2)', borderRadius: 6, padding: '1.5rem', textAlign: 'center', marginTop: 4 }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>New arrivals every Monday</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: '1rem' }}>
+                Approved partners get notified first when new stock arrives — giving you first pick before anyone else.
+              </div>
+              <div style={{ fontSize: 11, color: '#2a7d4f', fontWeight: 600 }}>✓ Early access for approved partners only</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
         {[['40','+ Products in catalog'],['48','h Average dispatch'],['100','% Verified inventory']].map(([num,label],i) => (
