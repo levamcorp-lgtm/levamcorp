@@ -1,5 +1,55 @@
 'use client'
+import React from 'react'
 import Link from 'next/link'
+
+function TopPicksGrid() {
+  const [products, setProducts] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    fetch('/api/top-picks')
+      .then(r => r.json())
+      .then(data => { setProducts(data.products || []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+      {[1,2,3,4].map(i => (
+        <div key={i} style={{ background: '#f7f8fa', borderRadius: 8, height: 280, animation: 'pulse 1.5s infinite' }} />
+      ))}
+    </div>
+  )
+
+  if (products.length === 0) return null
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+      {products.map(product => (
+        <div key={product.id} style={{ background: '#f7f8fa', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 8, overflow: 'hidden', transition: 'all 0.2s' }}>
+          <div style={{ height: 200, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: 48 }}>📦</span>
+            )}
+          </div>
+          <div style={{ padding: '1rem' }}>
+            {product.brand && <div style={{ fontSize: 10, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>{product.brand}</div>}
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111', lineHeight: 1.4, marginBottom: 8 }}>{product.name}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, padding: '3px 8px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 10, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.15)', textTransform: 'capitalize' }}>{product.category}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: product.stock > 0 ? '#2a7d4f' : '#e74c3c' }}>{product.stock > 0 ? 'In stock' : 'Out of stock'}</span>
+            </div>
+            <div style={{ marginTop: 10, padding: '8px 12px', background: '#111', borderRadius: 4, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>
+              🔒 Partner price — apply to see
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function Home() {
   return (
@@ -218,6 +268,36 @@ export default function Home() {
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Bilingual support team</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* TOP PICKS */}
+      <section style={{ background: '#fff', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 10 }}>Exclusive wholesale access</div>
+            <h2 style={{ fontSize: 38, fontWeight: 800, color: '#111', letterSpacing: '-0.02em', marginBottom: '1rem' }}>
+              What our partners are ordering <em style={{ color: '#2d7dd2', fontStyle: 'normal' }}>right now</em>
+            </h2>
+            <p style={{ fontSize: 16, color: '#777', maxWidth: 520, margin: '0 auto' }}>
+              Approved distributors get access to these products and hundreds more — at unbeatable wholesale prices.
+            </p>
+          </div>
+
+          <TopPicksGrid />
+
+          <div style={{ textAlign: 'center', marginTop: '3rem', padding: '2.5rem', background: '#111', borderRadius: 8 }}>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
+              Wholesale pricing is exclusive to approved partners only.
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: '1.5rem', letterSpacing: '-0.01em' }}>
+              Ready to see the full catalog with prices?
+            </div>
+            <Link href="/apply" style={{ display: 'inline-block', padding: '14px 40px', background: '#2d7dd2', color: '#fff', fontSize: 14, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: 4, textDecoration: 'none', boxShadow: '0 4px 20px rgba(45,125,210,0.4)' }}>
+              Apply to become a partner →
+            </Link>
           </div>
         </div>
       </section>
