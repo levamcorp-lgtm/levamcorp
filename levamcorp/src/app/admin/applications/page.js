@@ -22,7 +22,7 @@ export default function AdminApplications() {
   }, [])
 
   const loadApps = async (supabase) => {
-    const { data } = await supabase.from('applications').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('applications').select('*').order('id', { ascending: false })
     setApplications(data || [])
     setLoading(false)
   }
@@ -78,7 +78,11 @@ export default function AdminApplications() {
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const fmtDate = (d) => {
+    if (!d) return 'N/A'
+    try { return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }
+    catch { return 'N/A' }
+  }
   const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   const statusConfig = {
