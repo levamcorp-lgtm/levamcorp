@@ -194,13 +194,54 @@ export default function CatalogPage() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: '#aaa' }}>No products found</div>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-            {filtered.map(product => (
-              <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const topPicks = filtered.filter(p => p.is_top_pick)
+          const regular = filtered.filter(p => !p.is_top_pick)
+          return (
+            <>
+              {/* TOP PICKS */}
+              {topPicks.length > 0 && (
+                <div style={{ marginBottom: '2.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1rem', padding: '10px 16px', background: 'linear-gradient(135deg, #1a1400, #2a1f00)', border: '1px solid rgba(255,180,0,0.3)', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>⭐</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#FFD700', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top Picks</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)' }}>Handpicked by Levam Corp — our best sellers right now</div>
+                      </div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,215,0,0.5)', fontWeight: 600 }}>{topPicks.length} featured product{topPicks.length > 1 ? 's' : ''}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, padding: '4px' }}>
+                    {topPicks.map(product => (
+                      <div key={product.id} style={{ filter: 'drop-shadow(0 4px 12px rgba(255,215,0,0.12))' }}>
+                        <ProductCard product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* REGULAR PRODUCTS */}
+              {regular.length > 0 && (
+                <div>
+                  {topPicks.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
+                      <div style={{ height: 1, flex: 1, background: 'rgba(255,255,255,0.08)' }} />
+                      <div style={{ fontSize: 10, color: '#555', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>All products</div>
+                      <div style={{ height: 1, flex: 1, background: 'rgba(255,255,255,0.08)' }} />
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+                    {regular.map(product => (
+                      <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        })()}
       </div>
 
       {/* QUOTE PANEL */}
