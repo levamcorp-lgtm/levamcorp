@@ -127,7 +127,7 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-      <section style={{
+      <section className='lc-hero' style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr',
         minHeight: 580, borderBottom: '0.5px solid rgba(0,0,0,0.08)'
       }}>
@@ -140,7 +140,7 @@ export default function Home() {
             <span style={{ width: 28, height: 2, background: '#2d7dd2', display: 'inline-block', borderRadius: 1 }} />
             B2B Wholesale Distribution — Doral, FL
           </div>
-          <h1 style={{
+          <h1 className='lc-hero-title' style={{
             fontSize: 54, fontWeight: 800, lineHeight: 1.08,
             color: '#111', marginBottom: '1.5rem', letterSpacing: '-0.02em'
           }}>
@@ -148,10 +148,10 @@ export default function Home() {
             <em style={{ color: '#2d7dd2', fontStyle: 'normal' }}>high-demand</em>{' '}
             inventory
           </h1>
-          <p style={{ fontSize: 16, color: '#555', lineHeight: 1.8, marginBottom: '1.5rem', maxWidth: 420, fontWeight: 400 }}>
+          <p className='lc-hero-subtitle' style={{ fontSize: 16, color: '#555', lineHeight: 1.8, marginBottom: '1.5rem', maxWidth: 420, fontWeight: 400 }}>
             We source high-demand consumer electronics, home and kitchen appliances and supply them exclusively to <strong style={{ color: '#333' }}>verified distributor partners</strong> at wholesale pricing.
           </p>
-          <div style={{ display: 'flex', gap: 8, marginBottom: '2rem' }}>
+          <div className='lc-hero-tags' style={{ display: 'flex', gap: 8, marginBottom: '2rem' }}>
             {[['📺', 'Electronics & TVs'], ['🏠', 'Home appliances'], ['🍳', 'Kitchen']].map(([icon, label]) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666', background: '#f7f8fa', padding: '6px 12px', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.08)' }}>
                 <span>{icon}</span> {label}
@@ -171,7 +171,7 @@ export default function Home() {
             }}>How it works</a>
           </div>
         </div>
-        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 580 }}>
+        <div className='lc-hero-image' style={{ position: 'relative', overflow: 'hidden', minHeight: 580 }}>
           <img
             src="https://images.pexels.com/photos/29786116/pexels-photo-29786116.jpeg?auto=compress&cs=tinysrgb&w=1200"
             alt="Levam Corp Warehouse"
@@ -194,7 +194,7 @@ export default function Home() {
 
 
       {/* LEMA & VALORES */}
-      <section style={{ background: '#fff', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+      <section className='lc-promise' style={{ background: '#fff', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* LEMA PRINCIPAL */}
@@ -421,7 +421,7 @@ export default function Home() {
       </div>
 
       {/* ABOUT */}
-      <div id="about" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)', minHeight: 480 }}>
+      <div id="about" className='lc-about' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '0.5px solid rgba(0,0,0,0.08)', minHeight: 480 }}>
         <div style={{ padding: '4rem 3.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '0.75rem', fontWeight: 600 }}>Who we are</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: '#111', marginBottom: '1.25rem', lineHeight: 1.15, letterSpacing: '-0.01em' }}>A new standard in B2B wholesale distribution</h2>
@@ -509,10 +509,10 @@ export default function Home() {
 
       {/* HOW IT WORKS */}
       {/* lc-how section starts below */}
-      <section id="how" style={{ padding: '5rem 3rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <section id="how" className='lc-how' style={{ padding: '5rem 3rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
         <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
           <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', marginBottom: '0.75rem', fontWeight: 600 }}>How it works</div>
-          <h2 style={{ fontSize: 38, fontWeight: 800, color: '#fff', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Four steps to start ordering.</h2>
+          <h2 className='lc-how-title' style={{ fontSize: 38, fontWeight: 800, color: '#fff', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Four steps to start ordering.</h2>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', maxWidth: 480, margin: '0 auto' }}>Join our network of verified distributors and get access to wholesale pricing today.</p>
         </div>
 
@@ -588,7 +588,7 @@ export default function Home() {
       </div>
 
       {/* FOOTER */}
-      <footer style={{ background: '#0d0d0d', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <footer className='lc-footer' style={{ background: '#0d0d0d', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
 
         {/* MAIN FOOTER */}
         <div style={{ padding: '3.5rem 3rem', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '3rem' }}>
