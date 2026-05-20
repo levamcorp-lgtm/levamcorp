@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '../../lib/supabase'
 
-const ADMIN_EMAIL = 'levamcorp@gmail.com' // cambia esto a tu email admin
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -17,7 +17,7 @@ export default function AdminLogin() {
       const supabase = createClient()
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
       if (err) throw err
-      if (data.user.email !== ADMIN_EMAIL) {
+      if (!ADMIN_EMAILS.includes(data.user.email)) {
         await supabase.auth.signOut()
         throw new Error('Unauthorized')
       }
