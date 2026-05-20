@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 export default function AdminDashboard() {
   const [data, setData] = useState({
@@ -106,7 +107,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit']].map(([label, href]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#666', textDecoration: 'none', padding: '4px 12px', borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
                 {label}
                 {label === 'Orders' && newOrders.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
