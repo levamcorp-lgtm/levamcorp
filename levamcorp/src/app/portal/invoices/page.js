@@ -386,6 +386,24 @@ export default function InvoicesPage() {
                   </div>
                   <div style={{ fontSize: 28, opacity: 0.4 }}>{isPaid ? '✅' : '💰'}</div>
                 </div>
+                {parseFloat(selected?.amount_paid) > 0 && !isPaid && (
+                  <div style={{ marginTop: 10, padding: '12px 14px', background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#2a7d4f', fontWeight: 600 }}>✓ Amount paid</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>${parseFloat(selected.amount_paid).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, color: '#e74c3c', fontWeight: 600 }}>Balance due</span>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: '#e74c3c' }}>${Math.max(0, selected.total - parseFloat(selected.amount_paid)).toLocaleString()}</span>
+                    </div>
+                    <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, (parseFloat(selected.amount_paid) / selected.total) * 100)}%`, background: '#2a7d4f', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'right', marginTop: 3 }}>
+                      {Math.min(100, Math.round((parseFloat(selected.amount_paid) / selected.total) * 100))}% paid
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* DISCLAIMER */}
