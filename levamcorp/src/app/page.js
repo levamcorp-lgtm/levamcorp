@@ -25,6 +25,40 @@ function MobileMenu() {
   )
 }
 
+
+const Icon = ({ d, size = 16, color = 'currentColor', strokeWidth = 1.5 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+)
+
+const icons = {
+  check:    "M20 6L9 17l-5-5",
+  clock:    "M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2M12 6v6l4 2",
+  lock:     "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4",
+  pin:      "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6",
+  tv:       "M33 7h-22a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h22a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM7 22v-1M17 22v-1",
+  home:     "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10",
+  utensils: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 1 5 5v6h-5zM21 22v-7",
+  refresh:  "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
+  trending: "M23 6l-9.5 9.5-5-5L1 18M17 6h6v6",
+  dollar:   "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  zap:      "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  shield:   "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  handshake:"M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l1.06 1.06L12 21.23l7.36-7.94 1.06-1.06a5.4 5.4 0 0 0 0-7.65z",
+  globe:    "M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z",
+  package:  "M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 1 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12",
+  file:     "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
+  checkCircle: "M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3",
+  search:   "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM21 21l-4.35-4.35",
+  creditCard:"M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM1 10h22",
+  phone:    "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z",
+  message:  "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  star:     "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  warehouse: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10",
+}
+
 function NavLink({ href, label, dot, useA }) {
   const [hovered, setHovered] = React.useState(false)
   const style = {
@@ -74,14 +108,14 @@ function TopPicksGrid() {
             {product.image_url ? (
               <img src={product.image_url} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (
-              <span style={{ fontSize: 48 }}>📦</span>
+              <span style={{ fontSize: 48 }}></span>
             )}
           </div>
           <div style={{ padding: '0.875rem' }}>
             {product.brand && <div style={{ fontSize: 9, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>{product.brand}</div>}
             <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.4, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name}</div>
-            <div style={{ padding: '9px', background: '#111', borderRadius: 6, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
-              🔒 Apply to see price
+            <div style={{ padding: '9px', background: '#111', borderRadius: 6, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Icon d={icons.lock} size={12} color='#aaa' /> Apply to see price
             </div>
           </div>
         </div>
@@ -152,11 +186,9 @@ export default function Home() {
             We source high-demand consumer electronics, home and kitchen appliances and supply them exclusively to <strong style={{ color: '#333' }}>verified distributor partners</strong> at wholesale pricing.
           </p>
           <div className='lc-hero-tags' style={{ display: 'flex', gap: 8, marginBottom: '2rem' }}>
-            {[['📺', 'Electronics & TVs'], ['🏠', 'Home appliances'], ['🍳', 'Kitchen']].map(([icon, label]) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666', background: '#f7f8fa', padding: '6px 12px', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.08)' }}>
-                <span>{icon}</span> {label}
-              </div>
-            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666', background: '#f7f8fa', padding: '6px 12px', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.08)' }}><Icon d="M33 7h-22a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h22a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" size={14} color="#2d7dd2" /> Electronics & TVs</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666', background: '#f7f8fa', padding: '6px 12px', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.08)' }}><Icon d={icons.home} size={14} color="#2d7dd2" /> Home appliances</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666', background: '#f7f8fa', padding: '6px 12px', borderRadius: 2, border: '0.5px solid rgba(0,0,0,0.08)' }}><Icon d={icons.utensils} size={14} color="#2d7dd2" /> Kitchen</div>
           </div>
           <div className='lc-hero-btns' style={{ display: 'flex', gap: '1rem' }}>
             <Link href="/apply" style={{
@@ -185,11 +217,10 @@ export default function Home() {
       <div className='lc-trust-bar' style={{ background: '#111', padding: '1.6rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4rem',
         borderBottom: '0.5px solid rgba(255,255,255,0.06)'
       }}>
-        {[['✓','Verified inventory'],['⏱','48h average dispatch'],['🔒','Approved partners only'],['📍','Doral, FL 33178']].map(([icon,label]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.03em' }}>
-            <span style={{ color: '#2d7dd2', fontSize: 16, fontWeight: 700 }}>{icon}</span> {label}
-          </div>
-        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff' }}><Icon d={icons.check} size={16} color="#2d7dd2" /> Verified inventory</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff' }}><Icon d={icons.clock} size={16} color="#2d7dd2" /> 48h average dispatch</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff' }}><Icon d={icons.lock} size={16} color="#2d7dd2" /> Approved partners only</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: '#fff' }}><Icon d={icons.pin} size={16} color="#2d7dd2" /> Doral, FL 33178</div>
       </div>
 
 
@@ -208,7 +239,7 @@ export default function Home() {
               "Our commitment to every client is absolute — always available, never dropping the ball, and delivering a wholesale buying experience where you feel right at home."
             </p>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 13, color: '#2d7dd2', fontWeight: 600, background: 'rgba(45,125,210,0.06)', padding: '10px 20px', borderRadius: 30, border: '0.5px solid rgba(45,125,210,0.2)' }}>
-              <span>🇺🇸</span> English & <span>🇪🇸</span> Español — We speak your language
+              EN · ES — We speak your language
             </div>
           </div>
 
@@ -216,37 +247,37 @@ export default function Home() {
           <div className='lc-promise-grid' style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem', marginBottom: '4rem' }}>
             {[
               {
-                icon: '🤝',
+                icon: 'handshake',
                 title: 'Total trust',
                 
                 desc: 'We work exclusively with verified distributors. Every partner is personally reviewed to ensure serious, long-term business relationships. Your information and orders are in the best hands.'
               },
               {
-                icon: '💰',
+                icon: 'dollar',
                 title: 'Unbeatable pricing',
                 
                 desc: 'Access some of the best market prices on electronics, home appliances, and kitchen products. Exclusive pricing for approved distributors — no middlemen, no hidden fees.'
               },
               {
-                icon: '⚡',
+                icon: 'zap',
                 title: 'Unmatched service',
                 
                 desc: 'From the moment you apply to when your order arrives, we are with you every step. Fast responses, clear communication, and a team that speaks your language — English and Spanish.'
               },
               {
-                icon: '📦',
+                icon: 'package',
                 title: 'Ready inventory',
                 
                 desc: 'Average 48-hour dispatch from our warehouse in Doral, FL. Verified inventory, authentic products from top brands like JBL, LG, Ninja, Shark, and more.'
               },
               {
-                icon: '🏠',
+                iconD: icons.home,
                 title: 'Feel at home',
                 
                 desc: 'We are a company with Latin roots in the heart of Doral, FL. We understand your business, speak your language, and care about your success as much as our own.'
               },
               {
-                icon: '📈',
+                icon: '',
                 title: 'Your success is ours',
                 
                 desc: 'We do not just sell you products — we are your strategic business partner. Our private portal gives you access to quotes, invoices, and everything you need to scale your business.'
@@ -290,7 +321,7 @@ export default function Home() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '1.5rem' }}>
-                <div style={{ fontSize: 32, marginBottom: '0.75rem' }}>💬</div>
+                <div style={{ fontSize: 32, marginBottom: '0.75rem' }}></div>
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8, fontStyle: 'italic', marginBottom: '0.75rem' }}>
                   "Working with a trusted wholesale partner that speaks your language and delivers on time makes all the difference."
                 </p>
@@ -360,13 +391,13 @@ export default function Home() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '2rem' }}>
               {[
-                ['🔄', 'Weekly stock updates', 'New products added every week — stay ahead of the market'],
-                ['🔥', 'Trending products only', 'We track what sells best on Amazon, Walmart and major platforms'],
-                ['💰', 'Wholesale margins', 'Prices negotiated directly with suppliers so you profit more'],
-                ['⚡', '48h dispatch', 'Ready to ship within 48 hours from our Doral, FL warehouse'],
+                ['refresh', 'Weekly stock updates', 'New products added every week — stay ahead of the market'],
+                ['trending', 'Trending products only', 'We track what sells best on Amazon, Walmart and major platforms'],
+                ['dollar', 'Wholesale margins', 'Prices negotiated directly with suppliers so you profit more'],
+                ['zap', '48h dispatch', 'Ready to ship within 48 hours from our Doral, FL warehouse'],
               ].map(([icon, title, desc]) => (
                 <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(42,125,79,0.12)', border: '0.5px solid rgba(42,125,79,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(42,125,79,0.12)', border: '0.5px solid rgba(42,125,79,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon d={icons[icon]} size={18} color='#2a7d4f' /></div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{title}</div>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{desc}</div>
@@ -382,9 +413,9 @@ export default function Home() {
           {/* RIGHT */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
-              { label: 'Electronics', icon: '📺', items: 'Smart TVs · Smartwatches · Cameras · Speakers', color: '#2d7dd2' },
-              { label: 'Home appliances', icon: '🏠', items: 'Air purifiers · Washers · Robot vacuums · Fans', color: '#534ab7' },
-              { label: 'Kitchen', icon: '🍳', items: 'Blenders · Air fryers · Coffee makers · Juicers', color: '#854f0b' },
+              { label: 'Electronics', iconD: icons.tv, items: 'Smart TVs · Smartwatches · Cameras · Speakers', color: '#2d7dd2' },
+              { label: 'Home appliances', iconD: icons.home, items: 'Air purifiers · Washers · Robot vacuums · Fans', color: '#534ab7' },
+              { label: 'Kitchen', iconD: icons.utensils, items: 'Blenders · Air fryers · Coffee makers · Juicers', color: '#854f0b' },
             ].map(cat => (
               <div key={cat.label} style={{ background: 'rgba(255,255,255,0.04)', border: `0.5px solid ${cat.color}30`, borderLeft: `3px solid ${cat.color}`, borderRadius: 6, padding: '1.25rem 1.5rem', display: 'flex', gap: 14, alignItems: 'center' }}>
                 <span style={{ fontSize: 28, flexShrink: 0 }}>{cat.icon}</span>
@@ -397,7 +428,7 @@ export default function Home() {
             ))}
 
             <div style={{ background: 'rgba(42,125,79,0.08)', border: '1px solid rgba(42,125,79,0.2)', borderRadius: 6, padding: '1.5rem', textAlign: 'center', marginTop: 4 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
+              <div style={{ marginBottom: 8 }}><Icon d={icons.package} size={32} color='#2a7d4f' /></div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>New arrivals every Monday</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: '1rem' }}>
                 Approved partners get notified first when new stock arrives — giving you first pick before anyone else.
@@ -611,11 +642,11 @@ export default function Home() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                ['📍', '6315 NW 99th Ave, Doral, FL 33178'],
-                ['📧', 'partners@levamcorp.com'],
+                ['', '6315 NW 99th Ave, Doral, FL 33178'],
+                ['', 'partners@levamcorp.com'],
                 ['✉️', 'contact@levamcorp.com'],
-                ['📞', '(786) 878-4122 / (786) 546-9476'],
-              ['💬', 'WhatsApp: (786) 490-9005'],
+                ['phone', '(786) 878-4122 / (786) 546-9476'],
+              ['message', 'WhatsApp: (786) 490-9005'],
               ].map(([icon, text]) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
                   <span style={{ fontSize: 14 }}>{icon}</span> {text}
