@@ -122,20 +122,32 @@ body {
   }
 
   /* HOW IT WORKS */
-  .lc-how { padding: 2.5rem 1.25rem !important; }
+  .lc-how { padding: 2rem 1.25rem !important; }
   .lc-how-title { font-size: 24px !important; }
   .lc-how-grid { 
-    grid-template-columns: 1fr !important; 
-    gap: 12px !important; 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 10px !important; 
   }
 
   /* CATEGORIES */
-  .lc-categories { padding: 2.5rem 1.25rem !important; }
+  .lc-categories { padding: 2rem 1.25rem !important; }
   .lc-categories-grid { 
     grid-template-columns: 1fr !important; 
-    gap: 12px !important; 
+    gap: 0 !important;
   }
-  .lc-categories-title { font-size: 24px !important; }
+  .lc-categories-title { font-size: 22px !important; }
+  /* Category card text fix */
+  .lc-categories-grid > div {
+    overflow: visible !important;
+  }
+
+  /* HOW IT WORKS steps */
+  .lc-how-grid > div {
+    padding: 1.25rem !important;
+  }
+  .lc-how-grid > div > div:first-child {
+    font-size: 32px !important;
+  }
 
   /* WHY LEVAM */
   .lc-why { 
