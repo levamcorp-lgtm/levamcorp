@@ -40,9 +40,13 @@ export default function AdminClients() {
   const openDoc = async (path) => {
     if (!path) return
     const supabase = createClient()
-    const { data } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-    else alert('Could not open document. Please check storage permissions.')
+    // Try Documents (capital) first, then documents (lowercase) for legacy files
+    let result = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
+    if (!result.data?.signedUrl) {
+      result = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    }
+    if (result.data?.signedUrl) window.open(result.data.signedUrl, '_blank')
+    else alert('Could not open document: ' + (result.error?.message || 'File not found'))
   }
 
   const sendCredentials = async () => {
