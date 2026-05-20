@@ -194,7 +194,7 @@ export default function Home() {
           </div>
 
           {/* VALORES */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem', marginBottom: '4rem' }}>
+          <div className='lc-promise-grid' style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem', marginBottom: '4rem' }}>
             {[
               {
                 icon: '🤝',
@@ -244,7 +244,7 @@ export default function Home() {
           </div>
 
           {/* TESTIMONIAL / CONVICTION BOX */}
-          <div style={{ background: '#111', borderRadius: 8, padding: '3rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
+          <div className='lc-why' style={{ background: '#111', borderRadius: 8, padding: '3rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: '1rem' }}>Why Levam Corp?</div>
               <h3 style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>
