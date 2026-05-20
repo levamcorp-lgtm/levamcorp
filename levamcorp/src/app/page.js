@@ -2,6 +2,29 @@
 import React from 'react'
 import Link from 'next/link'
 
+function MobileMenu() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <>
+      <button onClick={() => setOpen(!open)} className="lc-nav-hamburger"
+        style={{ display: 'none', flexDirection: 'column', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <span style={{ width: 22, height: 2, background: '#fff', borderRadius: 2, display: 'block', transition: 'all 0.2s', transform: open ? 'rotate(45deg) translateY(7px)' : 'none' }} />
+        <span style={{ width: 22, height: 2, background: '#fff', borderRadius: 2, display: 'block', transition: 'all 0.2s', opacity: open ? 0 : 1 }} />
+        <span style={{ width: 22, height: 2, background: '#fff', borderRadius: 2, display: 'block', transition: 'all 0.2s', transform: open ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+      </button>
+      {open && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.97)', zIndex: 100, display: 'flex', flexDirection: 'column', padding: '5rem 2rem 3rem' }}>
+          <button onClick={() => setOpen(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', width: 40, height: 40, borderRadius: '50%', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+          {[['#catalog','Products'],['#how','How it works'],['#about','About us'],['/contact','Contact us'],['/insights','Market Insights'],['/apply','Apply to partner']].map(([href, label]) => (
+            <a key={label} href={href} onClick={() => setOpen(false)} style={{ fontSize: 28, fontWeight: 700, color: label === 'Apply to partner' ? '#2d7dd2' : '#fff', textDecoration: 'none', padding: '1rem 0', borderBottom: '0.5px solid rgba(255,255,255,0.08)', letterSpacing: '-0.01em' }}>{label}</a>
+          ))}
+          <div style={{ marginTop: 'auto', fontSize: 12, color: '#555' }}>www.levamcorp.com · Doral, FL</div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function NavLink({ href, label, dot, useA }) {
   const [hovered, setHovered] = React.useState(false)
   const style = {
