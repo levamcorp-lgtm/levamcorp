@@ -15,6 +15,9 @@ export default function AdminOrders() {
   const [updating, setUpdating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
+  const [showPayment, setShowPayment] = useState(false)
+  const [paymentEntry, setPaymentEntry] = useState({ amount: '', notes: '' })
+  const [savingPayment, setSavingPayment] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [search, setSearch] = useState('')
   const [shipmentForm, setShipmentForm] = useState({})
@@ -96,6 +99,23 @@ export default function AdminOrders() {
     setSelected(prev => ({ ...prev, ...editForm, total: parseFloat(editForm.total), subtotal: parseFloat(editForm.subtotal) }))
     setEditing(false)
     setUpdating(false)
+  }
+
+  const savePartialPayment = async () => {
+    if (!paymentEntry.amount) { alert('Enter an amount'); return }
+    setSavingPayment(true)
+    const supabase = createClient()
+    const newAmountPaid = (parseFloat(selected.amount_paid) || 0) + parseFloat(paymentEntry.amount)
+    await supabase.from('orders').update({
+      amount_paid: newAmountPaid,
+      payment_notes: paymentEntry.notes ? `${selected.payment_notes || ''}
+${new Date().toLocaleDateString()}: $${paymentEntry.amount} - ${paymentEntry.notes}`.trim() : selected.payment_notes,
+    }).eq('id', selected.id)
+    await loadAll(supabase)
+    setSelected(prev => ({ ...prev, amount_paid: newAmountPaid }))
+    setPaymentEntry({ amount: '', notes: '' })
+    setShowPayment(false)
+    setSavingPayment(false)
   }
 
   const deleteOrder = async () => {
