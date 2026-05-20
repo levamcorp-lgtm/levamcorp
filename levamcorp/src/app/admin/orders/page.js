@@ -575,6 +575,57 @@ ${new Date().toLocaleDateString()}: $${paymentEntry.amount} - ${paymentEntry.not
                       <span style={{ fontSize: 20, fontWeight: 800, color: s.color }}>${selected.total?.toLocaleString()}</span>
                     </div>
                   </div>
+
+                  {/* PARTIAL PAYMENT TRACKER */}
+                  <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>💳 Payment tracking</div>
+                      <button onClick={() => setShowPayment(!showPayment)} style={{ fontSize: 10, color: '#2d7dd2', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.3)', padding: '4px 10px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>+ Add payment</button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: '#888' }}>Paid so far</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#2a7d4f' }}>${(parseFloat(selected.amount_paid) || 0).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: '#888' }}>Balance due</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: Math.max(0, selected.total - (parseFloat(selected.amount_paid) || 0)) > 0 ? '#e74c3c' : '#2a7d4f' }}>
+                        ${Math.max(0, selected.total - (parseFloat(selected.amount_paid) || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, ((parseFloat(selected.amount_paid) || 0) / selected.total) * 100)}%`, background: '#2a7d4f', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: '#555', textAlign: 'right', marginBottom: showPayment ? 10 : 0 }}>
+                      {selected.total > 0 ? `${Math.min(100, Math.round(((parseFloat(selected.amount_paid) || 0) / selected.total) * 100))}% paid` : ''}
+                    </div>
+                    {showPayment && (
+                      <div style={{ background: 'rgba(45,125,210,0.04)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 4, padding: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                          <div>
+                            <label style={{ fontSize: 8, color: '#777', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Amount received ($)</label>
+                            <input type="number" value={paymentEntry.amount} onChange={e => setPaymentEntry(p => ({...p, amount: e.target.value}))} placeholder="0.00"
+                              style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 8, color: '#777', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Notes</label>
+                            <input value={paymentEntry.notes} onChange={e => setPaymentEntry(p => ({...p, notes: e.target.value}))} placeholder="e.g. Wire transfer"
+                              style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={savePartialPayment} disabled={savingPayment} style={{ flex: 1, padding: 8, background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 3 }}>
+                            {savingPayment ? 'Saving...' : '✓ Record payment'}
+                          </button>
+                          <button onClick={() => setShowPayment(false)} style={{ padding: '8px 12px', background: 'transparent', color: '#555', fontSize: 11, border: '0.5px solid rgba(255,255,255,0.08)', cursor: 'pointer', borderRadius: 3 }}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                    {selected.payment_notes && (
+                      <div style={{ marginTop: 8, fontSize: 10, color: '#666', lineHeight: 1.8, background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: 3, border: '0.5px solid rgba(255,255,255,0.04)', whiteSpace: 'pre-line' }}>
+                        {selected.payment_notes}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
