@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 const CATEGORIES = ['electronics', 'home', 'kitchen', 'beauty', 'sports', 'toys', 'office', 'automotive', 'garden', 'health', 'fashion', 'other']
 const CONDITIONS = ['New', 'Open Box', 'Refurbished', 'Used - Like New', 'Used - Good']
@@ -32,7 +33,7 @@ export default function AdminProducts() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
+      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
       await loadProducts(supabase)
     })
   }, [])
