@@ -17,7 +17,7 @@ export default function PaymentsPage() {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
       const [{ data: paymentsData }, { data: ordersData }] = await Promise.all([
-        supabase.from('payments').select('*, orders(order_number, total, submitted_at, order_items(*))').eq('user_id', data.user.id).order('created_at', { ascending: false }),
+        supabase.from('payments').select('*, orders(order_number, total, submitted_at, amount_paid, payment_notes, order_items(*))').eq('user_id', data.user.id).order('created_at', { ascending: false }),
         supabase.from('orders').select('*').eq('user_id', data.user.id).eq('status', 'completed'),
       ])
       setPayments(paymentsData || [])
@@ -212,6 +212,24 @@ export default function PaymentsPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Balance bar - shown when partial payment recorded */}
+                  {parseFloat(payment.orders?.amount_paid) > 0 && payment.orders?.total > 0 && (
+                    <div style={{ padding: '0.875rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', background: 'rgba(42,125,79,0.03)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, color: '#2a7d4f', fontWeight: 600 }}>✓ Paid: ${parseFloat(payment.orders.amount_paid).toLocaleString()}</span>
+                        <span style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700 }}>
+                          Balance due: ${Math.max(0, payment.orders.total - parseFloat(payment.orders.amount_paid)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ height: 7, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(100, (parseFloat(payment.orders.amount_paid) / payment.orders.total) * 100)}%`, background: 'linear-gradient(90deg, #2a7d4f, #34a862)', borderRadius: 4, transition: 'width 0.5s' }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: '#aaa', textAlign: 'right', marginTop: 3 }}>
+                        {Math.min(100, Math.round((parseFloat(payment.orders.amount_paid) / payment.orders.total) * 100))}% of ${payment.orders.total?.toLocaleString()} paid
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
