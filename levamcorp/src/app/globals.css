@@ -1,211 +1,291 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
 
-body {
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  overflow-x: hidden;
-}
-
+/* ============================================
+   MOBILE — Full redesign for phone experience
+   ============================================ */
 @media (max-width: 768px) {
 
-  /* Fix overflow */
-  body, html { overflow-x: hidden !important; max-width: 100vw !important; }
-  
-  /* NAV */
-  .lc-nav { padding: 0.875rem 1.25rem !important; }
+  /* GENERAL */
+  body { -webkit-tap-highlight-color: transparent; }
+
+  /* NAV — slim, hamburger menu */
+  .lc-nav {
+    padding: 0.875rem 1.25rem !important;
+    backdrop-filter: blur(12px) !important;
+    background: rgba(10,10,10,0.92) !important;
+  }
   .lc-nav-links { display: none !important; }
   .lc-nav-cta { display: none !important; }
+  .lc-nav-hamburger { display: flex !important; }
 
-  /* HERO — stack image on top, text below */
-  .lc-hero { 
-    grid-template-columns: 1fr !important; 
-    min-height: auto !important; 
+  /* HERO — full viewport, stacked */
+  .lc-hero {
+    grid-template-columns: 1fr !important;
+    min-height: 100svh !important;
+    position: relative !important;
   }
-  .lc-hero-content { 
-    padding: 2.5rem 1.25rem 3rem !important; 
-    order: 2 !important;
-  }
-  .lc-hero-image { 
-    height: 220px !important; 
+  .lc-hero-image {
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
     order: 1 !important;
+    z-index: 0 !important;
   }
-  .lc-hero-title { 
-    font-size: 30px !important; 
-    line-height: 1.15 !important; 
-    margin-bottom: 1rem !important;
+  .lc-hero-image::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.95) 100%) !important;
+    z-index: 1 !important;
   }
-  .lc-hero-subtitle { 
-    font-size: 14px !important; 
+  .lc-hero-content {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: 6rem 1.5rem 3rem !important;
+    order: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    min-height: 100svh !important;
+    background: transparent !important;
+  }
+  .lc-hero-title {
+    font-size: 34px !important;
+    color: #fff !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0.875rem !important;
+  }
+  .lc-hero-subtitle {
+    font-size: 14px !important;
+    color: rgba(255,255,255,0.65) !important;
     margin-bottom: 1.5rem !important;
+    line-height: 1.7 !important;
   }
-  .lc-hero-tags { 
-    flex-wrap: wrap !important; 
+  .lc-hero-tags {
+    flex-wrap: wrap !important;
     gap: 6px !important;
     margin-bottom: 1.5rem !important;
   }
-  .lc-hero-btns { 
-    flex-direction: column !important; 
+  .lc-hero-tags > div {
+    background: rgba(255,255,255,0.1) !important;
+    border: 0.5px solid rgba(255,255,255,0.2) !important;
+    color: rgba(255,255,255,0.8) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  .lc-hero-btns {
+    flex-direction: column !important;
     gap: 10px !important;
   }
-  .lc-hero-btns a { 
-    text-align: center !important; 
-    width: 100% !important;
+  .lc-hero-btns a {
+    text-align: center !important;
+    padding: 15px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+  }
+  .lc-hero-btns a:first-child {
+    background: #2d7dd2 !important;
+    box-shadow: 0 4px 20px rgba(45,125,210,0.5) !important;
   }
 
-  /* TRUST BAR */
-  .lc-trust-bar { 
-    padding: 1.25rem !important; 
-    gap: 1rem !important; 
-    flex-wrap: wrap !important; 
-    justify-content: center !important; 
+  /* TRUST BAR — horizontal scroll */
+  .lc-trust-bar {
+    padding: 1rem 1.25rem !important;
+    gap: 1.5rem !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
   }
+  .lc-trust-bar::-webkit-scrollbar { display: none !important; }
+  .lc-trust-bar > div { flex-shrink: 0 !important; font-size: 12px !important; white-space: nowrap !important; }
 
   /* TOP PICKS */
-  .lc-top-picks { padding: 2rem 1rem !important; }
-  .lc-top-picks-title { font-size: 22px !important; }
-  .lc-top-picks-grid { 
-    grid-template-columns: 1fr 1fr !important; 
-    gap: 10px !important; 
+  .lc-top-picks { padding: 2.5rem 1.25rem !important; }
+  .lc-top-picks > div { max-width: 100% !important; }
+  .lc-top-picks-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
   }
   .lc-top-picks-grid > div {
-    border-radius: 10px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
   }
   .lc-top-picks-grid > div > div:first-child {
-    height: 140px !important;
+    height: 150px !important;
+    border-radius: 14px 14px 0 0 !important;
   }
-  .lc-top-picks-cta { 
-    padding: 1.5rem 1rem !important; 
+  .lc-top-picks-cta {
     flex-direction: column !important;
+    padding: 1.5rem !important;
+    border-radius: 14px !important;
     gap: 1rem !important;
     text-align: center !important;
+  }
+  .lc-top-picks-cta a {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 14px !important;
+    border-radius: 8px !important;
   }
 
   /* WEEKLY STOCK */
   .lc-weekly { padding: 2.5rem 1.25rem !important; }
-  .lc-weekly-grid { 
-    grid-template-columns: 1fr !important; 
-    gap: 2rem !important; 
+  .lc-weekly-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
   }
-  .lc-weekly-title { font-size: 28px !important; }
+  .lc-weekly-title { font-size: 28px !important; line-height: 1.2 !important; }
+  .lc-weekly a {
+    display: block !important;
+    text-align: center !important;
+    padding: 14px !important;
+    border-radius: 8px !important;
+  }
 
   /* STATS */
-  .lc-stats { 
-    grid-template-columns: 1fr 1fr !important; 
-    gap: 10px !important; 
-    padding: 1.5rem 1.25rem !important; 
+  .lc-stats {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    padding: 1.5rem 1.25rem !important;
+  }
+  .lc-stats > div {
+    border-radius: 12px !important;
+    padding: 1.25rem 1rem !important;
   }
 
-  /* ABOUT / WHO WE ARE */
-  .lc-about { 
-    grid-template-columns: 1fr !important; 
+  /* ABOUT */
+  .lc-about {
+    grid-template-columns: 1fr !important;
     min-height: auto !important;
   }
-  .lc-about-content { 
-    padding: 2.5rem 1.25rem !important; 
-    order: 1 !important;
+  .lc-about-content {
+    padding: 2.5rem 1.25rem !important;
+    order: 2 !important;
   }
-  .lc-about-image { 
-    height: 240px !important; 
-    order: 0 !important;
+  .lc-about > div:last-child {
+    height: 280px !important;
+    order: 1 !important;
   }
   .lc-about-title { font-size: 26px !important; }
 
-  /* OUR PROMISE / TRUST CARDS */
-  .lc-promise { padding: 2.5rem 1.25rem !important; }
-  .lc-promise-title { font-size: 24px !important; }
-  .lc-promise-grid { 
-    grid-template-columns: 1fr !important; 
-    gap: 12px !important; 
-  }
-
-  /* HOW IT WORKS */
-  .lc-how { padding: 2rem 1.25rem !important; }
-  .lc-how-title { font-size: 24px !important; }
-  .lc-how-grid { 
-    grid-template-columns: 1fr 1fr !important; 
-    gap: 10px !important; 
-  }
-
-  /* CATEGORIES */
-  .lc-categories { padding: 2rem 1.25rem !important; }
-  .lc-categories-grid { 
-    grid-template-columns: 1fr !important; 
+  /* CATEGORIES — vertical cards */
+  .lc-categories { padding: 2.5rem 1.25rem !important; }
+  .lc-categories-grid {
+    grid-template-columns: 1fr !important;
     gap: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
   }
-  .lc-categories-title { font-size: 22px !important; }
-  /* Category card text fix */
   .lc-categories-grid > div {
-    overflow: visible !important;
+    padding: 1.25rem !important;
+    border-right: none !important;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08) !important;
   }
 
-  /* HOW IT WORKS steps */
+  /* HOW IT WORKS — 2x2 grid */
+  .lc-how { padding: 2.5rem 1.25rem !important; }
+  .lc-how-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 2rem !important;
+  }
   .lc-how-grid > div {
-    padding: 1.25rem !important;
+    border-radius: 14px !important;
+    padding: 1.25rem 1rem !important;
   }
-  .lc-how-grid > div > div:first-child {
-    font-size: 32px !important;
+  .lc-how-title { font-size: 26px !important; }
+
+  /* OUR PROMISE */
+  .lc-promise { padding: 2.5rem 1.25rem !important; }
+  .lc-promise-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 2rem !important;
   }
+  .lc-promise-grid > div {
+    border-radius: 14px !important;
+    padding: 1.25rem 1rem !important;
+  }
+  .lc-promise-title { font-size: 26px !important; }
 
   /* WHY LEVAM */
-  .lc-why { 
-    grid-template-columns: 1fr !important; 
-    padding: 2.5rem 1.25rem !important;
+  .lc-why {
+    grid-template-columns: 1fr !important;
+    padding: 2rem 1.25rem !important;
+    border-radius: 14px !important;
+    margin: 0 1.25rem !important;
   }
   .lc-why-right { display: none !important; }
-  .lc-why-title { font-size: 26px !important; }
+  .lc-why-title { font-size: 22px !important; }
 
-  /* CTA SECTION */
-  .lc-cta { padding: 2.5rem 1.25rem !important; }
-  .lc-cta h2 { font-size: 22px !important; }
-  .lc-cta-btns { 
-    flex-direction: column !important; 
-    align-items: stretch !important;
+  /* CTA */
+  .lc-cta { padding: 3rem 1.25rem !important; }
+  .lc-cta h2 { font-size: 24px !important; line-height: 1.2 !important; }
+  .lc-cta-btns {
+    flex-direction: column !important;
     gap: 10px !important;
+    align-items: stretch !important;
   }
-  .lc-cta-btns a { text-align: center !important; }
+  .lc-cta-btns a {
+    text-align: center !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+  }
 
   /* FOOTER */
   .lc-footer { padding: 2.5rem 1.25rem 1.5rem !important; }
-  .lc-footer-grid { 
-    grid-template-columns: 1fr !important; 
-    gap: 2rem !important; 
+  .lc-footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
   }
-  .lc-footer-bottom { 
-    flex-direction: column !important; 
-    gap: 8px !important; 
-    text-align: center !important; 
+  .lc-footer-grid > div:first-child {
+    grid-column: span 2 !important;
+  }
+  .lc-footer-bottom {
+    flex-direction: column !important;
+    gap: 8px !important;
+    text-align: center !important;
+    font-size: 11px !important;
   }
 
-  /* CHATBOT */
-  #lc-window { 
-    width: calc(100vw - 24px) !important; 
-    right: 12px !important; 
+  /* FLOATING BUTTONS */
+  #lc-window {
+    width: calc(100vw - 24px) !important;
+    right: 12px !important;
     left: 12px !important;
-    bottom: 155px !important; 
-    height: 420px !important;
+    bottom: 155px !important;
+    height: 60svh !important;
+    border-radius: 20px !important;
+    box-shadow: 0 -4px 40px rgba(0,0,0,0.25) !important;
   }
-  #lc-toggle { bottom: 90px !important; right: 16px !important; }
-
-  /* WHATSAPP BUTTON */
-  a[href*="wa.me"] { 
-    bottom: 16px !important; 
+  #lc-toggle {
+    bottom: 86px !important;
+    right: 20px !important;
+    width: 48px !important;
+    height: 48px !important;
+  }
+  a[href*="wa.me"] {
+    bottom: 20px !important;
     right: 16px !important;
-    padding: 12px 16px 12px 12px !important;
-    font-size: 12px !important;
+    padding: 13px 18px 13px 14px !important;
+    font-size: 13px !important;
+    border-radius: 50px !important;
+    box-shadow: 0 4px 20px rgba(37,211,102,0.5) !important;
   }
 }
 
 /* APPLY PAGE */
 @media (max-width: 768px) {
-  .apply-container { padding: 1rem !important; }
-  .apply-card { border-radius: 8px !important; }
+  .apply-container { padding: 0 !important; background: #fff !important; }
+  .apply-card { border-radius: 0 !important; box-shadow: none !important; }
   .apply-header { padding: 1.5rem 1.25rem !important; }
   .apply-title { font-size: 20px !important; }
   .apply-body { padding: 1.5rem 1.25rem !important; }
   .apply-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-  .apply-steps { padding: 1rem 1.25rem !important; }
-  .apply-step-label { font-size: 9px !important; }
+  .apply-steps { padding: 0.875rem 1.25rem !important; }
 }
