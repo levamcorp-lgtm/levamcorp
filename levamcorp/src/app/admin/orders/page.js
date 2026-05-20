@@ -136,10 +136,13 @@ export default function AdminOrders() {
     if (!path) { alert('No file path found'); return }
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
-      if (error) { alert('Storage error: ' + error.message); return }
-      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-      else alert('Could not generate URL for: ' + path)
+      // Try Documents (capital) first, then documents (lowercase) for legacy files
+      let result = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
+      if (!result.data?.signedUrl) {
+        result = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+      }
+      if (result.data?.signedUrl) window.open(result.data.signedUrl, '_blank')
+      else alert('Could not open file: ' + (result.error?.message || 'File not found'))
     } catch(e) { alert('Error: ' + e.message) }
   }
 
