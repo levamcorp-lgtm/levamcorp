@@ -44,25 +44,21 @@ function TopPicksGrid() {
   if (products.length === 0) return null
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+    <div className="lc-top-picks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
       {products.map(product => (
-        <div key={product.id} style={{ background: '#f7f8fa', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 8, overflow: 'hidden', transition: 'all 0.2s' }}>
-          <div style={{ height: 200, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+        <div key={product.id} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div style={{ height: 180, background: '#f7f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             {product.image_url ? (
               <img src={product.image_url} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (
               <span style={{ fontSize: 48 }}>📦</span>
             )}
           </div>
-          <div style={{ padding: '1rem' }}>
-            {product.brand && <div style={{ fontSize: 10, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>{product.brand}</div>}
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111', lineHeight: 1.4, marginBottom: 8 }}>{product.name}</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, padding: '3px 8px', background: 'rgba(45,125,210,0.08)', color: '#2d7dd2', borderRadius: 10, fontWeight: 600, border: '0.5px solid rgba(45,125,210,0.15)', textTransform: 'capitalize' }}>{product.category}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: product.stock > 0 ? '#2a7d4f' : '#e74c3c' }}>{product.stock > 0 ? 'In stock' : 'Out of stock'}</span>
-            </div>
-            <div style={{ marginTop: 10, padding: '8px 12px', background: '#111', borderRadius: 4, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>
-              🔒 Partner price — apply to see
+          <div style={{ padding: '0.875rem' }}>
+            {product.brand && <div style={{ fontSize: 9, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>{product.brand}</div>}
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.4, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name}</div>
+            <div style={{ padding: '9px', background: '#111', borderRadius: 6, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+              🔒 Apply to see price
             </div>
           </div>
         </div>
