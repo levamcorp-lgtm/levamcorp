@@ -9,17 +9,21 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
 
+  const [payments, setPayments] = useState({})
+
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .eq('user_id', data.user.id)
-        .order('submitted_at', { ascending: false })
+      const [{ data: ordersData }, { data: paymentsData }] = await Promise.all([
+        supabase.from('orders').select('*, order_items(*)').eq('user_id', data.user.id).order('submitted_at', { ascending: false }),
+        supabase.from('payments').select('*').eq('user_id', data.user.id),
+      ])
       setOrders(ordersData || [])
+      const pMap = {}
+      ;(paymentsData || []).forEach(p => { pMap[p.order_id] = p })
+      setPayments(pMap)
       setLoading(false)
     })
   }, [])
@@ -88,7 +92,15 @@ export default function InvoicesPage() {
     return 0
   }
 
+  const getPaymentStatus = (order) => {
+    if (!order) return 'unpaid'
+    if (order.status === 'completed') return 'paid'
+    const payment = payments[order.id]
+    if (payment?.payment_proof_url) return 'proof_submitted'
+    return 'unpaid'
+  }
   const isPaid = selected?.status === 'completed'
+  const paymentStatus = getPaymentStatus(selected)
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -190,7 +202,7 @@ export default function InvoicesPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#2d7dd2' }}>{invNum}</div>
                           <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 3, background: paid ? 'rgba(42,125,79,0.1)' : 'rgba(231,76,60,0.08)', color: paid ? '#2a7d4f' : '#c0392b', fontWeight: 700, letterSpacing: '0.06em' }}>
-                            {paid ? 'PAID' : 'UNPAID'}
+                            {paid ? 'PAID' : payments[order.id]?.payment_proof_url ? 'SUBMITTED' : 'UNPAID'}
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: '#aaa' }}>{fmtDate(order.submitted_at)} · {order.order_items?.length || 0} items</div>
@@ -214,7 +226,7 @@ export default function InvoicesPage() {
 
               {/* WATERMARK */}
               <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%, -50%) rotate(-35deg)', fontSize: 88, fontWeight: 900, color: isPaid ? 'rgba(42,125,79,0.07)' : 'rgba(220,60,60,0.07)', letterSpacing: '0.1em', pointerEvents: 'none', zIndex: 10, userSelect: 'none', whiteSpace: 'nowrap' }}>
-                {isPaid ? 'PAID' : 'UNPAID'}
+                {paymentStatus === 'paid' ? 'PAID' : paymentStatus === 'proof_submitted' ? 'SUBMITTED' : 'UNPAID'}
               </div>
 
               {/* DARK HEADER */}
@@ -281,7 +293,7 @@ export default function InvoicesPage() {
                 ))}
               </div>
 
-              {/* NOT PAID ALERT */}
+              {/* PAYMENT STATUS ALERT */}
               {!isPaid && (
                 <div style={{ background: 'rgba(231,76,60,0.06)', borderBottom: '1px solid rgba(231,76,60,0.15)', padding: '10px 2rem', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 16 }}>⚠️</span>
