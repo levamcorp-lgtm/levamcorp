@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 export default function AdminInvoices() {
   const [invoices, setInvoices] = useState([])
@@ -20,7 +21,7 @@ export default function AdminInvoices() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
+      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
       const { data: invData } = await supabase.from('manual_invoices').select('*').order('created_at', { ascending: false })
       setInvoices(invData || [])
       setLoading(false)
