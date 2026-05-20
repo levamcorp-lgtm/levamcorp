@@ -76,12 +76,7 @@ export default function Home() {
     <div style={{ background: '#fff' }}>
 
       {/* NAV — negro como el portal */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '1.1rem 3rem', background: '#111',
-        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-        position: 'sticky', top: 0, zIndex: 50
-      }}>
+      <nav className='lc-nav' style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 3rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ position: 'relative', width: 34, height: 34 }}>
             <div style={{ position: 'absolute', left: 7, top: 0, width: 2.5, height: 27, background: '#444' }} />
@@ -93,7 +88,7 @@ export default function Home() {
             <div style={{ fontSize: 8, letterSpacing: '0.32em', color: '#2d7dd2', textTransform: 'uppercase', marginTop: 3 }}>Corp · Distributors</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <div className='lc-nav-links' style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
           {[
             { href: '#catalog', label: 'Products', tag: 'a' },
             { href: '#how', label: 'How it works', tag: 'a' },
@@ -117,7 +112,7 @@ export default function Home() {
         display: 'grid', gridTemplateColumns: '1fr 1fr',
         minHeight: 580, borderBottom: '0.5px solid rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '5rem 3.5rem 5rem 3rem' }}>
+        <div className='lc-hero-content' style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '5rem 3.5rem 5rem 3rem' }}>
           <div style={{
             fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase',
             color: '#2d7dd2', marginBottom: '1.5rem',
@@ -144,7 +139,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className='lc-hero-btns' style={{ display: 'flex', gap: '1rem' }}>
             <Link href="/apply" style={{
               padding: '14px 32px', background: '#2d7dd2', color: '#fff',
               fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -168,9 +163,7 @@ export default function Home() {
       </section>
 
       {/* TRUST BAR */}
-      <div style={{
-        background: '#111', padding: '1.6rem 3rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4rem',
+      <div className='lc-trust-bar' style={{ background: '#111', padding: '1.6rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4rem',
         borderBottom: '0.5px solid rgba(255,255,255,0.06)'
       }}>
         {[['✓','Verified inventory'],['⏱','48h average dispatch'],['🔒','Approved partners only'],['📍','Doral, FL 33178']].map(([icon,label]) => (
@@ -299,7 +292,7 @@ export default function Home() {
 
 
       {/* TOP PICKS */}
-      <section style={{ background: '#fff', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+      <section className='lc-top-picks' style={{ background: '#fff', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 10 }}>Exclusive wholesale access</div>
@@ -329,8 +322,8 @@ export default function Home() {
 
 
       {/* WEEKLY STOCK */}
-      <section style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #111 60%, #0d1a0d 100%)', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+      <section className='lc-weekly' style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #111 60%, #0d1a0d 100%)', padding: '5rem 3rem', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
+        <div className='lc-weekly-grid' style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
 
           {/* LEFT */}
           <div>
@@ -338,7 +331,7 @@ export default function Home() {
               <span style={{ width: 7, height: 7, background: '#2a7d4f', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 6px rgba(42,125,79,0.8)', animation: 'none' }} />
               Updated every week
             </div>
-            <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '1.25rem' }}>
+            <h2 className='lc-weekly-title' style={{ fontSize: 40, fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '1.25rem' }}>
               Fresh inventory.<br />
               <em style={{ color: '#2a7d4f', fontStyle: 'normal' }}>Hottest products.</em><br />
               Best prices.
