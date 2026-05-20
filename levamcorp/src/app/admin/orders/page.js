@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([])
@@ -27,7 +28,7 @@ export default function AdminOrders() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
+      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
       await loadAll(supabase)
     })
   }, [])
