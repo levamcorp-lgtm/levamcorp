@@ -107,7 +107,7 @@ export default function ApplyPage() {
       // Upload EIN document
       let einUrl = null
       if (einFile) {
-        const { data: einData } = await supabase.storage.from('documents').upload(
+        const { data: einData } = await supabase.storage.from('Documents').upload(
           `ein/${Date.now()}-${einFile.name}`, einFile, { contentType: 'application/pdf' }
         )
         if (einData) einUrl = einData.path
@@ -116,7 +116,7 @@ export default function ApplyPage() {
       // Upload Resale Tax document
       let resaleUrl = null
       if (resaleFile) {
-        const { data: resaleData } = await supabase.storage.from('documents').upload(
+        const { data: resaleData } = await supabase.storage.from('Documents').upload(
           `resale/${Date.now()}-${resaleFile.name}`, resaleFile, { contentType: 'application/pdf' }
         )
         if (resaleData) resaleUrl = resaleData.path
