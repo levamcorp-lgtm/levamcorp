@@ -22,6 +22,9 @@ const IC = {
   phone:   "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z",
   mail:    "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
   signout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+  dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  trending: "M23 6l-9.5 9.5-5-5L1 18M17 6h6v6",
+  trendingDown: "M23 18l-9.5-9.5-5 5L1 6M17 18h6v-6",
   back:    "M19 12H5M12 19l-7-7 7-7",
   img:     ["M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z","M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z","M21 15l-5-5L5 21"],
   star:    "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
@@ -790,6 +793,125 @@ export default function MobileAdmin() {
           </div>
         )}
 
+        {/* PROFIT TAB */}
+        {tab === 'profit' && (() => {
+          const confirmed = orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
+          const revenue = confirmed.reduce((s,o) => s + (o.total || 0), 0)
+          const totalCost = products.reduce((s,p) => {
+            const productOrders = confirmed.filter(o => o.order_items?.some(i => i.product_name === p.name))
+            const unitsSold = confirmed.flatMap(o => o.order_items || []).filter(i => i.product_name === p.name).reduce((s,i) => s + i.quantity, 0)
+            return s + (unitsSold * (p.cost_price || 0))
+          }, 0)
+          const grossProfit = revenue - totalCost
+          const margin = revenue > 0 ? ((grossProfit / revenue) * 100).toFixed(1) : 0
+          const isPositive = grossProfit >= 0
+
+          const completed = orders.filter(o => o.status === 'completed')
+          const pending = orders.filter(o => ['new','review','confirmed','dispatched'].includes(o.status))
+          const cancelled = orders.filter(o => o.status === 'cancelled')
+
+          const topProducts = products
+            .map(p => {
+              const sold = confirmed.flatMap(o => o.order_items || []).filter(i => i.product_name === p.name).reduce((s,i) => s + i.quantity, 0)
+              const rev = confirmed.flatMap(o => o.order_items || []).filter(i => i.product_name === p.name).reduce((s,i) => s + (i.unit_price * i.quantity), 0)
+              return { ...p, sold, rev }
+            })
+            .filter(p => p.sold > 0)
+            .sort((a,b) => b.rev - a.rev)
+            .slice(0, 5)
+
+          return (
+            <div style={{ padding: '0 16px' }}>
+
+              {/* HERO PROFIT CARD */}
+              <div style={{ background: isPositive ? 'linear-gradient(135deg, #0d2b1a, #1a4d2e)' : 'linear-gradient(135deg, #2b0d0d, #4d1a1a)', border: `1px solid ${isPositive ? 'rgba(42,125,79,0.4)' : 'rgba(231,76,60,0.4)'}`, borderRadius: 20, padding: 24, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.06 }}>
+                  <Icon d={isPositive ? IC.trending : IC.trendingDown} size={120} color={isPositive ? '#2a7d4f' : '#e74c3c'} />
+                </div>
+                <div style={{ fontSize: 11, color: isPositive ? 'rgba(42,125,79,0.8)' : 'rgba(231,76,60,0.8)', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700, marginBottom: 6 }}>
+                  {isPositive ? '↑ Gross profit' : '↓ Net loss'}
+                </div>
+                <div style={{ fontSize: 48, fontWeight: 900, color: isPositive ? '#4ade80' : '#f87171', letterSpacing: '-0.02em', marginBottom: 4 }}>
+                  {isPositive ? '+' : ''}{grossProfit >= 0 ? '$' + grossProfit.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0}) : '-$' + Math.abs(grossProfit).toLocaleString()}
+                </div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                  {margin}% margin · from ${revenue.toLocaleString()} revenue
+                </div>
+              </div>
+
+              {/* STATS ROW */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: 'Revenue', value: '$' + revenue.toLocaleString(), color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.2)' },
+                  { label: 'Cost of goods', value: '$' + totalCost.toLocaleString(), color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
+                  { label: 'Orders confirmed', value: confirmed.length, color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.2)' },
+                  { label: 'Pending revenue', value: '$' + pending.reduce((s,o)=>s+(o.total||0),0).toLocaleString(), color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)' },
+                ].map(stat => (
+                  <div key={stat.label} style={{ background: stat.bg, border: `0.5px solid ${stat.border}`, borderRadius: 14, padding: '16px 14px' }}>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{stat.label}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ORDER STATUS BREAKDOWN */}
+              <div style={{ background: '#141414', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Order breakdown</div>
+                {[
+                  { label: 'Completed', count: completed.length, value: completed.reduce((s,o)=>s+(o.total||0),0), color: '#4ade80' },
+                  { label: 'Active', count: pending.length, value: pending.reduce((s,o)=>s+(o.total||0),0), color: '#60a5fa' },
+                  { label: 'Cancelled', count: cancelled.length, value: cancelled.reduce((s,o)=>s+(o.total||0),0), color: '#f87171' },
+                ].map((row, i, arr) => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < arr.length-1 ? '0.5px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: row.color }} />
+                      <div style={{ fontSize: 14, color: '#ccc' }}>{row.label}</div>
+                      <div style={{ fontSize: 11, color: '#555', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 10 }}>{row.count}</div>
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: row.color }}>${row.value.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* TOP PRODUCTS */}
+              {topProducts.length > 0 && (
+                <div style={{ background: '#141414', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Top selling products</div>
+                  {topProducts.map((p, i) => {
+                    const maxRev = topProducts[0].rev
+                    const pct = maxRev > 0 ? (p.rev / maxRev) * 100 : 0
+                    const colors = ['#fbbf24','#60a5fa','#a78bfa','#4ade80','#f87171']
+                    return (
+                      <div key={p.id} style={{ marginBottom: i < topProducts.length-1 ? 14 : 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <div style={{ fontSize: 13, color: '#ccc', flex: 1, marginRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: colors[i], flexShrink: 0 }}>${p.rev.toLocaleString()}</div>
+                        </div>
+                        <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: pct + '%', background: colors[i], borderRadius: 3, transition: 'width 0.5s' }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{p.sold} units sold</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* INVENTORY VALUE */}
+              <div style={{ background: 'linear-gradient(135deg, #0d1a2b, #1a2b4d)', border: '0.5px solid rgba(96,165,250,0.2)', borderRadius: 16, padding: 16, marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: 'rgba(96,165,250,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Inventory value</div>
+                <div style={{ fontSize: 32, fontWeight: 800, color: '#60a5fa', marginBottom: 4 }}>
+                  ${products.reduce((s,p) => s + ((p.cost_price || 0) * (p.stock || 0)), 0).toLocaleString()}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                  {products.reduce((s,p) => s + (p.stock || 0), 0).toLocaleString()} units · {products.filter(p => p.active).length} active products
+                </div>
+              </div>
+
+            </div>
+          )
+        })()}
+
         {/* PRODUCTS TAB */}
         {tab === 'products' && (
           <div style={s.section}>
@@ -829,6 +951,7 @@ export default function MobileAdmin() {
           { key: 'apps', icon: IC.apps, label: 'Apps', badge: newApps.length },
           { key: 'clients', icon: IC.clients, label: 'Clients' },
           { key: 'products', icon: IC.products, label: 'Products' },
+          { key: 'profit', icon: IC.dollar, label: 'Profit' },
         ].map(item => (
           <button key={item.key} onClick={() => setTab(item.key)}
             style={{ flex: 1, padding: '10px 4px 8px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative', fontFamily: 'inherit' }}>
