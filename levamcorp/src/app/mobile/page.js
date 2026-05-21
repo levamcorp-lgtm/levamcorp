@@ -53,6 +53,9 @@ export default function MobileAdmin() {
 
   // Detail views
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [showETA, setShowETA] = useState(false)
+  const [etaForm, setEtaForm] = useState({ eta: '', eta_notes: '' })
+  const [savingETA, setSavingETA] = useState(false)
   const [selectedApp, setSelectedApp] = useState(null)
   const [selectedClient, setSelectedClient] = useState(null)
   const [showAddProduct, setShowAddProduct] = useState(false)
@@ -66,6 +69,9 @@ export default function MobileAdmin() {
   // Product form
   const [productForm, setProductForm] = useState({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', description:'', active:true, is_top_pick:false })
   const [savingProduct, setSavingProduct] = useState(false)
+  const [productImage, setProductImage] = useState(null)
+  const [productImagePreview, setProductImagePreview] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [productSuccess, setProductSuccess] = useState(false)
 
   const [toast, setToast] = useState(null)
@@ -121,6 +127,127 @@ export default function MobileAdmin() {
     setScreen('login'); setUser(null)
   }
 
+  const saveETA = async () => {
+    if (!etaForm.eta) { showToast('Select a date', 'error'); return }
+    setSavingETA(true)
+    const supabase = createClient()
+    await supabase.from('orders').update({ eta: etaForm.eta, eta_notes: etaForm.eta_notes }).eq('id', selectedOrder.id)
+    setSelectedOrder(prev => ({ ...prev, eta: etaForm.eta, eta_notes: etaForm.eta_notes }))
+    setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, eta: etaForm.eta, eta_notes: etaForm.eta_notes } : o))
+    setShowETA(false)
+    setSavingETA(false)
+    showToast('✓ ETA saved!')
+  }
+
+  const downloadInvoice = (order) => {
+    const items = order.order_items || []
+    const date = new Date(order.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const eta = order.eta ? new Date(order.eta).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'
+    const html = \`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, Arial, sans-serif; color: #111; padding: 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #111; }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; }
+  .logo span { color: #2d7dd2; }
+  .logo-sub { font-size: 10px; color: #888; letter-spacing: 0.2em; margin-top: 2px; text-transform: uppercase; }
+  .invoice-title { text-align: right; }
+  .invoice-title h1 { font-size: 28px; font-weight: 800; color: #111; }
+  .invoice-title .num { font-size: 14px; color: #888; margin-top: 4px; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .meta-box { background: #f7f8fa; padding: 16px; border-radius: 6px; }
+  .meta-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  th { background: #111; color: #fff; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
+  td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .total-row { background: #111 !important; }
+  .total-row td { color: #fff; font-weight: 700; font-size: 15px; border: none; }
+  .footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; }
+  .eta-box { background: #e8f4e8; border: 1px solid #2a7d4f; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; }
+  .eta-box .label { font-size: 10px; color: #2a7d4f; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+  .eta-box .value { font-size: 16px; font-weight: 800; color: #2a7d4f; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="logo">Levam<span>Corp</span></div>
+    <div class="logo-sub">Corp · Distributors</div>
+    <div style="margin-top:12px;font-size:12px;color:#888;line-height:1.6">
+      6315 NW 99th Ave, Doral, FL 33178<br>
+      partners@levamcorp.com<br>
+      (786) 878-4122
+    </div>
+  </div>
+  <div class="invoice-title">
+    <h1>INVOICE</h1>
+    <div class="num">#\${order.order_number}</div>
+    <div style="margin-top:8px;font-size:12px;color:#888">Date: \${date}</div>
+  </div>
+</div>
+
+\${order.eta ? \`<div class="eta-box"><div class="label">Estimated arrival</div><div class="value">\${eta}</div>\${order.eta_notes ? \`<div style="font-size:12px;color:#555;margin-top:4px">\${order.eta_notes}</div>\` : ''}</div>\` : ''}
+
+<div class="meta">
+  <div class="meta-box">
+    <div class="meta-label">Bill to</div>
+    <div class="meta-value">\${order.notes?.match(/Business: ([^\n|]+)/)?.[1]?.trim() || 'Client'}</div>
+    <div style="font-size:12px;color:#888;margin-top:4px">\${order.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Order details</div>
+    <div class="meta-value">Order #\${order.order_number}</div>
+    <div style="font-size:12px;color:#888;margin-top:4px">Status: \${order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>SKU</th>
+      <th style="text-align:center">Qty</th>
+      <th style="text-align:right">Unit price</th>
+      <th style="text-align:right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    \${items.map(item => \`
+    <tr>
+      <td>\${item.product_name}</td>
+      <td style="color:#888;font-size:11px">\${item.product_sku || '—'}</td>
+      <td style="text-align:center">\${item.quantity}</td>
+      <td style="text-align:right">$\${item.unit_price?.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:600">$\${(item.unit_price * item.quantity)?.toLocaleString()}</td>
+    </tr>\`).join('')}
+    <tr class="total-row">
+      <td colspan="4">Total</td>
+      <td style="text-align:right">$\${order.total?.toLocaleString()}</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  Thank you for your business · Levam Corp Distributors · www.levamcorp.com · All sales are final
+</div>
+</body>
+</html>\`
+
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = \`Invoice-\${order.order_number}.html\`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('✓ Invoice downloaded!')
+  }
+
   const approveApp = async (app) => {
     const supabase = createClient()
     await supabase.from('applications').update({ status: 'approved' }).eq('id', app.id)
@@ -152,19 +279,42 @@ export default function MobileAdmin() {
     showToast(`Order moved to ${statusLabel[newStatus]}`)
   }
 
+  const handleImagePick = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setProductImage(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setProductImagePreview(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+
   const saveProduct = async () => {
     if (!productForm.name || !productForm.price) { showToast('Name and price required', 'error'); return }
     setSavingProduct(true)
     const supabase = createClient()
+    let image_url = null
+    if (productImage) {
+      setUploadingImage(true)
+      const ext = productImage.name.split('.').pop()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { data: imgData } = await supabase.storage.from('product-images').upload(path, productImage, { contentType: productImage.type, upsert: true })
+      if (imgData) {
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
+        image_url = urlData.publicUrl
+      }
+      setUploadingImage(false)
+    }
     await supabase.from('products').insert([{
       name: productForm.name, brand: productForm.brand,
       category: productForm.category, price: parseFloat(productForm.price),
       cost_price: productForm.cost_price ? parseFloat(productForm.cost_price) : null,
       stock: parseInt(productForm.stock) || 0, moq: parseInt(productForm.moq) || 1,
       description: productForm.description, active: productForm.active,
-      is_top_pick: productForm.is_top_pick,
+      is_top_pick: productForm.is_top_pick, image_url,
     }])
     setProductForm({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', description:'', active:true, is_top_pick:false })
+    setProductImage(null)
+    setProductImagePreview(null)
     setShowAddProduct(false)
     setProductSuccess(true)
     setTimeout(() => setProductSuccess(false), 3000)
@@ -279,6 +429,51 @@ export default function MobileAdmin() {
               </div>
             ))}
           </div>
+
+          {/* ETA */}
+          <div style={{ ...s.card, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showETA ? 12 : 0 }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Estimated arrival (ETA)</div>
+                {o.eta ? (
+                  <div style={{ fontSize: 18, fontWeight: 700, color: C.green }}>
+                    {new Date(o.eta + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 14, color: C.dim }}>Not set</div>
+                )}
+                {o.eta_notes && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{o.eta_notes}</div>}
+              </div>
+              <button onClick={() => { setShowETA(!showETA); setEtaForm({ eta: o.eta || '', eta_notes: o.eta_notes || '' }) }}
+                style={{ background: 'rgba(45,125,210,0.1)', border: `0.5px solid rgba(45,125,210,0.3)`, color: C.blue, fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {o.eta ? 'Edit' : '+ Set ETA'}
+              </button>
+            </div>
+            {showETA && (
+              <div style={{ marginTop: 12 }}>
+                <input type="date" value={etaForm.eta} onChange={e => setEtaForm(f => ({...f, eta: e.target.value}))}
+                  style={{ ...s.input, marginBottom: 10, colorScheme: 'dark' }} />
+                <input type="text" placeholder="Notes (e.g. Arriving by truck)" value={etaForm.eta_notes} onChange={e => setEtaForm(f => ({...f, eta_notes: e.target.value}))}
+                  style={{ ...s.input, marginBottom: 12 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button onClick={saveETA} disabled={savingETA}
+                    style={{ padding: 12, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {savingETA ? 'Saving...' : '✓ Save ETA'}
+                  </button>
+                  <button onClick={() => setShowETA(false)}
+                    style={{ padding: 12, background: 'transparent', color: C.muted, fontSize: 14, border: `0.5px solid ${C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Download Invoice */}
+          <button onClick={() => downloadInvoice(o)}
+            style={{ ...s.btn(C.blue), marginBottom: 16, background: 'rgba(45,125,210,0.1)', color: C.blue, border: `0.5px solid rgba(45,125,210,0.3)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            📄 Download Invoice
+          </button>
 
           {/* Actions */}
           {nextStatus[o.status] && (
@@ -424,6 +619,26 @@ export default function MobileAdmin() {
           <div style={{ fontSize: 17, fontWeight: 700 }}>Add product</div>
         </div>
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* IMAGE UPLOAD */}
+          <div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Product photo</div>
+            <label style={{ display: 'block', cursor: 'pointer' }}>
+              <input type="file" accept="image/*" onChange={handleImagePick} style={{ display: 'none' }} />
+              {productImagePreview ? (
+                <div style={{ position: 'relative' }}>
+                  <img src={productImagePreview} alt="preview" style={{ width: '100%', height: 200, objectFit: 'contain', background: '#1c1c1c', borderRadius: 12, border: `1px solid ${C.border}` }} />
+                  <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 12, padding: '6px 12px', borderRadius: 20, fontWeight: 600 }}>Change photo</div>
+                </div>
+              ) : (
+                <div style={{ height: 160, background: '#1c1c1c', border: `2px dashed ${C.border}`, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Icon d={IC.img} size={32} color={C.dim} />
+                  <div style={{ fontSize: 14, color: C.muted }}>Tap to add photo</div>
+                  <div style={{ fontSize: 11, color: C.dim }}>JPG, PNG, WEBP</div>
+                </div>
+              )}
+            </label>
+          </div>
+
           {[
             ['Product name *', 'name', 'text', 'e.g. JBL PartyBox 710'],
             ['Brand', 'brand', 'text', 'e.g. JBL'],
@@ -468,7 +683,7 @@ export default function MobileAdmin() {
 
           <button onClick={saveProduct} disabled={savingProduct}
             style={{ ...s.btn(C.blue), marginTop: 8, background: `linear-gradient(135deg, ${C.blue}, #1a5fa8)`, boxShadow: '0 4px 20px rgba(45,125,210,0.3)', fontSize: 16, padding: 16 }}>
-            {savingProduct ? 'Saving...' : 'Add product'}
+            {uploadingImage ? 'Uploading photo...' : savingProduct ? 'Saving...' : 'Add product'}
           </button>
         </div>
       </div>
