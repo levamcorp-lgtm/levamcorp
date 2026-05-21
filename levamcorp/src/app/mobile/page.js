@@ -142,113 +142,39 @@ export default function MobileAdmin() {
   const downloadInvoice = (order) => {
     const items = order.order_items || []
     const date = new Date(order.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    const eta = order.eta ? new Date(order.eta).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'
-    const html = \`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, Arial, sans-serif; color: #111; padding: 40px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #111; }
-  .logo { font-size: 22px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; }
-  .logo span { color: #2d7dd2; }
-  .logo-sub { font-size: 10px; color: #888; letter-spacing: 0.2em; margin-top: 2px; text-transform: uppercase; }
-  .invoice-title { text-align: right; }
-  .invoice-title h1 { font-size: 28px; font-weight: 800; color: #111; }
-  .invoice-title .num { font-size: 14px; color: #888; margin-top: 4px; }
-  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-  .meta-box { background: #f7f8fa; padding: 16px; border-radius: 6px; }
-  .meta-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-  .meta-value { font-size: 14px; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  th { background: #111; color: #fff; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
-  td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-  tr:nth-child(even) td { background: #fafafa; }
-  .total-row { background: #111 !important; }
-  .total-row td { color: #fff; font-weight: 700; font-size: 15px; border: none; }
-  .footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; }
-  .eta-box { background: #e8f4e8; border: 1px solid #2a7d4f; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; }
-  .eta-box .label { font-size: 10px; color: #2a7d4f; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
-  .eta-box .value { font-size: 16px; font-weight: 800; color: #2a7d4f; margin-top: 2px; }
-</style>
-</head>
-<body>
-<div class="header">
-  <div>
-    <div class="logo">Levam<span>Corp</span></div>
-    <div class="logo-sub">Corp · Distributors</div>
-    <div style="margin-top:12px;font-size:12px;color:#888;line-height:1.6">
-      6315 NW 99th Ave, Doral, FL 33178<br>
-      partners@levamcorp.com<br>
-      (786) 878-4122
-    </div>
-  </div>
-  <div class="invoice-title">
-    <h1>INVOICE</h1>
-    <div class="num">#\${order.order_number}</div>
-    <div style="margin-top:8px;font-size:12px;color:#888">Date: \${date}</div>
-  </div>
-</div>
+    const eta = order.eta ? new Date(order.eta + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'
+    const business = order.notes?.match(/Business: ([^
+|]+)/)?.[1]?.trim() || 'Client'
+    const email = order.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''
+    const status = order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : ''
 
-\${order.eta ? \`<div class="eta-box"><div class="label">Estimated arrival</div><div class="value">\${eta}</div>\${order.eta_notes ? \`<div style="font-size:12px;color:#555;margin-top:4px">\${order.eta_notes}</div>\` : ''}</div>\` : ''}
+    const itemRows = items.map(item =>
+      '<tr><td>' + item.product_name + '</td><td style="color:#888;font-size:11px">' + (item.product_sku || '—') + '</td><td style="text-align:center">' + item.quantity + '</td><td style="text-align:right">$' + item.unit_price?.toLocaleString() + '</td><td style="text-align:right;font-weight:600">$' + (item.unit_price * item.quantity)?.toLocaleString() + '</td></tr>'
+    ).join('')
 
-<div class="meta">
-  <div class="meta-box">
-    <div class="meta-label">Bill to</div>
-    <div class="meta-value">\${order.notes?.match(/Business: ([^\n|]+)/)?.[1]?.trim() || 'Client'}</div>
-    <div style="font-size:12px;color:#888;margin-top:4px">\${order.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''}</div>
-  </div>
-  <div class="meta-box">
-    <div class="meta-label">Order details</div>
-    <div class="meta-value">Order #\${order.order_number}</div>
-    <div style="font-size:12px;color:#888;margin-top:4px">Status: \${order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}</div>
-  </div>
-</div>
+    const etaBox = order.eta
+      ? '<div class="eta-box"><div class="label">Estimated arrival</div><div class="value">' + eta + '</div>' + (order.eta_notes ? '<div style="font-size:12px;color:#555;margin-top:4px">' + order.eta_notes + '</div>' : '') + '</div>'
+      : ''
 
-<table>
-  <thead>
-    <tr>
-      <th>Product</th>
-      <th>SKU</th>
-      <th style="text-align:center">Qty</th>
-      <th style="text-align:right">Unit price</th>
-      <th style="text-align:right">Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    \${items.map(item => \`
-    <tr>
-      <td>\${item.product_name}</td>
-      <td style="color:#888;font-size:11px">\${item.product_sku || '—'}</td>
-      <td style="text-align:center">\${item.quantity}</td>
-      <td style="text-align:right">$\${item.unit_price?.toLocaleString()}</td>
-      <td style="text-align:right;font-weight:600">$\${(item.unit_price * item.quantity)?.toLocaleString()}</td>
-    </tr>\`).join('')}
-    <tr class="total-row">
-      <td colspan="4">Total</td>
-      <td style="text-align:right">$\${order.total?.toLocaleString()}</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="footer">
-  Thank you for your business · Levam Corp Distributors · www.levamcorp.com · All sales are final
-</div>
-</body>
-</html>\`
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: Arial, sans-serif; color: #111; padding: 40px; } .header { display: flex; justify-content: space-between; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #111; } .logo { font-size: 22px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; } .logo span { color: #2d7dd2; } .logo-sub { font-size: 10px; color: #888; letter-spacing: 0.2em; margin-top: 2px; text-transform: uppercase; } .invoice-title { text-align: right; } .invoice-title h1 { font-size: 28px; font-weight: 800; } .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; } .meta-box { background: #f7f8fa; padding: 16px; border-radius: 6px; } .meta-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; } .meta-value { font-size: 14px; font-weight: 600; } table { width: 100%; border-collapse: collapse; margin-bottom: 24px; } th { background: #111; color: #fff; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; } td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; } tr:nth-child(even) td { background: #fafafa; } .total-row td { background: #111; color: #fff; font-weight: 700; font-size: 15px; border: none; } .footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; } .eta-box { background: #e8f4e8; border: 1px solid #2a7d4f; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; } .eta-box .label { font-size: 10px; color: #2a7d4f; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; } .eta-box .value { font-size: 16px; font-weight: 800; color: #2a7d4f; margin-top: 2px; }</style></head><body>'
+      + '<div class="header"><div><div class="logo">Levam<span>Corp</span></div><div class="logo-sub">Corp · Distributors</div><div style="margin-top:12px;font-size:12px;color:#888;line-height:1.6">6315 NW 99th Ave, Doral, FL 33178<br>partners@levamcorp.com<br>(786) 878-4122</div></div><div class="invoice-title"><h1>INVOICE</h1><div style="font-size:14px;color:#888;margin-top:4px">#' + order.order_number + '</div><div style="margin-top:8px;font-size:12px;color:#888">Date: ' + date + '</div></div></div>'
+      + etaBox
+      + '<div class="meta"><div class="meta-box"><div class="meta-label">Bill to</div><div class="meta-value">' + business + '</div><div style="font-size:12px;color:#888;margin-top:4px">' + email + '</div></div><div class="meta-box"><div class="meta-label">Order details</div><div class="meta-value">Order #' + order.order_number + '</div><div style="font-size:12px;color:#888;margin-top:4px">Status: ' + status + '</div></div></div>'
+      + '<table><thead><tr><th>Product</th><th>SKU</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Total</th></tr></thead><tbody>' + itemRows + '<tr class="total-row"><td colspan="4">Total</td><td style="text-align:right">$' + order.total?.toLocaleString() + '</td></tr></tbody></table>'
+      + '<div class="footer">Thank you for your business · Levam Corp Distributors · www.levamcorp.com · All sales are final</div>'
+      + '</body></html>'
 
     const blob = new Blob([html], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = \`Invoice-\${order.order_number}.html\`
+    a.download = 'Invoice-' + order.order_number + '.html'
     a.click()
     URL.revokeObjectURL(url)
-    showToast('✓ Invoice downloaded!')
+    showToast('Invoice downloaded!')
   }
 
-  const approveApp = async (app) => {
+    const approveApp = async (app) => {
     const supabase = createClient()
     await supabase.from('applications').update({ status: 'approved' }).eq('id', app.id)
     await supabase.from('clients').insert([{
