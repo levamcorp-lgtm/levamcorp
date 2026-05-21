@@ -67,7 +67,7 @@ export default function MobileAdmin() {
   const [loginLoading, setLoginLoading] = useState(false)
 
   // Product form
-  const [productForm, setProductForm] = useState({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', description:'', active:true, is_top_pick:false })
+  const [productForm, setProductForm] = useState({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', delivery_days:'2', description:'', active:true, is_top_pick:false })
   const [savingProduct, setSavingProduct] = useState(false)
   const [productImage, setProductImage] = useState(null)
   const [productImagePreview, setProductImagePreview] = useState(null)
@@ -236,8 +236,9 @@ export default function MobileAdmin() {
       stock: parseInt(productForm.stock) || 0, moq: parseInt(productForm.moq) || 1,
       description: productForm.description, active: productForm.active,
       is_top_pick: productForm.is_top_pick, image_url,
+      delivery_days: parseInt(productForm.delivery_days) || 2,
     }])
-    setProductForm({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', description:'', active:true, is_top_pick:false })
+    setProductForm({ name:'', brand:'', category:'electronics', price:'', cost_price:'', stock:'', moq:'1', delivery_days:'2', description:'', active:true, is_top_pick:false })
     setProductImage(null)
     setProductImagePreview(null)
     setShowAddProduct(false)
@@ -571,6 +572,7 @@ export default function MobileAdmin() {
             ['Cost price ($)', 'cost_price', 'number', '0.00'],
             ['Stock units', 'stock', 'number', '0'],
             ['MOQ', 'moq', 'number', '1'],
+            ['Delivery time (days)', 'delivery_days', 'number', '2'],
           ].map(([label, field, type, ph]) => (
             <div key={field}>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>{label}</div>
@@ -806,7 +808,7 @@ export default function MobileAdmin() {
                       {p.is_top_pick && <Icon d={IC.star} size={12} color={C.gold} />}
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</div>
                     </div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{p.brand} · {p.stock} units</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{p.brand} · {p.stock} units · {p.delivery_days || 2}d delivery</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700 }}>${p.price?.toLocaleString()}</div>
