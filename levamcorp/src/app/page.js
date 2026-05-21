@@ -271,21 +271,23 @@ export default function Home() {
                 desc: 'Average 48-hour dispatch from our warehouse in Doral, FL. Verified inventory, authentic products from top brands like JBL, LG, Ninja, Shark, and more.'
               },
               {
-                iconD: icons.home,
+                icon: 'home',
                 title: 'Feel at home',
                 
                 desc: 'We are a company with Latin roots in the heart of Doral, FL. We understand your business, speak your language, and care about your success as much as our own.'
               },
               {
-                icon: '',
+                icon: 'star',
                 title: 'Your success is ours',
                 
                 desc: 'We do not just sell you products — we are your strategic business partner. Our private portal gives you access to quotes, invoices, and everything you need to scale your business.'
               },
             ].map(item => (
               <div key={item.title} style={{ padding: '2rem', background: '#f7f8fa', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 60, opacity: 0.06 }}>{item.icon}</div>
-                <div style={{ fontSize: 32, marginBottom: '1rem' }}>{item.icon}</div>
+                <div style={{ position: 'absolute', top: 10, right: 10, opacity: 0.06 }}><Icon d={item.iconD || icons[item.icon]} size={60} color='#111' /></div>
+                <div style={{ width: 48, height: 48, borderRadius: 10, background: 'rgba(45,125,210,0.08)', border: '0.5px solid rgba(45,125,210,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                  <Icon d={item.iconD || icons[item.icon]} size={22} color='#2d7dd2' />
+                </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#111', marginBottom: 2 }}>{item.title}</div>
                 <div style={{ fontSize: 11, color: '#2d7dd2', fontWeight: 600, letterSpacing: '0.05em', marginBottom: '0.75rem' }}>{item.title2}</div>
                 <p style={{ fontSize: 13, color: '#666', lineHeight: 1.8, margin: 0 }}>{item.desc}</p>
