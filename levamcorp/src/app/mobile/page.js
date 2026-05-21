@@ -143,9 +143,8 @@ export default function MobileAdmin() {
     const items = order.order_items || []
     const date = new Date(order.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     const eta = order.eta ? new Date(order.eta + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD'
-    const business = order.notes?.match(/Business: ([^
-|]+)/)?.[1]?.trim() || 'Client'
-    const email = order.notes?.match(/Email: ([^\s|,]+)/)?.[1] || ''
+    const business = (order.notes || '').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
+    const email = (order.notes || '').split('Email: ')[1]?.split(' ')[0]?.split(',')[0]?.trim() || ''
     const status = order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : ''
 
     const itemRows = items.map(item =>
