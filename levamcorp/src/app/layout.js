@@ -15,11 +15,18 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         {children}
-        <LevamChat />
-        <WhatsAppButton />
+        <MobileExclude>
+          <LevamChat />
+          <WhatsAppButton />
+        </MobileExclude>
       </body>
     </html>
   )
+}
+
+function MobileExclude({ children }) {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/mobile')) return null
+  return children
 }
 
 function WhatsAppButton() {
