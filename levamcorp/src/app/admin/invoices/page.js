@@ -246,6 +246,17 @@ export default function AdminInvoices() {
                 </div>
               )}
 
+              {/* Terms & Conditions */}
+              <div style={{ margin: '0 40px 28px', padding: '20px 24px', background: '#f7f8fa', border: '1px solid #e8e8e8', borderRadius: 4 }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa', fontWeight: 700, marginBottom: 10 }}>Terms & Conditions</div>
+                <div style={{ fontSize: 11, color: '#555', lineHeight: 1.9 }}>
+                  <strong style={{ color: '#111' }}>ALL SALES ARE FINAL —</strong> No returns, exchanges, or refunds unless the product arrives physically damaged or defective. Damage must be reported within 48 hours of delivery with photographic evidence.<br />
+                  <strong style={{ color: '#111' }}>PAYMENT —</strong> Payment is due within the terms stated on this invoice. Late payments may incur a 1.5% monthly fee. Accepted methods: Wire Transfer, ACH, Credit/Debit Card.<br />
+                  <strong style={{ color: '#111' }}>JURISDICTION —</strong> This agreement is governed by the laws of the State of Florida, Miami-Dade County courts.<br />
+                  <strong style={{ color: '#111' }}>CHARGEBACKS —</strong> Unauthorized chargebacks will be disputed and may result in termination of the business relationship.
+                </div>
+              </div>
+
               {/* Signature lines */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, padding: '0 40px 40px' }}>
                 {['Authorized · Levam Corp', 'Accepted · Client'].map(label => (
