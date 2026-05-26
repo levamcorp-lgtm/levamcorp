@@ -16,7 +16,7 @@ export default function AdminInvoices() {
   const [form, setForm] = useState({
     invoice_number: '',
     client_name: '',
-    client_business: '',
+    client_company: '',
     client_email: '',
     client_phone: '',
     client_address: '',
@@ -56,7 +56,25 @@ export default function AdminInvoices() {
     if (!form.client_name || !form.invoice_number) { alert('Invoice number and client name required'); return }
     setSaving(true)
     const supabase = createClient()
-    const { data } = await supabase.from('manual_invoices').insert([{ ...form, total, items: form.items }]).select().single()
+    const { data } = await supabase.from('manual_invoices').insert([{
+        invoice_number: form.invoice_number,
+        client_name: form.client_name,
+        client_company: form.client_company,
+        client_email: form.client_email,
+        client_phone: form.client_phone,
+        client_address: form.client_address,
+        notes: form.notes,
+        status: form.status,
+        items: form.items,
+        total,
+        due_date: form.due_date || null,
+        bank_name: form.bank_name,
+        account_name: form.account_name,
+        account_number: form.account_number,
+        routing_number: form.routing_number,
+        swift: form.swift,
+        bank_address: form.bank_address,
+      }]).select().single()
     setInvoices(prev => [data, ...prev])
     setSelected(data)
     setShowCreate(false)
@@ -114,7 +132,7 @@ export default function AdminInvoices() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{inv.invoice_number}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{fmtMoney(inv.total)}</div>
               </div>
-              <div style={{ fontSize: 11, color: '#777' }}>{inv.client_business || inv.client_name}</div>
+              <div style={{ fontSize: 11, color: '#777' }}>{inv.client_company || inv.client_name}</div>
               <div style={{ fontSize: 10, color: '#555', marginTop: 4 }}>{fmtDate(inv.date)}</div>
             </div>
           ))}
@@ -171,7 +189,7 @@ export default function AdminInvoices() {
                   <div style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#aaa', fontWeight: 600, marginBottom: 10 }}>Bill to</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>{selected.client_name}</div>
                   <div style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>
-                    {selected.client_business && <>{selected.client_business}<br /></>}
+                    {selected.client_company && <>{selected.client_company}<br /></>}
                     {selected.client_email && <>{selected.client_email}<br /></>}
                     {selected.client_phone && <>{selected.client_phone}<br /></>}
                     {selected.client_address && <>{selected.client_address}</>}
@@ -307,7 +325,7 @@ export default function AdminInvoices() {
               <div>
                 <div style={{ fontSize: 10, color: '#2d7dd2', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Client info</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {[['Contact name *', 'client_name'], ['Business name', 'client_business'], ['Email', 'client_email'], ['Phone', 'client_phone']].map(([label, field]) => (
+                  {[['Contact name *', 'client_name'], ['Business name', 'client_company'], ['Email', 'client_email'], ['Phone', 'client_phone']].map(([label, field]) => (
                     <div key={field}>
                       <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{label}</label>
                       <input value={form[field]} onChange={e => setForm(f => ({...f, [field]: e.target.value}))}
