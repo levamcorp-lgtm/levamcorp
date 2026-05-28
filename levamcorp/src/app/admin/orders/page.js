@@ -329,8 +329,17 @@ export default function AdminOrders() {
           {/* ORDERS */}
           {(() => {
             const DONE = ['completed','cancelled','dispatched']
-            const active = visible.filter(o => !DONE.includes(o.status))
-            const done   = visible.filter(o => DONE.includes(o.status))
+            const activeRaw = visible.filter(o => !DONE.includes(o.status))
+            const done      = visible.filter(o => DONE.includes(o.status))
+
+            // Sort active: unpaid first → partial → paid
+            const payPriority = (o) => {
+              const paid = parseFloat(o.amount_paid)||0
+              if (paid <= 0) return 0          // unpaid — top
+              if (paid < o.total) return 1     // partial
+              return 2                         // fully paid
+            }
+            const active = [...activeRaw].sort((a,b) => payPriority(a) - payPriority(b))
 
             const renderOrder = (order) => {
               const oc = clientFor(order)
@@ -338,7 +347,7 @@ export default function AdminOrders() {
               const hasPartial = (parseFloat(order.amount_paid)||0) > 0 && !isPaid
               return (
                 <div key={order.id} onClick={()=>{setSel(order===sel?null:order);setTab('details');setShowETA(false);setShowPayment(false);setShowUnits(false)}}
-                  style={{background:'#111',border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(255,255,255,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
+                  style={{background: (parseFloat(order.amount_paid)||0)<=0 && !['completed','cancelled'].includes(order.status) ? 'rgba(231,76,60,0.03)' : '#111', border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(255,255,255,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                     <div>
                       <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:1}}>#{order.order_number}</div>
@@ -350,8 +359,12 @@ export default function AdminOrders() {
                     <div style={{textAlign:'right'}}>
                       <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{money(order.total)}</div>
                       <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:STATUS_COLOR[order.status]+'20',color:STATUS_COLOR[order.status],fontWeight:700}}>{STATUS_LABEL[order.status]}</span>
-                      {isPaid && <div style={{fontSize:9,color:'#2a7d4f',marginTop:2}}>✓ Fully paid</div>}
-                      {hasPartial && <div style={{fontSize:9,color:'#c49a00',marginTop:2}}>{money(parseFloat(order.amount_paid))} paid · {money(order.total-parseFloat(order.amount_paid))} due</div>}
+                      {isPaid
+                        ? <div style={{fontSize:9,color:'#2a7d4f',marginTop:2,fontWeight:700}}>✓ Paid</div>
+                        : hasPartial
+                          ? <div style={{fontSize:9,color:'#c49a00',marginTop:2,fontWeight:700}}>⚡ {money(parseFloat(order.amount_paid))} paid · <span style={{color:'#e74c3c'}}>{money(order.total-parseFloat(order.amount_paid))} due</span></div>
+                          : <div style={{fontSize:9,color:'#e74c3c',marginTop:2,fontWeight:700}}>⚠ Unpaid</div>
+                      }
                     </div>
                   </div>
                   <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
