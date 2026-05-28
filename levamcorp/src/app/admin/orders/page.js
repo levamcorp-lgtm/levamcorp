@@ -87,10 +87,17 @@ export default function AdminOrders() {
   const saveUnits = async () => {
     setSaving(true)
     const sb = createClient()
-    const newTotal = unitItems.reduce((s,i)=>s+(parseFloat(i.unit_price)*parseInt(i.quantity)),0)
-    for (const item of unitItems) await sb.from('order_items').update({quantity:parseInt(item.quantity)}).eq('id',item.id)
+    const newTotal = unitItems.reduce((s,i)=>s+(parseFloat(i.unit_price)*parseInt(i.quantity||1)),0)
+    for (const item of unitItems) {
+      await sb.from('order_items').update({quantity:parseInt(item.quantity)||1}).eq('id',item.id)
+    }
     await sb.from('orders').update({total:newTotal}).eq('id',sel.id)
-    await reload(); setShowUnits(false); setSaving(false)
+    // Update local state immediately without full reload
+    const updatedItems = unitItems.map(i=>({...i,quantity:parseInt(i.quantity)||1}))
+    setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:updatedItems} : o))
+    setSel(prev => ({...prev, total:newTotal, order_items:updatedItems}))
+    setShowUnits(false)
+    setSaving(false)
   }
 
   const openDoc = async (path) => {
