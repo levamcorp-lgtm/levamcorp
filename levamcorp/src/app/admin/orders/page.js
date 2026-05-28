@@ -31,6 +31,7 @@ export default function AdminOrders() {
   const [payForm,      setPayForm]      = useState({amount:'',notes:''})
   const [unitItems,    setUnitItems]    = useState([])
   const [saving,       setSaving]       = useState(false)
+  const [showDone,     setShowDone]     = useState(false)
 
   useEffect(() => {
     const sb = createClient()
@@ -326,40 +327,80 @@ export default function AdminOrders() {
           </div>
 
           {/* ORDERS */}
-          {visible.length===0 ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:13}}>No orders found.</div> :
-          visible.map(order => {
-            const oc = clientFor(order)
-            const isPaid = (parseFloat(order.amount_paid)||0) >= order.total
-            const hasPartial = (parseFloat(order.amount_paid)||0) > 0 && !isPaid
-            return (
-              <div key={order.id} onClick={()=>{setSel(order===sel?null:order);setTab('details');setShowETA(false);setShowPayment(false);setShowUnits(false)}}
-                style={{background:'#111',border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(255,255,255,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:1}}>#{order.order_number}</div>
-                    <div style={{fontSize:12,fontWeight:600,color:'#aaa',marginBottom:1}}>
-                      {oc ? `${oc.contact_name} · ${oc.business_name}` : (order.notes||'').split('Business: ')[1]?.split(/[|\n]/)[0]?.trim() || 'Unknown client'}
+          {(() => {
+            const DONE = ['completed','cancelled','dispatched']
+            const active = visible.filter(o => !DONE.includes(o.status))
+            const done   = visible.filter(o => DONE.includes(o.status))
+
+            const renderOrder = (order) => {
+              const oc = clientFor(order)
+              const isPaid = (parseFloat(order.amount_paid)||0) >= order.total
+              const hasPartial = (parseFloat(order.amount_paid)||0) > 0 && !isPaid
+              return (
+                <div key={order.id} onClick={()=>{setSel(order===sel?null:order);setTab('details');setShowETA(false);setShowPayment(false);setShowUnits(false)}}
+                  style={{background:'#111',border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(255,255,255,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:1}}>#{order.order_number}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:'#aaa',marginBottom:1}}>
+                        {oc ? `${oc.contact_name} · ${oc.business_name}` : (order.notes||'').split('Business: ')[1]?.split(/[|\n]/)[0]?.trim() || 'Unknown client'}
+                      </div>
+                      <div style={{fontSize:10,color:'#555'}}>{fmt(order.submitted_at)}</div>
                     </div>
-                    <div style={{fontSize:10,color:'#555'}}>{fmt(order.submitted_at)}</div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{money(order.total)}</div>
+                      <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:STATUS_COLOR[order.status]+'20',color:STATUS_COLOR[order.status],fontWeight:700}}>{STATUS_LABEL[order.status]}</span>
+                      {isPaid && <div style={{fontSize:9,color:'#2a7d4f',marginTop:2}}>✓ Fully paid</div>}
+                      {hasPartial && <div style={{fontSize:9,color:'#c49a00',marginTop:2}}>{money(parseFloat(order.amount_paid))} paid · {money(order.total-parseFloat(order.amount_paid))} due</div>}
+                    </div>
                   </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{money(order.total)}</div>
-                    <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:STATUS_COLOR[order.status]+'20',color:STATUS_COLOR[order.status],fontWeight:700}}>{STATUS_LABEL[order.status]}</span>
-                    {isPaid && <div style={{fontSize:9,color:'#2a7d4f',marginTop:2}}>✓ Fully paid</div>}
-                    {hasPartial && <div style={{fontSize:9,color:'#c49a00',marginTop:2}}>{money(parseFloat(order.amount_paid))} paid · {money(order.total-parseFloat(order.amount_paid))} due</div>}
+                  <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                    {order.order_items?.slice(0,3).map((i,idx)=>(
+                      <span key={idx} style={{fontSize:9,padding:'2px 7px',background:'rgba(255,255,255,0.04)',color:'#666',borderRadius:8}}>{i.product_name} ×{i.quantity}</span>
+                    ))}
+                    {order.order_items?.length>3 && <span style={{fontSize:9,color:'#444'}}>+{order.order_items.length-3} more</span>}
+                    {order.payment_proof_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(42,125,79,0.1)',color:'#2a7d4f',borderRadius:8}}>✓ Proof</span>}
+                    {order.bol_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(45,125,210,0.1)',color:'#2d7dd2',borderRadius:8}}>BOL</span>}
                   </div>
                 </div>
-                <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-                  {order.order_items?.slice(0,3).map((i,idx)=>(
-                    <span key={idx} style={{fontSize:9,padding:'2px 7px',background:'rgba(255,255,255,0.04)',color:'#666',borderRadius:8}}>{i.product_name} ×{i.quantity}</span>
-                  ))}
-                  {order.order_items?.length>3 && <span style={{fontSize:9,color:'#444'}}>+{order.order_items.length-3} more</span>}
-                  {order.payment_proof_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(42,125,79,0.1)',color:'#2a7d4f',borderRadius:8}}>✓ Proof</span>}
-                  {order.bol_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(45,125,210,0.1)',color:'#2d7dd2',borderRadius:8}}>BOL</span>}
-                </div>
-              </div>
+              )
+            }
+
+            return (
+              <>
+                {/* ACTIVE ORDERS */}
+                {active.length === 0 && filter==='all'
+                  ? <div style={{padding:'2rem',textAlign:'center',color:'#555',fontSize:13,background:'#111',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6,marginBottom:12}}>No active orders 🎉</div>
+                  : active.map(renderOrder)
+                }
+
+                {/* DIVIDER — completed/dispatched/cancelled */}
+                {done.length > 0 && filter==='all' && (
+                  <div style={{marginTop:8,marginBottom:4}}>
+                    <button onClick={()=>setShowDone(p=>!p)}
+                      style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'rgba(255,255,255,0.02)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6,cursor:'pointer',color:'#555',fontFamily:'inherit',fontSize:12}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:14}}>{showDone?'▾':'▸'}</span>
+                        <span style={{fontWeight:600,color:'#666'}}>Completed & archived</span>
+                        <span style={{fontSize:10,padding:'2px 8px',background:'rgba(255,255,255,0.06)',borderRadius:10,color:'#555'}}>{done.length} orders</span>
+                      </div>
+                      <span style={{fontSize:11,color:'#2a7d4f',fontWeight:600}}>
+                        ${done.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+(o.total||0),0).toLocaleString()} completed
+                      </span>
+                    </button>
+                    {showDone && (
+                      <div style={{marginTop:8}}>
+                        {done.map(renderOrder)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* When filtered to a specific done status */}
+                {filter!=='all' && DONE.includes(filter) && visible.map(renderOrder)}
+              </>
             )
-          })}
+          })()}
         </div>
 
         {/* RIGHT DETAIL */}
