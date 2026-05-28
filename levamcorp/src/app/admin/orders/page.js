@@ -7,6 +7,7 @@ const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([])
+  const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [search, setSearch] = useState('')
@@ -137,9 +138,15 @@ export default function AdminOrders() {
     if (!o) return
     const items = o.order_items || []
     const date = new Date(o.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    const business = (o.notes || '').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
-    const email = (o.notes || '').split('Email: ')[1]?.split(' ')[0]?.split(',')[0]?.trim() || ''
-    const phone = (o.notes || '').split('Phone: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || ''
+    const orderEmail = (o.notes || '').split('Email: ')[1]?.split(' ')[0]?.split(',')[0]?.trim() || ''
+    // Find full client info
+    const client = clients.find(c => c.email === orderEmail)
+    const business = client?.business_name || (o.notes || '').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
+    const contactName = client?.contact_name || ''
+    const email = client?.email || orderEmail
+    const phone = client?.phone || (o.notes || '').split('Phone: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || ''
+    const address = client?.address || ''
+    const ein = client?.ein_number || client?.ein || ''
     const status = o.status ? o.status.charAt(0).toUpperCase() + o.status.slice(1) : ''
     const itemRows = items.map(item =>
       '<tr><td style="padding:12px 16px;font-size:13px;color:#333;border-bottom:1px solid #f5f5f5">' + item.product_name + '</td>' +
@@ -163,7 +170,12 @@ export default function AdminOrders() {
       '<div style="font-size:12px;color:#666;line-height:1.8">6315 NW 99th Ave<br>Doral, FL 33178<br>partners@levamcorp.com</div></div>' +
       '<div><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;font-weight:600;margin-bottom:10px">Bill to</div>' +
       '<div style="font-size:14px;font-weight:700;color:#111;margin-bottom:4px">' + business + '</div>' +
-      '<div style="font-size:12px;color:#666;line-height:1.8">' + email + (phone ? '<br>' + phone : '') + '</div></div></div>' +
+      '<div style="font-size:12px;color:#666;line-height:1.8">' +
+      (contactName ? contactName + '<br>' : '') +
+      email + (phone ? '<br>' + phone : '') +
+      (address ? '<br>' + address : '') +
+      (ein ? '<br><span style=\"font-size:10px;color:#999\">EIN: ' + ein + '</span>' : '') +
+      '</div></div></div>' +
       '<div style="padding:0 40px 28px"><table style="width:100%;border-collapse:collapse;margin-top:28px">' +
       '<thead><tr style="background:#111"><th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.1em;text-align:left">Product</th>' +
       '<th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;text-align:center">Qty</th>' +
