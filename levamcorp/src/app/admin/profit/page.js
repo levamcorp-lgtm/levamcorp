@@ -3,544 +3,602 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
-const ADMIN_EMAIL = 'levamcorp@gmail.com'
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 const PARTNERS = ['Victor', 'Leopoldo']
+const EXPENSE_CATS = ['Rent/Storage','Shipping & Logistics','Marketing','Software & Tools','Utilities','Office','Travel','Legal & Accounting','Other']
 
-export default function ProfitPage() {
+const money = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+const moneyK = (n) => { const v = parseFloat(n)||0; return v >= 1000 ? '$'+(v/1000).toFixed(1)+'k' : '$'+v.toLocaleString() }
+const fmt = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
+const fmtM = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}) : '—'
+
+const inp = {width:'100%',background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ddd',fontSize:12,padding:'9px 10px',borderRadius:4,outline:'none',fontFamily:'inherit',boxSizing:'border-box'}
+const lbl = {fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}
+
+export default function AdminProfit() {
   const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
-  const [investments, setInvestments] = useState([])
-  const [snapshots, setSnapshots] = useState([])
+  const [expenses, setExpenses] = useState([])
+  const [inventory, setInventory] = useState([])
+  const [partnerTx, setPartnerTx] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [selectedSnapshot, setSelectedSnapshot] = useState(null)
-  const [newInvestment, setNewInvestment] = useState({ partner_name: 'Victor', amount: '', notes: '' })
-  const [addingInvestment, setAddingInvestment] = useState(false)
+  const [month, setMonth] = useState(new Date().toISOString().slice(0,7))
+  const [view, setView] = useState('overview') // overview | expenses | inventory | partners
+  const [showAddExpense, setShowAddExpense] = useState(false)
+  const [showAddInventory, setShowAddInventory] = useState(false)
+  const [showAddPartner, setShowAddPartner] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
-
-  const now = new Date()
-  const currentMonth = now.toLocaleString('en-US', { month: 'long' })
-  const currentYear = now.getFullYear()
+  const [expForm, setExpForm] = useState({date:new Date().toISOString().split('T')[0],category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
+  const [invForm, setInvForm] = useState({date:new Date().toISOString().split('T')[0],product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
+  const [ptxForm, setPtxForm] = useState({date:new Date().toISOString().split('T')[0],partner:'Victor',type:'investment',amount:'',description:'',notes:''})
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
-      await loadAll(supabase)
+    const sb = createClient()
+    sb.auth.getUser().then(async ({data}) => {
+      if (!data.user||!ADMIN_EMAILS.includes(data.user.email)) {window.location.href='/admin';return}
+      await loadAll(sb)
     })
-  }, [])
+  },[])
 
-  const loadAll = async (supabase) => {
-    const [{ data: ordersData }, { data: productsData }, { data: invData }, { data: snapData }] = await Promise.all([
-      supabase.from('orders').select('*, order_items(*, products(cost_price))').order('submitted_at', { ascending: false }),
-      supabase.from('products').select('*').order('name'),
-      supabase.from('partner_investments').select('*').order('created_at', { ascending: false }),
-      supabase.from('monthly_snapshots').select('*').order('year', { ascending: false }).order('month', { ascending: false }),
+  const loadAll = async (sb) => {
+    sb = sb||createClient()
+    const [
+      {data:o},{data:p},{data:e},{data:iv},{data:pt}
+    ] = await Promise.all([
+      sb.from('orders').select('*,order_items(*)').order('submitted_at',{ascending:false}),
+      sb.from('products').select('*'),
+      sb.from('expenses').select('*').order('date',{ascending:false}),
+      sb.from('inventory_purchases').select('*').order('date',{ascending:false}),
+      sb.from('partner_transactions').select('*').order('date',{ascending:false}),
     ])
-    setOrders(ordersData || [])
-    setProducts(productsData || [])
-    setInvestments(invData || [])
-    setSnapshots(snapData || [])
+    setOrders(o||[]); setProducts(p||[]); setExpenses(e||[]); setInventory(iv||[]); setPartnerTx(pt||[])
     setLoading(false)
   }
 
-  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
+  const logout = async () => { await createClient().auth.signOut(); window.location.href='/admin' }
 
-  // Current month calculations
-  const completedOrders = orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
-  const currentMonthOrders = completedOrders.filter(o => {
-    const d = new Date(o.submitted_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
-  })
-  // Status label for revenue counting
-  const revenueNote = '(confirmed + dispatched + completed)'
+  // ── CALCULATIONS ──────────────────────────────────────────
+  const inMonth = (dateStr) => dateStr && dateStr.startsWith(month)
+  const inMonthTS = (ts) => ts && new Date(ts).toISOString().slice(0,7) === month
 
-  const calcOrderRevenue = (order) => order.total || 0
-  const calcOrderCost = (order) => {
-    return (order.order_items || []).reduce((sum, item) => {
-      const costPrice = item.products?.cost_price || 0
-      return sum + (costPrice * item.quantity)
-    }, 0)
-  }
-  const calcOrderProfit = (order) => calcOrderRevenue(order) - calcOrderCost(order)
+  // Revenue from confirmed/dispatched/completed orders this month
+  const monthOrders = orders.filter(o => inMonthTS(o.submitted_at) && ['confirmed','dispatched','completed'].includes(o.status))
+  const revenue = monthOrders.reduce((s,o)=>s+(o.total||0),0)
+  const collected = monthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
+  const outstanding = monthOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0)
 
-  const currentRevenue = currentMonthOrders.reduce((s, o) => s + calcOrderRevenue(o), 0)
-  const currentCost = currentMonthOrders.reduce((s, o) => s + calcOrderCost(o), 0)
-  const currentProfit = currentRevenue - currentCost
-  const profitMargin = currentRevenue > 0 ? ((currentProfit / currentRevenue) * 100).toFixed(1) : 0
+  // COGS from order items × product cost
+  const cogs = monthOrders.reduce((s,o) => {
+    return s + (o.order_items||[]).reduce((ss,item) => {
+      const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
+      return ss + ((prod?.cost_price||0)*item.quantity)
+    },0)
+  },0)
 
-  const totalRevenue = completedOrders.reduce((s, o) => s + calcOrderRevenue(o), 0)
-  const totalCost = completedOrders.reduce((s, o) => s + calcOrderCost(o), 0)
-  const totalProfit = totalRevenue - totalCost
+  // Monthly expenses
+  const monthExpenses = expenses.filter(e=>inMonth(e.date))
+  const totalExpenses = monthExpenses.reduce((s,e)=>s+(e.amount||0),0)
+
+  // Monthly inventory purchases
+  const monthInventory = inventory.filter(i=>inMonth(i.date))
+  const totalInventory = monthInventory.reduce((s,i)=>s+(i.total_cost||0),0)
+
+  // Gross profit = revenue - cogs
+  const grossProfit = revenue - cogs
+
+  // Net profit = gross - expenses (NOT including inventory purchases — those are assets)
+  const netProfit = grossProfit - totalExpenses
+
+  // Profit per partner (50/50)
+  const profitPerPartner = netProfit / 2
+
+  // All-time totals
+  const allRevenue = orders.filter(o=>['confirmed','dispatched','completed'].includes(o.status)).reduce((s,o)=>s+(o.total||0),0)
+  const allExpenses = expenses.reduce((s,e)=>s+(e.amount||0),0)
+  const allInventory = inventory.reduce((s,i)=>s+(i.total_cost||0),0)
 
   // Partner investments this month
-  const currentInvestments = investments.filter(i => i.month === currentMonth && i.year === currentYear)
-  const victorInvested = currentInvestments.filter(i => i.partner_name === 'Victor').reduce((s, i) => s + i.amount, 0)
-  const leopoldoInvested = currentInvestments.filter(i => i.partner_name === 'Leopoldo').reduce((s, i) => s + i.amount, 0)
-  const totalInvested = victorInvested + leopoldoInvested
-  const victorShare = totalInvested > 0 ? victorInvested / totalInvested : 0.5
-  const leopoldoShare = totalInvested > 0 ? leopoldoInvested / totalInvested : 0.5
-  const victorProfit = currentProfit * victorShare
-  const leopoldoProfit = currentProfit * leopoldoShare
+  const partnerInvThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='investment').reduce((s,t)=>s+(t.amount||0),0)
+  const partnerWithThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='withdrawal').reduce((s,t)=>s+(t.amount||0),0)
 
-  const addInvestment = async () => {
-    if (!newInvestment.amount) { alert('Please enter an amount'); return }
+  // Expense by category
+  const byCat = EXPENSE_CATS.map(cat => ({
+    cat, total: monthExpenses.filter(e=>e.category===cat).reduce((s,e)=>s+(e.amount||0),0)
+  })).filter(x=>x.total>0).sort((a,b)=>b.total-a.total)
+
+  const maxCat = byCat[0]?.total||1
+
+  // Save functions
+  const saveExpense = async () => {
+    if (!expForm.description||!expForm.amount){alert('Fill required fields');return}
     setSaving(true)
-    const supabase = createClient()
-    await supabase.from('partner_investments').insert([{
-      partner_name: newInvestment.partner_name,
-      amount: parseFloat(newInvestment.amount),
-      notes: newInvestment.notes,
-      month: currentMonth,
-      year: currentYear,
-    }])
-    setNewInvestment({ partner_name: 'Victor', amount: '', notes: '' })
-    setAddingInvestment(false)
-    await loadAll(supabase)
-    setSaving(false)
+    await createClient().from('expenses').insert([{...expForm,amount:parseFloat(expForm.amount)}])
+    await loadAll(); setShowAddExpense(false); setSaving(false)
+    setExpForm({date:new Date().toISOString().split('T')[0],category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
   }
 
-  const deleteInvestment = async (id) => {
-    const supabase = createClient()
-    await supabase.from('partner_investments').delete().eq('id', id)
-    await loadAll(supabase)
-  }
-
-  const closeMonth = async () => {
+  const saveInventory = async () => {
+    if (!invForm.product_name||!invForm.units||!invForm.unit_cost){alert('Fill required fields');return}
     setSaving(true)
-    const supabase = createClient()
-    // Save snapshot
-    await supabase.from('monthly_snapshots').insert([{
-      month: currentMonth,
-      year: currentYear,
-      total_revenue: currentRevenue,
-      total_cost: currentCost,
-      total_profit: currentProfit,
-      total_orders: currentMonthOrders.length,
-      victor_investment: victorInvested,
-      leopoldo_investment: leopoldoInvested,
-      victor_profit: victorProfit,
-      leopoldo_profit: leopoldoProfit,
-      snapshot_data: {
-        orders: currentMonthOrders.map(o => ({ id: o.id, number: o.order_number, revenue: calcOrderRevenue(o), cost: calcOrderCost(o), profit: calcOrderProfit(o) })),
-        investments: currentInvestments,
-      }
-    }])
-    await loadAll(supabase)
-    setShowResetConfirm(false)
-    setSaving(false)
-    alert(`✅ Month of ${currentMonth} ${currentYear} has been archived!`)
+    const total_cost = parseFloat(invForm.unit_cost)*parseInt(invForm.units)
+    await createClient().from('inventory_purchases').insert([{...invForm,units:parseInt(invForm.units),unit_cost:parseFloat(invForm.unit_cost),total_cost}])
+    await loadAll(); setShowAddInventory(false); setSaving(false)
+    setInvForm({date:new Date().toISOString().split('T')[0],product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
   }
 
-  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const savePartnerTx = async () => {
+    if (!ptxForm.amount||!ptxForm.description){alert('Fill required fields');return}
+    setSaving(true)
+    await createClient().from('partner_transactions').insert([{...ptxForm,amount:parseFloat(ptxForm.amount)}])
+    await loadAll(); setShowAddPartner(false); setSaving(false)
+    setPtxForm({date:new Date().toISOString().split('T')[0],partner:'Victor',type:'investment',amount:'',description:'',notes:''})
+  }
 
-  if (loading) return <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading...</div>
+  const deleteExp = async (id) => { await createClient().from('expenses').delete().eq('id',id); await loadAll() }
+  const deleteInv = async (id) => { await createClient().from('inventory_purchases').delete().eq('id',id); await loadAll() }
+  const deletePtx = async (id) => { await createClient().from('partner_transactions').delete().eq('id',id); await loadAll() }
+
+  if (loading) return <div style={{minHeight:'100vh',background:'#080808',display:'flex',alignItems:'center',justifyContent:'center',color:'#555'}}>Loading...</div>
+
+  const isPos = netProfit >= 0
 
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
+    <div style={{background:'#0a0a0a',minHeight:'100vh'}}>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
-          <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Profit' ? '#2a7d4f' : label === 'Walmart' ? '#0071CE' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Profit' ? '2px solid #2a7d4f' : label === 'Walmart' ? '2px solid #0071CE' : '2px solid transparent', fontWeight: label === 'Profit' ? 700 : 400 }}>{label}</Link>
+      <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 2rem',background:'#111',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:16}}>
+          <div style={{fontSize:13,fontWeight:700,letterSpacing:'0.15em',color:'#fff',textTransform:'uppercase'}}>Levam Admin</div>
+          <div style={{display:'flex',borderLeft:'0.5px solid rgba(255,255,255,0.06)',paddingLeft:16}}>
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([l,h])=>(
+              <Link key={l} href={h} style={{fontSize:12,color:l==='Profit'?'#2d7dd2':'#777',textDecoration:'none',padding:'4px 14px',borderBottom:l==='Profit'?'2px solid #2d7dd2':'2px solid transparent',fontWeight:l==='Profit'?700:400}}>{l}</Link>
             ))}
           </div>
         </div>
-        <button onClick={handleLogout} style={{ fontSize: 11, color: '#555', border: '0.5px solid rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <input type="month" value={month} onChange={e=>setMonth(e.target.value)}
+            style={{background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ccc',fontSize:12,padding:'6px 10px',borderRadius:4,outline:'none',colorScheme:'dark'}}/>
+          <button onClick={logout} style={{fontSize:11,color:'#555',border:'0.5px solid rgba(255,255,255,0.08)',padding:'6px 14px',borderRadius:2,background:'transparent',cursor:'pointer'}}>Sign out</button>
+        </div>
       </nav>
 
-      {/* HEADER */}
-      <div style={{ background: 'linear-gradient(135deg, #0a1a0a, #0d1a0d)', padding: '2rem', borderBottom: '0.5px solid rgba(42,125,79,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2a7d4f', fontWeight: 600, marginBottom: 8 }}>Financial dashboard</div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Profit & Revenue</h1>
-            <p style={{ fontSize: 13, color: '#555' }}>{currentMonth} {currentYear} · Active month</p>
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setShowResetConfirm(true)} style={{ padding: '9px 18px', background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontSize: 11, fontWeight: 600, border: '0.5px solid rgba(231,76,60,0.3)', borderRadius: 3, cursor: 'pointer', letterSpacing: '0.06em' }}>
-              📦 Close & Archive Month
-            </button>
+      <div style={{padding:'2rem'}}>
+
+        {/* ── HERO PROFIT CARD ─────────────────────────────── */}
+        <div style={{background:isPos?'linear-gradient(135deg,#0a1f12,#0d2b1a)':'linear-gradient(135deg,#1f0a0a,#2b0d0d)',border:`1px solid ${isPos?'rgba(42,125,79,0.35)':'rgba(231,76,60,0.35)'}`,borderRadius:16,padding:'2rem',marginBottom:'1.5rem',position:'relative',overflow:'hidden',animation:'fadeIn 0.4s ease'}}>
+          <div style={{position:'absolute',top:-30,right:-30,fontSize:160,opacity:0.04,lineHeight:1}}>{isPos?'↑':'↓'}</div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
+            <div>
+              <div style={{fontSize:11,color:isPos?'rgba(74,222,128,0.7)':'rgba(248,113,113,0.7)',textTransform:'uppercase',letterSpacing:'0.2em',fontWeight:700,marginBottom:6}}>{fmtM(month+'-01')} · Net profit</div>
+              <div style={{fontSize:56,fontWeight:900,color:isPos?'#4ade80':'#f87171',letterSpacing:'-0.02em',lineHeight:1}}>
+                {isPos?'+':''}{netProfit>=0?money(netProfit):'-'+money(Math.abs(netProfit))}
+              </div>
+              <div style={{fontSize:13,color:'rgba(255,255,255,0.35)',marginTop:8}}>
+                {money(grossProfit)} gross · {money(totalExpenses)} expenses
+              </div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,minWidth:280}}>
+              {PARTNERS.map(partner=>{
+                const pProfit = profitPerPartner
+                const inv = partnerInvThisMonth(partner)
+                const wit = partnerWithThisMonth(partner)
+                return (
+                  <div key={partner} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'1rem'}}>
+                    <div style={{fontSize:10,color:'#888',marginBottom:4,fontWeight:700}}>👤 {partner}</div>
+                    <div style={{fontSize:22,fontWeight:800,color:pProfit>=0?'#4ade80':'#f87171'}}>{pProfit>=0?'+':''}{money(pProfit)}</div>
+                    <div style={{fontSize:10,color:'#555',marginTop:4}}>50% share</div>
+                    {inv>0&&<div style={{fontSize:9,color:'#60a5fa',marginTop:4}}>⬆ Invested {money(inv)}</div>}
+                    {wit>0&&<div style={{fontSize:9,color:'#fbbf24',marginTop:2}}>⬇ Withdrew {money(wit)}</div>}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* BIG STATS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginTop: '1.5rem' }}>
+        {/* ── KPI GRID ──────────────────────────────────────── */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:'1.5rem'}}>
           {[
-            { label: 'Revenue', value: fmtMoney(currentRevenue), sub: `${currentMonthOrders.length} orders`, color: '#2d7dd2', icon: '💰' },
-            { label: 'Cost', value: fmtMoney(currentCost), sub: 'product cost', color: '#854f0b', icon: '📦' },
-            { label: 'Profit', value: fmtMoney(currentProfit), sub: `${profitMargin}% margin`, color: currentProfit > 0 ? '#2a7d4f' : '#e74c3c', icon: '📈' },
-            { label: "Victor's share", value: fmtMoney(victorProfit), sub: `${(victorShare * 100).toFixed(0)}% of profit`, color: '#534ab7', icon: '👤' },
-            { label: "Leopoldo's share", value: fmtMoney(leopoldoProfit), sub: `${(leopoldoShare * 100).toFixed(0)}% of profit`, color: '#534ab7', icon: '👤' },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: s.color, marginBottom: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: '#444' }}>{s.sub}</div>
-                </div>
-                <span style={{ fontSize: 20, opacity: 0.3 }}>{s.icon}</span>
+            {label:'Revenue',value:money(revenue),sub:`${monthOrders.length} orders`,color:'#60a5fa',icon:'💰'},
+            {label:'Collected',value:money(collected),sub:`${money(outstanding)} outstanding`,color:'#34d399',icon:'✓'},
+            {label:'Cost of goods',value:money(cogs),sub:'from confirmed orders',color:'#f87171',icon:'📦'},
+            {label:'Gross profit',value:money(grossProfit),sub:`${revenue>0?((grossProfit/revenue)*100).toFixed(1):0}% margin`,color:grossProfit>=0?'#a78bfa':'#f87171',icon:'📊'},
+            {label:'Operating expenses',value:money(totalExpenses),sub:`${monthExpenses.length} items`,color:'#fbbf24',icon:'🧾'},
+          ].map(k=>(
+            <div key={k.label} style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'1.25rem'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600}}>{k.label}</div>
+                <span style={{fontSize:16,opacity:0.4}}>{k.icon}</span>
               </div>
+              <div style={{fontSize:20,fontWeight:800,color:k.color,marginBottom:4}}>{k.value}</div>
+              <div style={{fontSize:10,color:'#444'}}>{k.sub}</div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* TABS */}
-      <div style={{ background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', padding: '0 2rem', display: 'flex', gap: 0 }}>
-        {[['overview','📊 Overview'],['orders','📦 Orders'],['investments','💼 Investments'],['products','🏷 Product margins'],['history','📅 History']].map(([key, label]) => (
-          <button key={key} onClick={() => setActiveTab(key)} style={{ fontSize: 12, fontWeight: activeTab === key ? 700 : 400, color: activeTab === key ? '#2a7d4f' : '#555', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === key ? '#2a7d4f' : 'transparent'}`, padding: '12px 16px', cursor: 'pointer' }}>{label}</button>
-        ))}
-      </div>
+        {/* ── SUB VIEWS TABS ─────────────────────────────────── */}
+        <div style={{display:'flex',gap:8,marginBottom:'1.5rem',borderBottom:'0.5px solid rgba(255,255,255,0.06)',paddingBottom:0}}>
+          {[['overview','📊 Overview'],['expenses','🧾 Expenses'],['inventory','📦 Inventory'],['partners','🤝 Partners']].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)} style={{padding:'10px 18px',fontSize:12,fontWeight:600,color:view===k?'#2d7dd2':'#555',background:'transparent',border:'none',borderBottom:`2px solid ${view===k?'#2d7dd2':'transparent'}`,cursor:'pointer',fontFamily:'inherit'}}>
+              {l}
+            </button>
+          ))}
+        </div>
 
-      <div style={{ padding: '1.5rem 2rem' }}>
+        {/* ══ OVERVIEW ══════════════════════════════════════════ */}
+        {view==='overview' && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem',animation:'fadeIn 0.3s ease'}}>
 
-        {/* OVERVIEW TAB */}
-        {activeTab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-
-            {/* Partner split */}
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '0.5px solid rgba(255,255,255,0.06)', background: '#0d0d0d' }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Partner profit split — {currentMonth}</div>
-                <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Based on investment ratio</div>
-              </div>
-              <div style={{ padding: '1.5rem' }}>
-                {[
-                  { name: 'Victor', invested: victorInvested, profit: victorProfit, share: victorShare, color: '#2d7dd2' },
-                  { name: 'Leopoldo', invested: leopoldoInvested, profit: leopoldoProfit, share: leopoldoShare, color: '#534ab7' },
-                ].map(p => (
-                  <div key={p.name} style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${p.color}20`, border: `1.5px solid ${p.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: p.color }}>
-                          {p.name[0]}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.name}</div>
-                          <div style={{ fontSize: 10, color: '#555' }}>Invested: {fmtMoney(p.invested)}</div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#2a7d4f' }}>{fmtMoney(p.profit)}</div>
-                        <div style={{ fontSize: 10, color: '#555' }}>{(p.share * 100).toFixed(1)}% share</div>
-                      </div>
-                    </div>
-                    <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${p.share * 100}%`, background: p.color, borderRadius: 3, transition: 'width 0.5s' }} />
-                    </div>
-                  </div>
-                ))}
-
-                <div style={{ padding: '1rem', background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 4, marginTop: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 6 }}>
-                    <span>Total invested this month</span><span style={{ color: '#ccc', fontWeight: 600 }}>{fmtMoney(totalInvested)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: '#fff' }}>
-                    <span>Total profit to split</span><span style={{ color: '#2a7d4f' }}>{fmtMoney(currentProfit)}</span>
-                  </div>
+            {/* P&L BREAKDOWN */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>P&L Breakdown — {fmtM(month+'-01')}</div>
+              {[
+                {label:'Gross revenue',value:revenue,color:'#60a5fa',positive:true},
+                {label:'Cost of goods sold',value:-cogs,color:'#f87171',positive:false},
+                {label:'— Gross profit',value:grossProfit,color:grossProfit>=0?'#a78bfa':'#f87171',border:true},
+                {label:'Operating expenses',value:-totalExpenses,color:'#fbbf24',positive:false},
+                {label:'= Net profit',value:netProfit,color:netProfit>=0?'#4ade80':'#f87171',border:true,bold:true},
+                {label:'Per partner (÷2)',value:profitPerPartner,color:profitPerPartner>=0?'#34d399':'#f87171',sub:true},
+              ].map((row,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:`${row.bold?'12px':'8px'} 0`,borderTop:row.border?`1px solid rgba(255,255,255,0.08)`:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',marginTop:row.border?4:0}}>
+                  <span style={{fontSize:row.bold?13:11,color:row.sub?'#555':'#888',paddingLeft:row.sub?12:0}}>{row.label}</span>
+                  <span style={{fontSize:row.bold?18:13,fontWeight:row.bold?800:600,color:row.color}}>
+                    {row.value>=0?'+':''}{money(row.value)}
+                  </span>
                 </div>
-              </div>
+              ))}
             </div>
 
-            {/* All-time stats */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1.25rem 1.5rem' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '1rem' }}>All-time totals</div>
-                {[
-                  ['Total revenue', fmtMoney(totalRevenue), '#2d7dd2'],
-                  ['Total cost', fmtMoney(totalCost), '#854f0b'],
-                  ['Total profit', fmtMoney(totalProfit), '#2a7d4f'],
-                  ['Completed orders', completedOrders.length, '#ccc'],
-                  ['Avg order value', fmtMoney(completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0), '#888'],
-                ].map(([label, val, color]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ fontSize: 12, color: '#777' }}>{label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
-                  </div>
-                ))}
-              </div>
+            {/* EXPENSE BY CATEGORY */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Expenses by category</div>
+              {byCat.length===0
+                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No expenses this month</div>
+                : byCat.map(({cat,total},i)=>{
+                  const colors=['#f87171','#fbbf24','#a78bfa','#60a5fa','#34d399','#f97316','#e879f9','#94a3b8']
+                  const c = colors[i%colors.length]
+                  return (
+                    <div key={cat} style={{marginBottom:10}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:11,color:'#aaa'}}>{cat}</span>
+                        <span style={{fontSize:12,fontWeight:700,color:c}}>{money(total)}</span>
+                      </div>
+                      <div style={{height:5,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${(total/maxCat)*100}%`,background:c,borderRadius:3}}/>
+                      </div>
+                    </div>
+                  )
+                })
+              }
+            </div>
 
-              <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '1.25rem 1.5rem' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '1rem' }}>This month summary</div>
-                {[
-                  ['Orders completed', currentMonthOrders.length, '#ccc'],
-                  ['Revenue', fmtMoney(currentRevenue), '#2d7dd2'],
-                  ['Product cost', fmtMoney(currentCost), '#854f0b'],
-                  ['Gross profit', fmtMoney(currentProfit), currentProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
-                  ['Profit margin', `${profitMargin}%`, currentProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
-                ].map(([label, val, color]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ fontSize: 12, color: '#777' }}>{label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
-                  </div>
-                ))}
+            {/* TOP SELLING PRODUCTS THIS MONTH */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Top products this month</div>
+              {(() => {
+                const pMap = {}
+                monthOrders.forEach(o=>(o.order_items||[]).forEach(item=>{
+                  const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                  const key = item.product_name
+                  if (!pMap[key]) pMap[key] = {name:key,units:0,rev:0,cost:0}
+                  pMap[key].units += item.quantity
+                  pMap[key].rev   += item.unit_price*item.quantity
+                  pMap[key].cost  += (prod?.cost_price||0)*item.quantity
+                }))
+                const top = Object.values(pMap).sort((a,b)=>b.rev-a.rev).slice(0,6)
+                const maxRev = top[0]?.rev||1
+                if (top.length===0) return <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No sales this month</div>
+                return top.map((p,i)=>{
+                  const colors=['#fbbf24','#60a5fa','#a78bfa','#34d399','#f87171','#f97316']
+                  const c=colors[i%colors.length]
+                  const margin = p.rev>0?((p.rev-p.cost)/p.rev*100).toFixed(0):0
+                  return (
+                    <div key={p.name} style={{marginBottom:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                        <span style={{fontSize:12,color:'#ccc',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:8}}>{p.name}</span>
+                        <div style={{textAlign:'right',flexShrink:0}}>
+                          <span style={{fontSize:12,fontWeight:700,color:c}}>{money(p.rev)}</span>
+                          <span style={{fontSize:9,color:'#555',marginLeft:6}}>{margin}% margin</span>
+                        </div>
+                      </div>
+                      <div style={{height:4,background:'rgba(255,255,255,0.05)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${(p.rev/maxRev)*100}%`,background:c,borderRadius:3}}/>
+                      </div>
+                      <div style={{fontSize:9,color:'#555',marginTop:2}}>{p.units} units · cost {money(p.cost)}</div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* RECENT INVENTORY PURCHASES */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>Inventory purchased</div>
+                <button onClick={()=>{setView('inventory');setShowAddInventory(true)}} style={{fontSize:11,color:'#2d7dd2',background:'rgba(45,125,210,0.1)',border:'0.5px solid rgba(45,125,210,0.25)',padding:'5px 10px',borderRadius:4,cursor:'pointer',fontWeight:600}}>+ Add</button>
               </div>
+              {monthInventory.length===0
+                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No inventory purchases this month</div>
+                : <>
+                  {monthInventory.slice(0,5).map(iv=>(
+                    <div key={iv.id} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderTop:'0.5px solid rgba(255,255,255,0.05)'}}>
+                      <div>
+                        <div style={{fontSize:12,color:'#ccc',fontWeight:600}}>{iv.product_name}</div>
+                        <div style={{fontSize:10,color:'#555'}}>{fmt(iv.date)} · {iv.units} units × {money(iv.unit_cost)}{iv.supplier?' · '+iv.supplier:''}</div>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:700,color:'#60a5fa',flexShrink:0}}>{money(iv.total_cost)}</div>
+                    </div>
+                  ))}
+                  <div style={{marginTop:10,padding:'8px 10px',background:'rgba(96,165,250,0.06)',border:'0.5px solid rgba(96,165,250,0.15)',borderRadius:4,display:'flex',justifyContent:'space-between'}}>
+                    <span style={{fontSize:11,color:'#888'}}>Total invested in inventory</span>
+                    <span style={{fontSize:14,fontWeight:700,color:'#60a5fa'}}>{money(totalInventory)}</span>
+                  </div>
+                </>
+              }
             </div>
           </div>
         )}
 
-        {/* ORDERS TAB */}
-        {activeTab === 'orders' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>Completed orders this month — {currentMonthOrders.length} orders</div>
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-              {currentMonthOrders.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No completed orders this month</div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#0d0d0d' }}>
-                      {['Order #','Date','Revenue','Cost','Profit','Margin'].map(h => (
-                        <th key={h} style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#555', padding: '10px 1.25rem', textAlign: 'left', fontWeight: 400, borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentMonthOrders.map(order => {
-                      const rev = calcOrderRevenue(order)
-                      const cost = calcOrderCost(order)
-                      const profit = calcOrderProfit(order)
-                      const margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : 0
-                      return (
-                        <tr key={order.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#2d7dd2' }}>#{order.order_number}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#777' }}>{fmtDate(order.submitted_at)}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 600, color: '#ccc' }}>{fmtMoney(rev)}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 12, color: '#854f0b' }}>{fmtMoney(cost)}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 700, color: profit >= 0 ? '#2a7d4f' : '#e74c3c' }}>{fmtMoney(profit)}</td>
-                          <td style={{ padding: '12px 1.25rem' }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: parseFloat(margin) >= 20 ? '#2a7d4f' : '#854f0b' }}>{margin}%</span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(42,125,79,0.06)' }}>
-                      <td colSpan={2} style={{ padding: '12px 1.25rem', fontSize: 11, fontWeight: 700, color: '#888' }}>TOTALS</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: 14, fontWeight: 800, color: '#2d7dd2' }}>{fmtMoney(currentRevenue)}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 700, color: '#854f0b' }}>{fmtMoney(currentCost)}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: 14, fontWeight: 800, color: '#2a7d4f' }}>{fmtMoney(currentProfit)}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>{profitMargin}%</td>
-                    </tr>
-                  </tfoot>
-                </table>
+        {/* ══ EXPENSES ══════════════════════════════════════════ */}
+        {view==='expenses' && (
+          <div style={{animation:'fadeIn 0.3s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Operating expenses</div>
+                <div style={{fontSize:12,color:'#555',marginTop:2}}>{fmtM(month+'-01')} · {money(totalExpenses)} total</div>
+              </div>
+              <button onClick={()=>setShowAddExpense(true)} style={{padding:'10px 18px',background:'#2d7dd2',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add expense</button>
+            </div>
+
+            {/* Add expense form */}
+            {showAddExpense && (
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New expense</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
+                  <div><label style={lbl}>Date *</label><input type="date" value={expForm.date} onChange={e=>setExpForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div><label style={lbl}>Category *</label>
+                    <select value={expForm.category} onChange={e=>setExpForm(f=>({...f,category:e.target.value}))} style={inp}>
+                      {EXPENSE_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div><label style={lbl}>Amount ($) *</label><input type="number" value={expForm.amount} onChange={e=>setExpForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description *</label><input value={expForm.description} onChange={e=>setExpForm(f=>({...f,description:e.target.value}))} placeholder="What was this for?" style={inp}/></div>
+                  <div><label style={lbl}>Paid by</label>
+                    <select value={expForm.paid_by} onChange={e=>setExpForm(f=>({...f,paid_by:e.target.value}))} style={inp}>
+                      <option value="company">Company</option>
+                      <option value="Victor">Victor</option>
+                      <option value="Leopoldo">Leopoldo</option>
+                    </select>
+                  </div>
+                  <div style={{gridColumn:'span 3'}}><label style={lbl}>Notes</label><input value={expForm.notes} onChange={e=>setExpForm(f=>({...f,notes:e.target.value}))} placeholder="Additional details..." style={inp}/></div>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={saveExpense} disabled={saving} style={{padding:'10px 20px',background:'#2d7dd2',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save expense'}</button>
+                  <button onClick={()=>setShowAddExpense(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Expenses table */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'10px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+                {['Description','Category','Amount','Paid by','Date',''].map((h,i)=><div key={i} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>=2?'right':'left'}}>{h}</div>)}
+              </div>
+              {monthExpenses.length===0
+                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No expenses for {fmtM(month+'-01')}</div>
+                : monthExpenses.map((e,i)=>(
+                  <div key={e.id} style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',alignItems:'center'}}>
+                    <div>
+                      <div style={{fontSize:13,color:'#ccc',fontWeight:500}}>{e.description}</div>
+                      {e.notes&&<div style={{fontSize:10,color:'#555',marginTop:1}}>{e.notes}</div>}
+                    </div>
+                    <div><span style={{fontSize:10,padding:'2px 8px',background:'rgba(251,191,36,0.1)',color:'#fbbf24',borderRadius:10,fontWeight:600}}>{e.category}</span></div>
+                    <div style={{fontSize:13,fontWeight:700,color:'#f87171',textAlign:'right'}}>{money(e.amount)}</div>
+                    <div style={{fontSize:11,color:'#888',textAlign:'right'}}>{e.paid_by}</div>
+                    <div style={{fontSize:10,color:'#555',textAlign:'right'}}>{fmt(e.date)}</div>
+                    <div style={{textAlign:'right'}}><button onClick={()=>deleteExp(e.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
+                  </div>
+                ))
+              }
+              {monthExpenses.length>0&&(
+                <div style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'#888'}}>Total</div>
+                  <div/><div style={{fontSize:15,fontWeight:800,color:'#fbbf24',textAlign:'right'}}>{money(totalExpenses)}</div>
+                </div>
               )}
             </div>
           </div>
         )}
 
-        {/* INVESTMENTS TAB */}
-        {activeTab === 'investments' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Partner investments — {currentMonth} {currentYear}</div>
-                <button onClick={() => setAddingInvestment(true)} style={{ padding: '8px 16px', background: '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: 3 }}>+ Add investment</button>
+        {/* ══ INVENTORY ══════════════════════════════════════════ */}
+        {view==='inventory' && (
+          <div style={{animation:'fadeIn 0.3s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Inventory purchases</div>
+                <div style={{fontSize:12,color:'#555',marginTop:2}}>Track what you bought, at what cost, and from where</div>
               </div>
-
-              <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                {currentInvestments.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#444', fontSize: 12 }}>No investments recorded this month</div>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: '#0d0d0d' }}>
-                        {['Partner','Amount','Notes','Date',''].map(h => (
-                          <th key={h} style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#555', padding: '10px 1.25rem', textAlign: 'left', fontWeight: 400, borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentInvestments.map(inv => (
-                        <tr key={inv.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '12px 1.25rem' }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: inv.partner_name === 'Victor' ? '#2d7dd2' : '#534ab7' }}>{inv.partner_name}</span>
-                          </td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>{fmtMoney(inv.amount)}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#777' }}>{inv.notes || '—'}</td>
-                          <td style={{ padding: '12px 1.25rem', fontSize: 11, color: '#555' }}>{fmtDate(inv.created_at)}</td>
-                          <td style={{ padding: '12px 1.25rem' }}>
-                            <button onClick={() => deleteInvestment(inv.id)} style={{ fontSize: 10, color: '#e74c3c', background: 'transparent', border: '0.5px solid rgba(231,76,60,0.3)', padding: '3px 8px', borderRadius: 2, cursor: 'pointer' }}>Delete</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <button onClick={()=>setShowAddInventory(true)} style={{padding:'10px 18px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add purchase</button>
             </div>
 
-            {/* Add investment panel */}
-            {addingInvestment && (
-              <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', height: 'fit-content' }}>
-                <div style={{ background: '#0d0d0d', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Add investment</div>
-                  <button onClick={() => setAddingInvestment(false)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 16 }}>×</button>
-                </div>
-                <div style={{ padding: '1.25rem' }}>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Partner</label>
-                    <select value={newInvestment.partner_name} onChange={e => setNewInvestment(p => ({...p, partner_name: e.target.value}))}
-                      style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '9px 12px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}>
-                      {PARTNERS.map(p => <option key={p} value={p}>{p}</option>)}
+            {showAddInventory && (
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New inventory purchase</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
+                  <div><label style={lbl}>Date *</label><input type="date" value={invForm.date} onChange={e=>setInvForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Product name *</label><input value={invForm.product_name} onChange={e=>setInvForm(f=>({...f,product_name:e.target.value}))} placeholder="e.g. JBL PartyBox 710" style={inp}/></div>
+                  <div><label style={lbl}>Supplier</label><input value={invForm.supplier} onChange={e=>setInvForm(f=>({...f,supplier:e.target.value}))} placeholder="e.g. D&H Distributing" style={inp}/></div>
+                  <div><label style={lbl}>Units *</label><input type="number" value={invForm.units} onChange={e=>setInvForm(f=>({...f,units:e.target.value}))} placeholder="0" style={inp}/></div>
+                  <div><label style={lbl}>Unit cost ($) *</label><input type="number" value={invForm.unit_cost} onChange={e=>setInvForm(f=>({...f,unit_cost:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div><label style={lbl}>Paid by</label>
+                    <select value={invForm.paid_by} onChange={e=>setInvForm(f=>({...f,paid_by:e.target.value}))} style={inp}>
+                      <option value="company">Company</option>
+                      <option value="Victor">Victor</option>
+                      <option value="Leopoldo">Leopoldo</option>
                     </select>
                   </div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Amount ($) *</label>
-                    <input type="number" value={newInvestment.amount} onChange={e => setNewInvestment(p => ({...p, amount: e.target.value}))} placeholder="0.00"
-                      style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '9px 12px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Notes</label><input value={invForm.notes} onChange={e=>setInvForm(f=>({...f,notes:e.target.value}))} placeholder="PO number, tracking, etc." style={inp}/></div>
+                </div>
+                {invForm.units&&invForm.unit_cost&&(
+                  <div style={{padding:'8px 12px',background:'rgba(96,165,250,0.08)',border:'0.5px solid rgba(96,165,250,0.2)',borderRadius:4,marginBottom:10,fontSize:12,color:'#60a5fa'}}>
+                    Total: <strong>{money(parseFloat(invForm.unit_cost)*parseInt(invForm.units))}</strong>
                   </div>
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Notes (optional)</label>
-                    <input value={newInvestment.notes} onChange={e => setNewInvestment(p => ({...p, notes: e.target.value}))} placeholder="e.g. Product purchase, inventory"
-                      style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '9px 12px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                  </div>
-                  <button onClick={addInvestment} disabled={saving} style={{ width: '100%', padding: 10, background: saving ? '#333' : '#2d7dd2', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3 }}>
-                    {saving ? 'Saving...' : '+ Add investment'}
-                  </button>
+                )}
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={saveInventory} disabled={saving} style={{padding:'10px 20px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save purchase'}</button>
+                  <button onClick={()=>setShowAddInventory(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* PRODUCTS MARGINS TAB */}
-        {activeTab === 'products' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Product margins</div>
-            <p style={{ fontSize: 11, color: '#555', marginBottom: '1rem' }}>Set cost price in Products section. Margin = (Sale price - Cost) / Sale price</p>
-            <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#0d0d0d' }}>
-                    {['Product','SKU','Cost price','Sale price','Margin','Stock'].map(h => (
-                      <th key={h} style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#555', padding: '10px 1.25rem', textAlign: 'left', fontWeight: 400, borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map(p => {
-                    const cost = p.cost_price || 0
-                    const sale = p.price || 0
-                    const margin = sale > 0 && cost > 0 ? (((sale - cost) / sale) * 100).toFixed(1) : null
-                    const profit = sale - cost
-                    return (
-                      <tr key={p.id} style={{ borderTop: '0.5px solid rgba(255,255,255,0.03)' }}>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 500, color: '#ccc', maxWidth: 200 }}>{p.name}</td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 10, color: '#555', fontFamily: 'monospace' }}>{p.sku}</td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, color: cost > 0 ? '#854f0b' : '#444' }}>{cost > 0 ? fmtMoney(cost) : '—'}</td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, fontWeight: 600, color: '#ccc' }}>{fmtMoney(sale)}</td>
-                        <td style={{ padding: '12px 1.25rem' }}>
-                          {margin !== null ? (
-                            <div>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: parseFloat(margin) >= 20 ? '#2a7d4f' : parseFloat(margin) >= 10 ? '#854f0b' : '#e74c3c' }}>{margin}%</span>
-                              <span style={{ fontSize: 10, color: '#555', marginLeft: 6 }}>(+{fmtMoney(profit)}/unit)</span>
-                            </div>
-                          ) : <span style={{ fontSize: 10, color: '#444' }}>Set cost price</span>}
-                        </td>
-                        <td style={{ padding: '12px 1.25rem', fontSize: 12, color: p.stock === 0 ? '#e74c3c' : '#777' }}>{p.stock}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'10px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+                {['Product','Units','Unit cost','Total','Supplier','Date',''].map((h,i)=><div key={i} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>=1?'right':'left'}}>{h}</div>)}
+              </div>
+              {inventory.length===0
+                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No inventory purchases recorded</div>
+                : inventory.map((iv,i)=>(
+                  <div key={iv.id} style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',alignItems:'center',background:inMonth(iv.date)?'transparent':'rgba(255,255,255,0.01)'}}>
+                    <div>
+                      <div style={{fontSize:13,color:'#ccc',fontWeight:600}}>{iv.product_name}</div>
+                      {iv.notes&&<div style={{fontSize:10,color:'#555',marginTop:1}}>{iv.notes}</div>}
+                      <div style={{fontSize:10,color:'#444',marginTop:1}}>Paid by: {iv.paid_by}</div>
+                    </div>
+                    <div style={{fontSize:12,color:'#aaa',textAlign:'right'}}>{iv.units}</div>
+                    <div style={{fontSize:12,color:'#aaa',textAlign:'right'}}>{money(iv.unit_cost)}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:'#60a5fa',textAlign:'right'}}>{money(iv.total_cost)}</div>
+                    <div style={{fontSize:11,color:'#888',textAlign:'right'}}>{iv.supplier||'—'}</div>
+                    <div style={{fontSize:10,color:inMonth(iv.date)?'#ccc':'#555',textAlign:'right'}}>{fmt(iv.date)}</div>
+                    <div style={{textAlign:'right'}}><button onClick={()=>deleteInv(iv.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
+                  </div>
+                ))
+              }
+              <div style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                <div style={{fontSize:12,color:'#888',fontWeight:700}}>All-time total invested</div>
+                <div/><div/><div style={{fontSize:15,fontWeight:800,color:'#60a5fa',textAlign:'right'}}>{money(allInventory)}</div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* HISTORY TAB */}
-        {activeTab === 'history' && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>Archived months — {snapshots.length} months</div>
-            {snapshots.length === 0 ? (
-              <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '3rem', textAlign: 'center', color: '#444' }}>
-                No archived months yet. Close a month to archive it.
+        {/* ══ PARTNERS ══════════════════════════════════════════ */}
+        {view==='partners' && (
+          <div style={{animation:'fadeIn 0.3s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Partner transactions</div>
+                <div style={{fontSize:12,color:'#555',marginTop:2}}>Investments, withdrawals & distributions</div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {snapshots.map(snap => (
-                  <div key={snap.id} onClick={() => setSelectedSnapshot(selectedSnapshot?.id === snap.id ? null : snap)}
-                    style={{ background: '#111', border: `1px solid ${selectedSnapshot?.id === snap.id ? '#2a7d4f' : 'rgba(255,255,255,0.06)'}`, borderRadius: 6, overflow: 'hidden', cursor: 'pointer' }}>
-                    <div style={{ padding: '1rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr repeat(5,auto)', gap: '2rem', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{snap.month} {snap.year}</div>
-                        <div style={{ fontSize: 11, color: '#555' }}>{snap.total_orders} orders completed</div>
-                      </div>
+              <button onClick={()=>setShowAddPartner(true)} style={{padding:'10px 18px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add transaction</button>
+            </div>
+
+            {showAddPartner && (
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New transaction</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
+                  <div><label style={lbl}>Date *</label><input type="date" value={ptxForm.date} onChange={e=>setPtxForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div><label style={lbl}>Partner *</label>
+                    <select value={ptxForm.partner} onChange={e=>setPtxForm(f=>({...f,partner:e.target.value}))} style={inp}>
+                      {PARTNERS.map(p=><option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div><label style={lbl}>Type *</label>
+                    <select value={ptxForm.type} onChange={e=>setPtxForm(f=>({...f,type:e.target.value}))} style={inp}>
+                      <option value="investment">Investment (put money in)</option>
+                      <option value="withdrawal">Withdrawal (take money out)</option>
+                      <option value="distribution">Distribution (profit share)</option>
+                      <option value="expense_reimbursement">Expense reimbursement</option>
+                    </select>
+                  </div>
+                  <div><label style={lbl}>Amount ($) *</label><input type="number" value={ptxForm.amount} onChange={e=>setPtxForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description *</label><input value={ptxForm.description} onChange={e=>setPtxForm(f=>({...f,description:e.target.value}))} placeholder="What is this for?" style={inp}/></div>
+                  <div style={{gridColumn:'span 3'}}><label style={lbl}>Notes</label><input value={ptxForm.notes} onChange={e=>setPtxForm(f=>({...f,notes:e.target.value}))} placeholder="Additional details..." style={inp}/></div>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={savePartnerTx} disabled={saving} style={{padding:'10px 20px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save'}</button>
+                  <button onClick={()=>setShowAddPartner(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Partner summary cards */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem',marginBottom:'1.5rem'}}>
+              {PARTNERS.map(partner=>{
+                const txs = partnerTx.filter(t=>t.partner===partner)
+                const totalIn = txs.filter(t=>['investment'].includes(t.type)).reduce((s,t)=>s+(t.amount||0),0)
+                const totalOut = txs.filter(t=>['withdrawal','distribution'].includes(t.type)).reduce((s,t)=>s+(t.amount||0),0)
+                const reimbursed = txs.filter(t=>t.type==='expense_reimbursement').reduce((s,t)=>s+(t.amount||0),0)
+                const monthShare = profitPerPartner
+                return (
+                  <div key={partner} style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+                      <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>👤 {partner}</div>
+                      <span style={{fontSize:10,padding:'3px 10px',background:'rgba(83,74,183,0.15)',color:'#a78bfa',borderRadius:10,fontWeight:700}}>50% partner</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:'1rem'}}>
                       {[
-                        ['Revenue', fmtMoney(snap.total_revenue), '#2d7dd2'],
-                        ['Cost', fmtMoney(snap.total_cost), '#854f0b'],
-                        ['Profit', fmtMoney(snap.total_profit), '#2a7d4f'],
-                        ["Victor's cut", fmtMoney(snap.victor_profit), '#534ab7'],
-                        ["Leopoldo's cut", fmtMoney(snap.leopoldo_profit), '#534ab7'],
-                      ].map(([label, val, color]) => (
-                        <div key={label} style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color }}>{val}</div>
+                        ['This month profit','$'+(monthShare>=0?'+':'')+money(monthShare).replace('$',''),monthShare>=0?'#4ade80':'#f87171'],
+                        ['Total invested',money(totalIn),'#60a5fa'],
+                        ['Total withdrawn',money(totalOut),'#fbbf24'],
+                        ['Reimbursed',money(reimbursed),'#34d399'],
+                      ].map(([l,v,c])=>(
+                        <div key={l} style={{padding:'8px',background:'rgba(255,255,255,0.03)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6}}>
+                          <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div>
                         </div>
                       ))}
                     </div>
-                    {selectedSnapshot?.id === snap.id && snap.snapshot_data?.orders && (
-                      <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', padding: '1rem 1.5rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr>
-                              {['Order #','Revenue','Cost','Profit'].map(h => (
-                                <th key={h} style={{ fontSize: 8, color: '#444', padding: '4px 8px', textAlign: 'left', fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {snap.snapshot_data.orders.map(o => (
-                              <tr key={o.id}>
-                                <td style={{ padding: '5px 8px', fontSize: 11, color: '#2d7dd2' }}>#{o.number}</td>
-                                <td style={{ padding: '5px 8px', fontSize: 11, color: '#ccc' }}>{fmtMoney(o.revenue)}</td>
-                                <td style={{ padding: '5px 8px', fontSize: 11, color: '#854f0b' }}>{fmtMoney(o.cost)}</td>
-                                <td style={{ padding: '5px 8px', fontSize: 11, color: '#2a7d4f', fontWeight: 600 }}>{fmtMoney(o.profit)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Recent activity</div>
+                    {txs.slice(0,3).map((t,i)=>{
+                      const typeColor = {investment:'#60a5fa',withdrawal:'#fbbf24',distribution:'#4ade80',expense_reimbursement:'#34d399'}
+                      return (
+                        <div key={t.id} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',fontSize:11}}>
+                          <div>
+                            <span style={{color:typeColor[t.type]||'#ccc',fontSize:9,fontWeight:600,textTransform:'uppercase'}}>{t.type.replace('_',' ')} </span>
+                            <span style={{color:'#888'}}>{t.description}</span>
+                          </div>
+                          <span style={{color:'#ccc',fontWeight:600}}>{money(t.amount)}</span>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
-            )}
+                )
+              })}
+            </div>
+
+            {/* All transactions table */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
+              <div style={{padding:'14px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)',fontSize:11,fontWeight:700,color:'#888'}}>All partner transactions</div>
+              {partnerTx.length===0
+                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No transactions yet</div>
+                : partnerTx.map((t,i)=>{
+                  const typeColor = {investment:'#60a5fa',withdrawal:'#fbbf24',distribution:'#4ade80',expense_reimbursement:'#34d399'}
+                  const typeIcon = {investment:'⬆',withdrawal:'⬇',distribution:'💚',expense_reimbursement:'🔄'}
+                  return (
+                    <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:12,flex:1}}>
+                        <div style={{width:32,height:32,borderRadius:'50%',background:`${typeColor[t.type]||'#888'}20`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>
+                          {typeIcon[t.type]||'·'}
+                        </div>
+                        <div>
+                          <div style={{fontSize:12,color:'#ccc',fontWeight:600}}>{t.description}</div>
+                          <div style={{fontSize:10,color:'#555'}}>{t.partner} · {t.type.replace('_',' ')} · {fmt(t.date)}</div>
+                          {t.notes&&<div style={{fontSize:10,color:'#444'}}>{t.notes}</div>}
+                        </div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontSize:14,fontWeight:700,color:typeColor[t.type]||'#ccc'}}>{money(t.amount)}</span>
+                        <button onClick={()=>deletePtx(t.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button>
+                      </div>
+                    </div>
+                  )
+                })
+              }
+            </div>
           </div>
         )}
       </div>
-
-      {/* RESET CONFIRM MODAL */}
-      {showResetConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2rem', maxWidth: 420, width: '90%' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: '0.75rem' }}>📦 Archive {currentMonth} {currentYear}?</div>
-            <p style={{ fontSize: 13, color: '#888', lineHeight: 1.8, marginBottom: '1.5rem' }}>
-              This will save a permanent snapshot of <strong style={{ color: '#ccc' }}>{currentMonth} {currentYear}</strong> including all revenue, costs, profit and partner splits. The data will be archived in History and the current month will reset.
-            </p>
-            <div style={{ background: 'rgba(42,125,79,0.06)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 4, padding: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}><span>Total profit to archive</span><span style={{ color: '#2a7d4f', fontWeight: 700 }}>{fmtMoney(currentProfit)}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}><span>Victor's cut</span><span style={{ color: '#2d7dd2', fontWeight: 700 }}>{fmtMoney(victorProfit)}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888' }}><span>Leopoldo's cut</span><span style={{ color: '#534ab7', fontWeight: 700 }}>{fmtMoney(leopoldoProfit)}</span></div>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={closeMonth} disabled={saving} style={{ flex: 1, padding: 12, background: saving ? '#333' : '#2a7d4f', color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 3 }}>
-                {saving ? 'Archiving...' : 'Yes, archive month'}
-              </button>
-              <button onClick={() => setShowResetConfirm(false)} style={{ padding: '12px 20px', background: 'transparent', color: '#555', fontSize: 12, border: '0.5px solid rgba(255,255,255,0.1)', cursor: 'pointer', borderRadius: 3 }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
