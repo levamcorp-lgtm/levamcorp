@@ -156,6 +156,7 @@ export default function AdminProfit() {
       monthBalance,
       expenseItems:    accExpenses.slice(0,3),
       invItems:        accInv.slice(0,3),
+      withdrawalItems: accWithdrawals.slice(0,5),
     }
   }).filter(a => a.totalCollected > 0 || a.totalRevenue > 0)
 
@@ -361,20 +362,17 @@ export default function AdminProfit() {
                         ⚠ {money(acc.totalOutstanding)} still owed to this account
                       </div>
                     )}
-                    {/* What went out breakdown */}
-                    {(acc.expenseItems.length>0||acc.invItems.length>0) && (
+                    {/* Withdrawals breakdown */}
+                    {acc.withdrawalItems?.length>0 && (
                       <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:8,marginTop:4}}>
-                        <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Paid from this account</div>
-                        {acc.invItems.map(iv=>(
-                          <div key={iv.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'3px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
-                            <span>📦 {iv.product_name} ×{iv.units} <span style={{color:'#444'}}>({iv.date})</span></span>
-                            <span style={{color:'#fbbf24',fontWeight:600}}>-{money(iv.total_cost)}</span>
-                          </div>
-                        ))}
-                        {acc.expenseItems.map(e=>(
-                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'3px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
-                            <span>🧾 {e.description} <span style={{color:'#444'}}>({e.date})</span></span>
-                            <span style={{color:'#f87171',fontWeight:600}}>-{money(e.amount)}</span>
+                        <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Payments made from this account</div>
+                        {acc.withdrawalItems.map(t=>(
+                          <div key={t.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'4px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
+                            <div>
+                              <span style={{color:'#ccc'}}>{t.description}</span>
+                              <span style={{color:'#444',marginLeft:6}}>({t.date})</span>
+                            </div>
+                            <span style={{color:'#f87171',fontWeight:600,flexShrink:0,marginLeft:8}}>-{money(t.amount)}</span>
                           </div>
                         ))}
                       </div>
