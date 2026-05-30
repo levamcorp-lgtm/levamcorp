@@ -365,6 +365,11 @@ export default function AdminOrders() {
                           ? <div style={{fontSize:9,color:'#c49a00',marginTop:2,fontWeight:700}}>⚡ {money(parseFloat(order.amount_paid))} paid · <span style={{color:'#e74c3c'}}>{money(order.total-parseFloat(order.amount_paid))} due</span></div>
                           : <div style={{fontSize:9,color:'#e74c3c',marginTop:2,fontWeight:700}}>⚠ Unpaid</div>
                       }
+                    {order.payment_account && order.payment_account !== 'company' && (
+                      <div style={{fontSize:9,marginTop:2,fontWeight:700,color:'#a78bfa'}}>
+                        → {order.payment_account}
+                      </div>
+                    )}
                     </div>
                   </div>
                   <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
@@ -605,6 +610,23 @@ export default function AdminOrders() {
                         ))}
                       </div>
                     )}
+                    {/* Payment account selector */}
+                    <div style={{marginBottom:'1rem',padding:'12px 14px',background:'rgba(167,139,250,0.06)',border:'0.5px solid rgba(167,139,250,0.2)',borderRadius:6}}>
+                      <div style={{fontSize:9,color:'#a78bfa',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:8}}>Payment received in account</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                        {['Company','Victor','Leopoldo','World Family'].map(acc=>(
+                          <button key={acc} onClick={async()=>{
+                            const val = acc.toLowerCase().replace(' ','_')
+                            await createClient().from('orders').update({payment_account:val}).eq('id',sel.id)
+                            setSel(prev=>({...prev,payment_account:val}))
+                            setOrders(prev=>prev.map(o=>o.id===sel.id?{...o,payment_account:val}:o))
+                          }} style={{padding:'7px 4px',fontSize:10,fontWeight:700,border:`1px solid ${(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'rgba(255,255,255,0.08)'}`,background:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'rgba(167,139,250,0.15)':'transparent',color:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'#555',borderRadius:4,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
+                            {acc}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Add payment */}
                     <button onClick={()=>setShowPayment(!showPayment)} style={{width:'100%',padding:'9px',background:'rgba(45,125,210,0.1)',color:'#2d7dd2',fontSize:12,fontWeight:600,border:'0.5px solid rgba(45,125,210,0.25)',borderRadius:4,cursor:'pointer',marginBottom:showPayment?'0.75rem':0}}>
                       + Record payment
