@@ -101,6 +101,30 @@ export default function AdminProfit() {
   const partnerInvThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='investment').reduce((s,t)=>s+(t.amount||0),0)
   const partnerWithThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='withdrawal').reduce((s,t)=>s+(t.amount||0),0)
 
+  // Account breakdown
+  const ACCOUNTS = [
+    { key:'company',      label:'Company',      color:'#60a5fa', icon:'🏢' },
+    { key:'victor',       label:'Victor',       color:'#4ade80', icon:'👤' },
+    { key:'leopoldo',     label:'Leopoldo',     color:'#a78bfa', icon:'👤' },
+    { key:'world_family', label:'World Family', color:'#fbbf24', icon:'🏭' },
+  ]
+  const accountBreakdown = ACCOUNTS.map(acc => {
+    const accOrders = orders.filter(o =>
+      ['confirmed','dispatched','completed'].includes(o.status) &&
+      (o.payment_account||'company') === acc.key
+    )
+    const accMonthOrders = accOrders.filter(o => inMonthTS(o.submitted_at))
+    return {
+      ...acc,
+      monthRevenue: accMonthOrders.reduce((s,o)=>s+(o.total||0),0),
+      monthCollected: accMonthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0),
+      monthOrders: accMonthOrders.length,
+      totalRevenue: accOrders.reduce((s,o)=>s+(o.total||0),0),
+      totalCollected: accOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0),
+      totalOutstanding: accOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0),
+    }
+  }).filter(a => a.totalRevenue > 0 || a.monthRevenue > 0)
+
   // Expense by category
   const byCat = EXPENSE_CATS.map(cat => ({
     cat, total: monthExpenses.filter(e=>e.category===cat).reduce((s,e)=>s+(e.amount||0),0)
@@ -248,6 +272,38 @@ export default function AdminProfit() {
                   </span>
                 </div>
               ))}
+            </div>
+
+            {/* ACCOUNT BREAKDOWN */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>💳 Revenue by account</div>
+              {accountBreakdown.length===0
+                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'1.5rem'}}>No account data yet — set accounts on orders</div>
+                : accountBreakdown.map(acc=>(
+                  <div key={acc.key} style={{marginBottom:12,padding:'12px',background:'rgba(255,255,255,0.03)',border:`0.5px solid ${acc.color}25`,borderLeft:`3px solid ${acc.color}`,borderRadius:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:16}}>{acc.icon}</span>
+                        <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{acc.label}</span>
+                      </div>
+                      <span style={{fontSize:16,fontWeight:800,color:acc.color}}>{money(acc.monthRevenue)}</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+                      {[
+                        ['This month',money(acc.monthRevenue),acc.color],
+                        ['Collected',money(acc.monthCollected),'#34d399'],
+                        ['Outstanding',money(acc.monthRevenue-acc.monthCollected),acc.monthRevenue-acc.monthCollected>0?'#f87171':'#34d399'],
+                      ].map(([l,v,c])=>(
+                        <div key={l} style={{padding:'6px 8px',background:'rgba(255,255,255,0.03)',borderRadius:4}}>
+                          <div style={{fontSize:8,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{l}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:6,fontSize:10,color:'#555'}}>{acc.monthOrders} orders this month · {money(acc.totalCollected)} collected all-time · <span style={{color:acc.totalOutstanding>0?'#f87171':'#555'}}>{money(acc.totalOutstanding)} outstanding</span></div>
+                  </div>
+                ))
+              }
             </div>
 
             {/* EXPENSE BY CATEGORY */}
