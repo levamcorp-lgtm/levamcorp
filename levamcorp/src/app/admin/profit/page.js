@@ -51,10 +51,12 @@ export default function AdminProfit() {
     })
   },[])
 
+  const [clients, setClients] = useState([])
+
   const loadAll = async(sb)=>{
     sb=sb||createClient()
     const [
-      {data:o},{data:p},{data:e},{data:iv},{data:pt},{data:ap}
+      {data:o},{data:p},{data:e},{data:iv},{data:pt},{data:ap},{data:cl}
     ] = await Promise.all([
       sb.from('orders').select('*,order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('products').select('*'),
@@ -62,9 +64,10 @@ export default function AdminProfit() {
       sb.from('inventory_purchases').select('*').order('date',{ascending:false}),
       sb.from('partner_transactions').select('*').order('date',{ascending:false}),
       sb.from('account_payments').select('*').order('date',{ascending:false}),
+      sb.from('clients').select('*'),
     ])
     setOrders(o||[]); setProducts(p||[]); setExpenses(e||[])
-    setInventory(iv||[]); setPartnerTx(pt||[]); setAcctPay(ap||[])
+    setInventory(iv||[]); setPartnerTx(pt||[]); setAcctPay(ap||[]); setClients(cl||[])
     setLoading(false)
   }
 
@@ -188,9 +191,8 @@ export default function AdminProfit() {
 
   const isPos = netProfit>=0
 
-  // Orders for account payment form
+  // Orders for account payment form — all confirmed, not yet covered
   const apPartnerKey = ACCOUNTS.find(a=>a.label===apForm.partner)?.key||'company'
-  const selectableOrders = confirmedOrders.filter(o=>(o.payment_account||'company')===apPartnerKey)
 
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh'}}>
@@ -419,38 +421,74 @@ export default function AdminProfit() {
                   </div>
                 </div>
 
-                {/* Order selector for supplier payments */}
-                {apForm.type==='supplier_payment' && selectableOrders.length>0 && (
-                  <div style={{marginBottom:12}}>
-                    <label style={lbl}>Link to orders (select which orders this payment covers)</label>
-                    <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto',background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,padding:8}}>
-                      {selectableOrders.map(o=>{
-                        const clientName=(o.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim()||'Client'
-                        const isSelected=apForm.selectedOrders.includes(o.id)
-                        const orderCogs=(o.order_items||[]).reduce((s,item)=>{
-                          const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
-                          return s+((prod?.cost_price||0)*item.quantity)
-                        },0)
-                        return (
-                          <div key={o.id} onClick={()=>setApForm(f=>({...f,selectedOrders:isSelected?f.selectedOrders.filter(id=>id!==o.id):[...f.selectedOrders,o.id]}))}
-                            style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:isSelected?'rgba(83,74,183,0.15)':'rgba(255,255,255,0.02)',border:`0.5px solid ${isSelected?'rgba(83,74,183,0.4)':'rgba(255,255,255,0.06)'}`,borderRadius:4,cursor:'pointer'}}>
-                            <div>
-                              <span style={{fontSize:12,fontWeight:600,color:isSelected?'#a78bfa':'#ccc'}}>#{o.order_number}</span>
-                              <span style={{fontSize:10,color:'#555',marginLeft:8}}>{clientName}</span>
+                {/* Order selector for supplier payments — ALL confirmed orders not yet covered */}
+                {apForm.type==='supplier_payment' && (()=>{
+                  const alreadyCovered = acctPay.filter(p=>p.type==='supplier_payment').flatMap(p=>p.order_ids||[])
+                  const available = confirmedOrders.filter(o=>!alreadyCovered.includes(o.id))
+                  if(available.length===0) return <div style={{padding:'10px 12px',background:'rgba(42,125,79,0.06)',border:'0.5px solid rgba(42,125,79,0.2)',borderRadius:4,fontSize:11,color:'#2a7d4f',marginBottom:12}}>✓ All orders are already covered by previous payments</div>
+                  const selectedTotal = available.filter(o=>apForm.selectedOrders.includes(o.id)).reduce((s,o)=>{
+                    const orderCogs=(o.order_items||[]).reduce((ss,item)=>{
+                      const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                      return ss+((prod?.cost_price||0)*item.quantity)
+                    },0)
+                    return s+orderCogs
+                  },0)
+                  return (
+                    <div style={{marginBottom:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                        <label style={lbl}>Orders this payment covers</label>
+                        <button onClick={()=>setApForm(f=>({...f,selectedOrders:available.map(o=>o.id)}))} style={{fontSize:10,color:'#a78bfa',background:'rgba(83,74,183,0.1)',border:'0.5px solid rgba(83,74,183,0.25)',padding:'3px 10px',borderRadius:3,cursor:'pointer',fontFamily:'inherit'}}>Select all</button>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:240,overflowY:'auto',background:'#0d0d0d',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:6,padding:8}}>
+                        {available.map(o=>{
+                          const isSelected = apForm.selectedOrders.includes(o.id)
+                          const clientName = (o.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim()||'Client'
+                          const clientEmail = (o.notes||'').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim()||''
+                          const client = clients?.find ? clients.find(c=>c.email===clientEmail) : null
+                          const displayName = client ? `${client.contact_name} · ${client.business_name}` : clientName
+                          const orderCogs=(o.order_items||[]).reduce((s,item)=>{
+                            const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                            return s+((prod?.cost_price||0)*item.quantity)
+                          },0)
+                          const accLabel = ACCOUNTS.find(a=>a.key===(o.payment_account||'company'))?.label||'Company'
+                          const accColor = ACCOUNTS.find(a=>a.key===(o.payment_account||'company'))?.color||'#60a5fa'
+                          return (
+                            <div key={o.id} onClick={()=>setApForm(f=>({...f,selectedOrders:isSelected?f.selectedOrders.filter(id=>id!==o.id):[...f.selectedOrders,o.id]}))}
+                              style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:isSelected?'rgba(83,74,183,0.12)':'rgba(255,255,255,0.02)',border:`1px solid ${isSelected?'rgba(83,74,183,0.5)':'rgba(255,255,255,0.06)'}`,borderRadius:5,cursor:'pointer',transition:'all 0.15s'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                <div style={{width:22,height:22,borderRadius:'50%',background:isSelected?'#534ab7':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                  {isSelected&&<span style={{color:'#fff',fontSize:12}}>✓</span>}
+                                </div>
+                                <div>
+                                  <div style={{fontSize:12,fontWeight:700,color:isSelected?'#a78bfa':'#ccc'}}>#{o.order_number} · {displayName}</div>
+                                  <div style={{fontSize:10,color:'#555',marginTop:1}}>
+                                    {fmt(o.submitted_at)} · {(o.order_items||[]).length} products · 
+                                    <span style={{color:accColor,marginLeft:4}}>{accLabel}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{textAlign:'right',flexShrink:0,marginLeft:12}}>
+                                <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{money(o.total)}</div>
+                                {orderCogs>0
+                                  ? <div style={{fontSize:10,color:'#f87171'}}>cost {money(orderCogs)}</div>
+                                  : <div style={{fontSize:10,color:'#444'}}>no cost data</div>
+                                }
+                              </div>
                             </div>
-                            <div style={{textAlign:'right'}}>
-                              <div style={{fontSize:11,color:'#888'}}>{money(o.total)} total</div>
-                              {orderCogs>0&&<div style={{fontSize:10,color:'#f87171'}}>Cost: {money(orderCogs)}</div>}
-                            </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
+                      {apForm.selectedOrders.length>0&&(
+                        <div style={{marginTop:8,display:'flex',gap:10,alignItems:'center',padding:'8px 12px',background:'rgba(83,74,183,0.08)',border:'0.5px solid rgba(83,74,183,0.2)',borderRadius:4}}>
+                          <span style={{fontSize:11,color:'#a78bfa',fontWeight:600}}>{apForm.selectedOrders.length} order(s) selected</span>
+                          <span style={{fontSize:11,color:'#555'}}>·</span>
+                          <span style={{fontSize:11,color:'#fbbf24'}}>Total cost: {money(selectedTotal)}</span>
+                          {apForm.amount&&<><span style={{fontSize:11,color:'#555'}}>·</span><span style={{fontSize:11,color:parseFloat(apForm.amount)>=selectedTotal?'#4ade80':'#f87171'}}>Payment: {money(apForm.amount)}</span></>}
+                        </div>
+                      )}
                     </div>
-                    {apForm.selectedOrders.length>0&&(
-                      <div style={{marginTop:6,fontSize:11,color:'#a78bfa'}}>{apForm.selectedOrders.length} order(s) selected</div>
-                    )}
-                  </div>
-                )}
+                  )
+                })()}
 
                 <div>
                   <label style={lbl}>Notes</label>
