@@ -6,200 +6,191 @@ import { createClient } from '../../../lib/supabase'
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 const PARTNERS = ['Victor', 'Leopoldo']
 const EXPENSE_CATS = ['Rent/Storage','Shipping & Logistics','Marketing','Software & Tools','Utilities','Office','Travel','Legal & Accounting','Other']
+const ACCOUNTS = [
+  { key:'company',      label:'Company',      color:'#60a5fa', icon:'🏢' },
+  { key:'victor',       label:'Victor',       color:'#4ade80', icon:'👤' },
+  { key:'leopoldo',     label:'Leopoldo',     color:'#a78bfa', icon:'👤' },
+  { key:'world_family', label:'World Family', color:'#fbbf24', icon:'🏭' },
+]
 
-const money = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
-const moneyK = (n) => { const v = parseFloat(n)||0; return v >= 1000 ? '$'+(v/1000).toFixed(1)+'k' : '$'+v.toLocaleString() }
-const fmt = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
-const fmtM = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}) : '—'
-
-const inp = {width:'100%',background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ddd',fontSize:12,padding:'9px 10px',borderRadius:4,outline:'none',fontFamily:'inherit',boxSizing:'border-box'}
-const lbl = {fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}
+const money  = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+const fmt    = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
+const fmtM   = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}) : '—'
+const inp    = {width:'100%',background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ddd',fontSize:12,padding:'9px 10px',borderRadius:4,outline:'none',fontFamily:'inherit',boxSizing:'border-box'}
+const lbl    = {fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}
 
 export default function AdminProfit() {
-  const [orders, setOrders] = useState([])
+  const [orders,   setOrders]   = useState([])
   const [products, setProducts] = useState([])
   const [expenses, setExpenses] = useState([])
-  const [inventory, setInventory] = useState([])
-  const [partnerTx, setPartnerTx] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [month, setMonth] = useState(new Date().toISOString().slice(0,7))
-  const [view, setView] = useState('overview') // overview | expenses | inventory | partners
-  const [showAddExpense, setShowAddExpense] = useState(false)
-  const [showAddInventory, setShowAddInventory] = useState(false)
-  const [showAddPartner, setShowAddPartner] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [expForm, setExpForm] = useState({date:new Date().toISOString().split('T')[0],category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
-  const [invForm, setInvForm] = useState({date:new Date().toISOString().split('T')[0],product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
-  const [ptxForm, setPtxForm] = useState({date:new Date().toISOString().split('T')[0],partner:'Victor',type:'investment',amount:'',description:'',notes:''})
+  const [inventory,setInventory]= useState([])
+  const [partnerTx,setPartnerTx]= useState([])
+  const [acctPay,  setAcctPay]  = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [month,    setMonth]    = useState(new Date().toISOString().slice(0,7))
+  const [view,     setView]     = useState('overview')
+  const [saving,   setSaving]   = useState(false)
 
-  useEffect(() => {
+  // Forms
+  const [showAddExpense,  setShowAddExpense]  = useState(false)
+  const [showAddInv,      setShowAddInv]      = useState(false)
+  const [showAddPartner,  setShowAddPartner]  = useState(false)
+  const [showAddAcctPay,  setShowAddAcctPay]  = useState(false)
+  const [expForm,  setExpForm]  = useState({date:today(),category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
+  const [invForm,  setInvForm]  = useState({date:today(),product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
+  const [ptxForm,  setPtxForm]  = useState({date:today(),partner:'Victor',type:'investment',amount:'',description:'',notes:''})
+  const [apForm,   setApForm]   = useState({date:today(),partner:'Victor',type:'supplier_payment',amount:'',description:'',selectedOrders:[],notes:''})
+
+  function today(){ return new Date().toISOString().split('T')[0] }
+
+  useEffect(()=>{
     const sb = createClient()
-    sb.auth.getUser().then(async ({data}) => {
-      if (!data.user||!ADMIN_EMAILS.includes(data.user.email)) {window.location.href='/admin';return}
+    sb.auth.getUser().then(async({data})=>{
+      if(!data.user||!ADMIN_EMAILS.includes(data.user.email)){window.location.href='/admin';return}
       await loadAll(sb)
     })
   },[])
 
-  const loadAll = async (sb) => {
-    sb = sb||createClient()
+  const loadAll = async(sb)=>{
+    sb=sb||createClient()
     const [
-      {data:o},{data:p},{data:e},{data:iv},{data:pt}
+      {data:o},{data:p},{data:e},{data:iv},{data:pt},{data:ap}
     ] = await Promise.all([
       sb.from('orders').select('*,order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('products').select('*'),
       sb.from('expenses').select('*').order('date',{ascending:false}),
       sb.from('inventory_purchases').select('*').order('date',{ascending:false}),
       sb.from('partner_transactions').select('*').order('date',{ascending:false}),
+      sb.from('account_payments').select('*').order('date',{ascending:false}),
     ])
-    setOrders(o||[]); setProducts(p||[]); setExpenses(e||[]); setInventory(iv||[]); setPartnerTx(pt||[])
+    setOrders(o||[]); setProducts(p||[]); setExpenses(e||[])
+    setInventory(iv||[]); setPartnerTx(pt||[]); setAcctPay(ap||[])
     setLoading(false)
   }
 
-  const logout = async () => { await createClient().auth.signOut(); window.location.href='/admin' }
+  const logout = async()=>{ await createClient().auth.signOut(); window.location.href='/admin' }
 
-  // ── CALCULATIONS ──────────────────────────────────────────
-  const inMonth = (dateStr) => dateStr && dateStr.startsWith(month)
-  const inMonthTS = (ts) => ts && new Date(ts).toISOString().slice(0,7) === month
+  // ── HELPERS ──────────────────────────────────────────────
+  const inMonth   = (d)  => d && d.startsWith(month)
+  const inMonthTS = (ts) => ts && new Date(ts).toISOString().slice(0,7)===month
 
-  // Revenue from confirmed/dispatched/completed orders this month
-  const monthOrders = orders.filter(o => inMonthTS(o.submitted_at) && ['confirmed','dispatched','completed'].includes(o.status))
-  const revenue = monthOrders.reduce((s,o)=>s+(o.total||0),0)
-  const collected = monthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
+  const confirmedOrders = orders.filter(o=>['confirmed','dispatched','completed'].includes(o.status))
+
+  // ── MONTH P&L ────────────────────────────────────────────
+  const monthOrders = confirmedOrders.filter(o=>inMonthTS(o.submitted_at))
+  const revenue     = monthOrders.reduce((s,o)=>s+(o.total||0),0)
+  const collected   = monthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
   const outstanding = monthOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0)
+  const cogs        = monthOrders.reduce((s,o)=>s+(o.order_items||[]).reduce((ss,item)=>{
+    const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+    return ss+((prod?.cost_price||0)*item.quantity)
+  },0),0)
+  const totalExpenses  = expenses.filter(e=>inMonth(e.date)).reduce((s,e)=>s+(e.amount||0),0)
+  const grossProfit    = revenue - cogs
+  const netProfit      = grossProfit - totalExpenses
+  const profitPerPart  = netProfit / 2
 
-  // COGS from order items × product cost
-  const cogs = monthOrders.reduce((s,o) => {
-    return s + (o.order_items||[]).reduce((ss,item) => {
-      const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
-      return ss + ((prod?.cost_price||0)*item.quantity)
-    },0)
-  },0)
+  // ── ACCOUNT BALANCES ─────────────────────────────────────
+  // For each partner account:
+  //   IN  = orders where payment_account = partner (amount_paid)
+  //   OUT = account_payments where partner = partner (supplier_payment)
+  //   PROFIT TRANSFERRED = account_payments type profit_transfer
+  const getAccountData = (accKey) => {
+    const partnerLabel = ACCOUNTS.find(a=>a.key===accKey)?.label || accKey
 
-  // Monthly expenses
-  const monthExpenses = expenses.filter(e=>inMonth(e.date))
-  const totalExpenses = monthExpenses.reduce((s,e)=>s+(e.amount||0),0)
+    // All collected into this account (all time)
+    const inOrders = confirmedOrders.filter(o=>(o.payment_account||'company')===accKey)
+    const totalIn  = inOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
 
-  // Monthly inventory purchases
-  const monthInventory = inventory.filter(i=>inMonth(i.date))
-  const totalInventory = monthInventory.reduce((s,i)=>s+(i.total_cost||0),0)
+    // Unpaid orders assigned to this account
+    const unpaidOrders = inOrders.filter(o=>(parseFloat(o.amount_paid)||0)<(o.total||0))
 
-  // Gross profit = revenue - cogs
-  const grossProfit = revenue - cogs
+    // Payments OUT from this account
+    const payments     = acctPay.filter(p=>p.partner===partnerLabel)
+    const supplierPaid = payments.filter(p=>p.type==='supplier_payment').reduce((s,p)=>s+(p.amount||0),0)
+    const profitXfer   = payments.filter(p=>p.type==='profit_transfer').reduce((s,p)=>s+(p.amount||0),0)
+    const otherOut     = payments.filter(p=>p.type==='other').reduce((s,p)=>s+(p.amount||0),0)
+    const totalOut     = supplierPaid + profitXfer + otherOut
 
-  // Net profit = gross - expenses (NOT including inventory purchases — those are assets)
-  const netProfit = grossProfit - totalExpenses
+    // Current balance in account
+    const balance      = totalIn - totalOut
 
-  // Profit per partner (50/50)
-  const profitPerPartner = netProfit / 2
+    // Of that balance: how much is for pending orders (orders assigned but not yet covered by supplier payment)
+    // We track this via linked order_ids on account_payments
+    const coveredOrderIds = payments.filter(p=>p.type==='supplier_payment').flatMap(p=>p.order_ids||[])
+    const pendingOrdersCost = inOrders
+      .filter(o=>!coveredOrderIds.includes(o.id))
+      .reduce((s,o)=>{
+        const orderCost=(o.order_items||[]).reduce((ss,item)=>{
+          const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+          return ss+((prod?.cost_price||0)*item.quantity)
+        },0)
+        return s+orderCost
+      },0)
 
-  // All-time totals
-  const allRevenue = orders.filter(o=>['confirmed','dispatched','completed'].includes(o.status)).reduce((s,o)=>s+(o.total||0),0)
-  const allExpenses = expenses.reduce((s,e)=>s+(e.amount||0),0)
-  const allInventory = inventory.reduce((s,i)=>s+(i.total_cost||0),0)
-
-  // Partner investments this month
-  const partnerInvThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='investment').reduce((s,t)=>s+(t.amount||0),0)
-  const partnerWithThisMonth = (partner) => partnerTx.filter(t=>inMonth(t.date)&&t.partner===partner&&t.type==='withdrawal').reduce((s,t)=>s+(t.amount||0),0)
-
-  // Account breakdown
-  const ACCOUNTS = [
-    { key:'company',      label:'Company',      color:'#60a5fa', icon:'🏢' },
-    { key:'victor',       label:'Victor',       color:'#4ade80', icon:'👤' },
-    { key:'leopoldo',     label:'Leopoldo',     color:'#a78bfa', icon:'👤' },
-    { key:'world_family', label:'World Family', color:'#fbbf24', icon:'🏭' },
-  ]
-  const accountBreakdown = ACCOUNTS.map(acc => {
-    // Money IN — payments received into this account
-    const accOrders = orders.filter(o =>
-      ['confirmed','dispatched','completed'].includes(o.status) &&
-      (o.payment_account||'company') === acc.key
-    )
-    const accMonthOrders = accOrders.filter(o => inMonthTS(o.submitted_at))
-    const totalCollected   = accOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
-    const monthCollected   = accMonthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
-    const totalOutstanding = accOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0)
-
-    // Map account key to paid_by values used in expenses/inventory
-    const paidByKeys = acc.key === 'company' ? ['company','Company']
-      : acc.key === 'victor' ? ['Victor','victor']
-      : acc.key === 'leopoldo' ? ['Leopoldo','leopoldo']
-      : acc.key === 'world_family' ? ['World Family','world_family','WorldFamily']
-      : [acc.label]
-
-    // Money OUT — expenses paid from this account
-    const accExpenses   = expenses.filter(e => paidByKeys.includes(e.paid_by))
-    const accInv        = inventory.filter(i => paidByKeys.includes(i.paid_by))
-    const accPartnerTxOut = partnerTx.filter(t =>
-      ['withdrawal','distribution'].includes(t.type) &&
-      paidByKeys.some(k => k.toLowerCase() === t.partner?.toLowerCase())
-    )
-    const totalOut      = accExpenses.reduce((s,e)=>s+(e.amount||0),0)
-                        + accInv.reduce((s,i)=>s+(i.total_cost||0),0)
-    const monthOut      = accExpenses.filter(e=>inMonth(e.date)).reduce((s,e)=>s+(e.amount||0),0)
-                        + accInv.filter(i=>inMonth(i.date)).reduce((s,i)=>s+(i.total_cost||0),0)
-
-    // Balance = what's actually in the account
-    const balance       = totalCollected - totalOut
-    const monthBalance  = monthCollected - monthOut
+    // What's actually free profit vs committed to orders
+    const committedToOrders = Math.min(pendingOrdersCost, balance)
+    const freeProfitBalance = Math.max(0, balance - committedToOrders)
 
     return {
-      ...acc,
-      monthRevenue:    accMonthOrders.reduce((s,o)=>s+(o.total||0),0),
-      monthCollected,
-      monthOrders:     accMonthOrders.length,
-      totalRevenue:    accOrders.reduce((s,o)=>s+(o.total||0),0),
-      totalCollected,
-      totalOutstanding,
-      totalOut,
-      monthOut,
-      balance,
-      monthBalance,
-      expenseItems:    accExpenses.slice(0,3),
-      invItems:        accInv.slice(0,3),
-      withdrawalItems: accWithdrawals.slice(0,5),
+      totalIn, totalOut, supplierPaid, profitXfer, otherOut,
+      balance, committedToOrders, freeProfitBalance,
+      inOrders, unpaidOrders, payments,
+      coveredOrderIds, pendingOrdersCost,
     }
-  }).filter(a => a.totalCollected > 0 || a.totalRevenue > 0)
+  }
 
   // Expense by category
-  const byCat = EXPENSE_CATS.map(cat => ({
-    cat, total: monthExpenses.filter(e=>e.category===cat).reduce((s,e)=>s+(e.amount||0),0)
+  const monthExpenses = expenses.filter(e=>inMonth(e.date))
+  const byCat = EXPENSE_CATS.map(cat=>({
+    cat, total:monthExpenses.filter(e=>e.category===cat).reduce((s,e)=>s+(e.amount||0),0)
   })).filter(x=>x.total>0).sort((a,b)=>b.total-a.total)
-
   const maxCat = byCat[0]?.total||1
 
   // Save functions
-  const saveExpense = async () => {
-    if (!expForm.description||!expForm.amount){alert('Fill required fields');return}
+  const saveExpense = async()=>{
+    if(!expForm.description||!expForm.amount){alert('Fill required');return}
     setSaving(true)
     await createClient().from('expenses').insert([{...expForm,amount:parseFloat(expForm.amount)}])
     await loadAll(); setShowAddExpense(false); setSaving(false)
-    setExpForm({date:new Date().toISOString().split('T')[0],category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
+    setExpForm({date:today(),category:'Rent/Storage',description:'',amount:'',paid_by:'company',notes:''})
   }
-
-  const saveInventory = async () => {
-    if (!invForm.product_name||!invForm.units||!invForm.unit_cost){alert('Fill required fields');return}
+  const saveInv = async()=>{
+    if(!invForm.product_name||!invForm.units||!invForm.unit_cost){alert('Fill required');return}
     setSaving(true)
-    const total_cost = parseFloat(invForm.unit_cost)*parseInt(invForm.units)
+    const total_cost=parseFloat(invForm.unit_cost)*parseInt(invForm.units)
     await createClient().from('inventory_purchases').insert([{...invForm,units:parseInt(invForm.units),unit_cost:parseFloat(invForm.unit_cost),total_cost}])
-    await loadAll(); setShowAddInventory(false); setSaving(false)
-    setInvForm({date:new Date().toISOString().split('T')[0],product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
+    await loadAll(); setShowAddInv(false); setSaving(false)
+    setInvForm({date:today(),product_name:'',supplier:'',units:'',unit_cost:'',paid_by:'company',notes:''})
   }
-
-  const savePartnerTx = async () => {
-    if (!ptxForm.amount||!ptxForm.description){alert('Fill required fields');return}
+  const savePtx = async()=>{
+    if(!ptxForm.amount||!ptxForm.description){alert('Fill required');return}
     setSaving(true)
     await createClient().from('partner_transactions').insert([{...ptxForm,amount:parseFloat(ptxForm.amount)}])
     await loadAll(); setShowAddPartner(false); setSaving(false)
-    setPtxForm({date:new Date().toISOString().split('T')[0],partner:'Victor',type:'investment',amount:'',description:'',notes:''})
+    setPtxForm({date:today(),partner:'Victor',type:'investment',amount:'',description:'',notes:''})
+  }
+  const saveAcctPay = async()=>{
+    if(!apForm.amount||!apForm.description){alert('Fill required');return}
+    setSaving(true)
+    await createClient().from('account_payments').insert([{
+      date:apForm.date, partner:apForm.partner, type:apForm.type,
+      amount:parseFloat(apForm.amount), description:apForm.description,
+      order_ids:apForm.selectedOrders, notes:apForm.notes
+    }])
+    await loadAll(); setShowAddAcctPay(false); setSaving(false)
+    setApForm({date:today(),partner:'Victor',type:'supplier_payment',amount:'',description:'',selectedOrders:[],notes:''})
   }
 
-  const deleteExp = async (id) => { await createClient().from('expenses').delete().eq('id',id); await loadAll() }
-  const deleteInv = async (id) => { await createClient().from('inventory_purchases').delete().eq('id',id); await loadAll() }
-  const deletePtx = async (id) => { await createClient().from('partner_transactions').delete().eq('id',id); await loadAll() }
+  const del = (table,id) => createClient().from(table).delete().eq('id',id).then(()=>loadAll())
 
-  if (loading) return <div style={{minHeight:'100vh',background:'#080808',display:'flex',alignItems:'center',justifyContent:'center',color:'#555'}}>Loading...</div>
+  if(loading) return <div style={{minHeight:'100vh',background:'#080808',display:'flex',alignItems:'center',justifyContent:'center',color:'#555'}}>Loading...</div>
 
-  const isPos = netProfit >= 0
+  const isPos = netProfit>=0
+
+  // Orders for account payment form
+  const apPartnerKey = ACCOUNTS.find(a=>a.label===apForm.partner)?.key||'company'
+  const selectableOrders = confirmedOrders.filter(o=>(o.payment_account||'company')===apPartnerKey)
 
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh'}}>
@@ -224,31 +215,30 @@ export default function AdminProfit() {
 
       <div style={{padding:'2rem'}}>
 
-        {/* ── HERO PROFIT CARD ─────────────────────────────── */}
-        <div style={{background:isPos?'linear-gradient(135deg,#0a1f12,#0d2b1a)':'linear-gradient(135deg,#1f0a0a,#2b0d0d)',border:`1px solid ${isPos?'rgba(42,125,79,0.35)':'rgba(231,76,60,0.35)'}`,borderRadius:16,padding:'2rem',marginBottom:'1.5rem',position:'relative',overflow:'hidden',animation:'fadeIn 0.4s ease'}}>
-          <div style={{position:'absolute',top:-30,right:-30,fontSize:160,opacity:0.04,lineHeight:1}}>{isPos?'↑':'↓'}</div>
+        {/* HERO */}
+        <div style={{background:isPos?'linear-gradient(135deg,#0a1f12,#0d2b1a)':'linear-gradient(135deg,#1f0a0a,#2b0d0d)',border:`1px solid ${isPos?'rgba(42,125,79,0.35)':'rgba(231,76,60,0.35)'}`,borderRadius:16,padding:'2rem',marginBottom:'1.5rem',position:'relative',overflow:'hidden'}}>
+          <div style={{position:'absolute',top:-30,right:-30,fontSize:160,opacity:0.04}}>{isPos?'↑':'↓'}</div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
             <div>
               <div style={{fontSize:11,color:isPos?'rgba(74,222,128,0.7)':'rgba(248,113,113,0.7)',textTransform:'uppercase',letterSpacing:'0.2em',fontWeight:700,marginBottom:6}}>{fmtM(month+'-01')} · Net profit</div>
               <div style={{fontSize:56,fontWeight:900,color:isPos?'#4ade80':'#f87171',letterSpacing:'-0.02em',lineHeight:1}}>
                 {isPos?'+':''}{netProfit>=0?money(netProfit):'-'+money(Math.abs(netProfit))}
               </div>
-              <div style={{fontSize:13,color:'rgba(255,255,255,0.35)',marginTop:8}}>
-                {money(grossProfit)} gross · {money(totalExpenses)} expenses
-              </div>
+              <div style={{fontSize:13,color:'rgba(255,255,255,0.35)',marginTop:8}}>{money(grossProfit)} gross · {money(totalExpenses)} expenses</div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,minWidth:280}}>
               {PARTNERS.map(partner=>{
-                const pProfit = profitPerPartner
-                const inv = partnerInvThisMonth(partner)
-                const wit = partnerWithThisMonth(partner)
+                const accKey = partner.toLowerCase()
+                const ad = getAccountData(accKey)
                 return (
                   <div key={partner} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'1rem'}}>
                     <div style={{fontSize:10,color:'#888',marginBottom:4,fontWeight:700}}>👤 {partner}</div>
-                    <div style={{fontSize:22,fontWeight:800,color:pProfit>=0?'#4ade80':'#f87171'}}>{pProfit>=0?'+':''}{money(pProfit)}</div>
-                    <div style={{fontSize:10,color:'#555',marginTop:4}}>50% share</div>
-                    {inv>0&&<div style={{fontSize:9,color:'#60a5fa',marginTop:4}}>⬆ Invested {money(inv)}</div>}
-                    {wit>0&&<div style={{fontSize:9,color:'#fbbf24',marginTop:2}}>⬇ Withdrew {money(wit)}</div>}
+                    <div style={{fontSize:11,color:'#aaa',marginBottom:2}}>Month profit share</div>
+                    <div style={{fontSize:20,fontWeight:800,color:profitPerPart>=0?'#4ade80':'#f87171'}}>{money(profitPerPart)}</div>
+                    <div style={{marginTop:8,paddingTop:8,borderTop:'0.5px solid rgba(255,255,255,0.06)'}}>
+                      <div style={{fontSize:9,color:'#555',marginBottom:2}}>Balance in account</div>
+                      <div style={{fontSize:16,fontWeight:700,color:ad.balance>=0?'#60a5fa':'#f87171'}}>{money(ad.balance)}</div>
+                    </div>
                   </div>
                 )
               })}
@@ -256,17 +246,17 @@ export default function AdminProfit() {
           </div>
         </div>
 
-        {/* ── KPI GRID ──────────────────────────────────────── */}
+        {/* KPIs */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:'1.5rem'}}>
           {[
             {label:'Revenue',value:money(revenue),sub:`${monthOrders.length} orders`,color:'#60a5fa',icon:'💰'},
             {label:'Collected',value:money(collected),sub:`${money(outstanding)} outstanding`,color:'#34d399',icon:'✓'},
-            {label:'Cost of goods',value:money(cogs),sub:'from confirmed orders',color:'#f87171',icon:'📦'},
+            {label:'Cost of goods',value:money(cogs),sub:'from orders',color:'#f87171',icon:'📦'},
             {label:'Gross profit',value:money(grossProfit),sub:`${revenue>0?((grossProfit/revenue)*100).toFixed(1):0}% margin`,color:grossProfit>=0?'#a78bfa':'#f87171',icon:'📊'},
-            {label:'Operating expenses',value:money(totalExpenses),sub:`${monthExpenses.length} items`,color:'#fbbf24',icon:'🧾'},
+            {label:'Expenses',value:money(totalExpenses),sub:`${monthExpenses.length} items`,color:'#fbbf24',icon:'🧾'},
           ].map(k=>(
             <div key={k.label} style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'1.25rem'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
                 <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600}}>{k.label}</div>
                 <span style={{fontSize:16,opacity:0.4}}>{k.icon}</span>
               </div>
@@ -276,31 +266,29 @@ export default function AdminProfit() {
           ))}
         </div>
 
-        {/* ── SUB VIEWS TABS ─────────────────────────────────── */}
-        <div style={{display:'flex',gap:8,marginBottom:'1.5rem',borderBottom:'0.5px solid rgba(255,255,255,0.06)',paddingBottom:0}}>
-          {[['overview','📊 Overview'],['expenses','🧾 Expenses'],['inventory','📦 Inventory'],['partners','🤝 Partners']].map(([k,l])=>(
-            <button key={k} onClick={()=>setView(k)} style={{padding:'10px 18px',fontSize:12,fontWeight:600,color:view===k?'#2d7dd2':'#555',background:'transparent',border:'none',borderBottom:`2px solid ${view===k?'#2d7dd2':'transparent'}`,cursor:'pointer',fontFamily:'inherit'}}>
-              {l}
-            </button>
+        {/* TABS */}
+        <div style={{display:'flex',gap:8,marginBottom:'1.5rem',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+          {[['overview','📊 Overview'],['accounts','💳 Accounts'],['expenses','🧾 Expenses'],['inventory','📦 Inventory'],['partners','🤝 Partners']].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)} style={{padding:'10px 18px',fontSize:12,fontWeight:600,color:view===k?'#2d7dd2':'#555',background:'transparent',border:'none',borderBottom:`2px solid ${view===k?'#2d7dd2':'transparent'}`,cursor:'pointer',fontFamily:'inherit'}}>{l}</button>
           ))}
         </div>
 
-        {/* ══ OVERVIEW ══════════════════════════════════════════ */}
+        {/* ══ OVERVIEW ════════════════════════════════════════ */}
         {view==='overview' && (
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem',animation:'fadeIn 0.3s ease'}}>
 
-            {/* P&L BREAKDOWN */}
+            {/* P&L */}
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>P&L Breakdown — {fmtM(month+'-01')}</div>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>P&L — {fmtM(month+'-01')}</div>
               {[
-                {label:'Gross revenue',value:revenue,color:'#60a5fa',positive:true},
-                {label:'Cost of goods sold',value:-cogs,color:'#f87171',positive:false},
-                {label:'— Gross profit',value:grossProfit,color:grossProfit>=0?'#a78bfa':'#f87171',border:true},
-                {label:'Operating expenses',value:-totalExpenses,color:'#fbbf24',positive:false},
-                {label:'= Net profit',value:netProfit,color:netProfit>=0?'#4ade80':'#f87171',border:true,bold:true},
-                {label:'Per partner (÷2)',value:profitPerPartner,color:profitPerPartner>=0?'#34d399':'#f87171',sub:true},
+                {label:'Gross revenue',      value:revenue,      color:'#60a5fa'},
+                {label:'Cost of goods sold', value:-cogs,        color:'#f87171'},
+                {label:'— Gross profit',     value:grossProfit,  color:grossProfit>=0?'#a78bfa':'#f87171', border:true},
+                {label:'Operating expenses', value:-totalExpenses,color:'#fbbf24'},
+                {label:'= Net profit',       value:netProfit,    color:netProfit>=0?'#4ade80':'#f87171', border:true, bold:true},
+                {label:'Per partner (÷2)',   value:profitPerPart,color:profitPerPart>=0?'#34d399':'#f87171', sub:true},
               ].map((row,i)=>(
-                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:`${row.bold?'12px':'8px'} 0`,borderTop:row.border?`1px solid rgba(255,255,255,0.08)`:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',marginTop:row.border?4:0}}>
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:`${row.bold?'12px':'8px'} 0`,borderTop:row.border?'1px solid rgba(255,255,255,0.08)':i>0?'0.5px solid rgba(255,255,255,0.04)':'none',marginTop:row.border?4:0}}>
                   <span style={{fontSize:row.bold?13:11,color:row.sub?'#555':'#888',paddingLeft:row.sub?12:0}}>{row.label}</span>
                   <span style={{fontSize:row.bold?18:13,fontWeight:row.bold?800:600,color:row.color}}>
                     {row.value>=0?'+':''}{money(row.value)}
@@ -309,88 +297,14 @@ export default function AdminProfit() {
               ))}
             </div>
 
-            {/* ACCOUNT BREAKDOWN */}
-            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>💳 Revenue by account</div>
-              {accountBreakdown.length===0
-                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'1.5rem'}}>No account data yet — assign accounts on orders</div>
-                : accountBreakdown.map(acc=>(
-                  <div key={acc.key} style={{marginBottom:14,padding:'14px',background:'rgba(255,255,255,0.02)',border:`1px solid ${acc.color}30`,borderLeft:`4px solid ${acc.color}`,borderRadius:8}}>
-                    {/* Header */}
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:18}}>{acc.icon}</span>
-                        <div>
-                          <div style={{fontSize:14,fontWeight:800,color:'#fff'}}>{acc.label}</div>
-                          <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em'}}>Account balance</div>
-                        </div>
-                      </div>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:22,fontWeight:900,color:acc.balance>=0?'#4ade80':'#f87171'}}>{money(acc.balance)}</div>
-                        <div style={{fontSize:9,color:'#555'}}>all-time net</div>
-                      </div>
-                    </div>
-                    {/* IN / OUT / BALANCE grid */}
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:8}}>
-                      {[
-                        ['💰 Collected in',money(acc.totalCollected),'#34d399'],
-                        ['💸 Paid out',money(acc.totalOut),'#f87171'],
-                        ['🏦 Balance',money(acc.balance),acc.balance>=0?'#4ade80':'#f87171'],
-                      ].map(([l,v,c])=>(
-                        <div key={l} style={{padding:'8px 10px',background:'rgba(255,255,255,0.04)',border:`0.5px solid ${c}20`,borderRadius:6}}>
-                          <div style={{fontSize:9,color:'#555',marginBottom:3}}>{l}</div>
-                          <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* This month */}
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:acc.totalOutstanding>0||acc.expenseItems.length>0||acc.invItems.length>0?8:0}}>
-                      {[
-                        ['This month in',money(acc.monthCollected),'#60a5fa'],
-                        ['This month out',money(acc.monthOut),'#fbbf24'],
-                        ['Month net',money(acc.monthBalance),acc.monthBalance>=0?'#4ade80':'#f87171'],
-                      ].map(([l,v,c])=>(
-                        <div key={l} style={{padding:'6px 8px',background:'rgba(255,255,255,0.02)',borderRadius:4}}>
-                          <div style={{fontSize:8,color:'#555',marginBottom:2}}>{l}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:c}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Outstanding */}
-                    {acc.totalOutstanding>0 && (
-                      <div style={{padding:'6px 10px',background:'rgba(248,113,113,0.06)',border:'0.5px solid rgba(248,113,113,0.2)',borderRadius:4,fontSize:11,color:'#f87171',marginBottom:6}}>
-                        ⚠ {money(acc.totalOutstanding)} still owed to this account
-                      </div>
-                    )}
-                    {/* Withdrawals breakdown */}
-                    {acc.withdrawalItems?.length>0 && (
-                      <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:8,marginTop:4}}>
-                        <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Payments made from this account</div>
-                        {acc.withdrawalItems.map(t=>(
-                          <div key={t.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'4px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
-                            <div>
-                              <span style={{color:'#ccc'}}>{t.description}</span>
-                              <span style={{color:'#444',marginLeft:6}}>({t.date})</span>
-                            </div>
-                            <span style={{color:'#f87171',fontWeight:600,flexShrink:0,marginLeft:8}}>-{money(t.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{marginTop:6,fontSize:9,color:'#444'}}>{acc.monthOrders} orders this month · {acc.totalRevenue>0?acc.label+' total invoiced: '+money(acc.totalRevenue):''}</div>
-                  </div>
-                ))
-              }
-            </div>
-
-            {/* EXPENSE BY CATEGORY */}
+            {/* EXPENSE CATEGORIES */}
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
               <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Expenses by category</div>
               {byCat.length===0
                 ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No expenses this month</div>
                 : byCat.map(({cat,total},i)=>{
-                  const colors=['#f87171','#fbbf24','#a78bfa','#60a5fa','#34d399','#f97316','#e879f9','#94a3b8']
-                  const c = colors[i%colors.length]
+                  const cols=['#f87171','#fbbf24','#a78bfa','#60a5fa','#34d399','#f97316','#e879f9','#94a3b8']
+                  const c=cols[i%cols.length]
                   return (
                     <div key={cat} style={{marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
@@ -406,128 +320,54 @@ export default function AdminProfit() {
               }
             </div>
 
-            {/* TOP SELLING PRODUCTS THIS MONTH */}
-            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Top products this month</div>
-              {(() => {
-                const pMap = {}
-                monthOrders.forEach(o=>(o.order_items||[]).forEach(item=>{
-                  const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
-                  const key = item.product_name
-                  if (!pMap[key]) pMap[key] = {name:key,units:0,rev:0,cost:0}
-                  pMap[key].units += item.quantity
-                  pMap[key].rev   += item.unit_price*item.quantity
-                  pMap[key].cost  += (prod?.cost_price||0)*item.quantity
-                }))
-                const top = Object.values(pMap).sort((a,b)=>b.rev-a.rev).slice(0,6)
-                const maxRev = top[0]?.rev||1
-                if (top.length===0) return <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No sales this month</div>
-                return top.map((p,i)=>{
-                  const colors=['#fbbf24','#60a5fa','#a78bfa','#34d399','#f87171','#f97316']
-                  const c=colors[i%colors.length]
-                  const margin = p.rev>0?((p.rev-p.cost)/p.rev*100).toFixed(0):0
-                  return (
-                    <div key={p.name} style={{marginBottom:12}}>
-                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                        <span style={{fontSize:12,color:'#ccc',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:8}}>{p.name}</span>
-                        <div style={{textAlign:'right',flexShrink:0}}>
-                          <span style={{fontSize:12,fontWeight:700,color:c}}>{money(p.rev)}</span>
-                          <span style={{fontSize:9,color:'#555',marginLeft:6}}>{margin}% margin</span>
-                        </div>
-                      </div>
-                      <div style={{height:4,background:'rgba(255,255,255,0.05)',borderRadius:3,overflow:'hidden'}}>
-                        <div style={{height:'100%',width:`${(p.rev/maxRev)*100}%`,background:c,borderRadius:3}}/>
-                      </div>
-                      <div style={{fontSize:9,color:'#555',marginTop:2}}>{p.units} units · cost {money(p.cost)}</div>
-                    </div>
-                  )
-                })
-              })()}
-            </div>
-
             {/* PROFIT PER ORDER */}
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem',gridColumn:'span 2'}}>
               <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Profit per order — {fmtM(month+'-01')}</div>
               {monthOrders.length===0
                 ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No confirmed orders this month</div>
-                : (
-                  <>
-                    <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'8px 12px',background:'#0d0d0d',borderRadius:6,marginBottom:6}}>
-                      {['Order / Client','Revenue','Cost','Gross profit','Margin','Status'].map((h,i)=>(
-                        <div key={h} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>0?'right':'left'}}>{h}</div>
-                      ))}
-                    </div>
-                    {monthOrders.map((order,i)=>{
-                      const orderCogs = (order.order_items||[]).reduce((s,item)=>{
-                        const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
-                        return s + ((prod?.cost_price||0)*item.quantity)
-                      },0)
-                      const orderRevenue = order.total||0
-                      const orderProfit  = orderRevenue - orderCogs
-                      const orderMargin  = orderRevenue>0 ? ((orderProfit/orderRevenue)*100).toFixed(1) : 0
-                      const isProfitable = orderProfit >= 0
-                      const clientName = (order.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
-                      return (
-                        <div key={order.id} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'10px 12px',borderTop:'0.5px solid rgba(255,255,255,0.05)',alignItems:'center',background:i%2===1?'rgba(255,255,255,0.01)':'transparent'}}>
-                          <div>
-                            <div style={{fontSize:12,fontWeight:600,color:'#ccc'}}>#{order.order_number}</div>
-                            <div style={{fontSize:10,color:'#555'}}>{clientName}</div>
-                          </div>
-                          <div style={{fontSize:12,fontWeight:600,color:'#60a5fa',textAlign:'right'}}>{money(orderRevenue)}</div>
-                          <div style={{fontSize:12,color:'#f87171',textAlign:'right'}}>{orderCogs>0?money(orderCogs):<span style={{color:'#444'}}>No cost data</span>}</div>
-                          <div style={{fontSize:13,fontWeight:700,color:isProfitable?'#4ade80':'#f87171',textAlign:'right'}}>
-                            {isProfitable?'+':''}{money(orderProfit)}
-                          </div>
-                          <div style={{textAlign:'right'}}>
-                            <span style={{fontSize:11,fontWeight:700,color:parseFloat(orderMargin)>30?'#4ade80':parseFloat(orderMargin)>15?'#fbbf24':'#f87171'}}>
-                              {orderCogs>0?orderMargin+'%':'—'}
-                            </span>
-                          </div>
-                          <div style={{textAlign:'right'}}>
-                            <span style={{fontSize:9,padding:'2px 8px',borderRadius:8,background:'rgba(83,74,183,0.15)',color:'#a78bfa',fontWeight:600}}>
-                              {order.status}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {/* Summary row */}
-                    <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'12px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)',borderRadius:'0 0 8px 8px',marginTop:4}}>
-                      <div style={{fontSize:12,fontWeight:700,color:'#888'}}>{monthOrders.length} orders total</div>
-                      <div style={{fontSize:13,fontWeight:800,color:'#60a5fa',textAlign:'right'}}>{money(revenue)}</div>
-                      <div style={{fontSize:13,fontWeight:800,color:'#f87171',textAlign:'right'}}>{money(cogs)}</div>
-                      <div style={{fontSize:14,fontWeight:900,color:grossProfit>=0?'#4ade80':'#f87171',textAlign:'right'}}>{grossProfit>=0?'+':''}{money(grossProfit)}</div>
-                      <div style={{fontSize:12,fontWeight:700,color:revenue>0&&((grossProfit/revenue)*100)>20?'#4ade80':'#fbbf24',textAlign:'right'}}>
-                        {revenue>0?((grossProfit/revenue)*100).toFixed(1)+'%':'—'}
-                      </div>
-                      <div/>
-                    </div>
-                  </>
-                )
-              }
-            </div>
-
-            {/* RECENT INVENTORY PURCHASES */}
-            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
-                <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>Inventory purchased</div>
-                <button onClick={()=>{setView('inventory');setShowAddInventory(true)}} style={{fontSize:11,color:'#2d7dd2',background:'rgba(45,125,210,0.1)',border:'0.5px solid rgba(45,125,210,0.25)',padding:'5px 10px',borderRadius:4,cursor:'pointer',fontWeight:600}}>+ Add</button>
-              </div>
-              {monthInventory.length===0
-                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No inventory purchases this month</div>
                 : <>
-                  {monthInventory.slice(0,5).map(iv=>(
-                    <div key={iv.id} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderTop:'0.5px solid rgba(255,255,255,0.05)'}}>
-                      <div>
-                        <div style={{fontSize:12,color:'#ccc',fontWeight:600}}>{iv.product_name}</div>
-                        <div style={{fontSize:10,color:'#555'}}>{fmt(iv.date)} · {iv.units} units × {money(iv.unit_cost)}{iv.supplier?' · '+iv.supplier:''}</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'8px 12px',background:'#0d0d0d',borderRadius:6,marginBottom:6}}>
+                    {['Order / Client','Revenue','Cost','Gross profit','Margin','Account'].map((h,i)=>(
+                      <div key={h} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>0?'right':'left'}}>{h}</div>
+                    ))}
+                  </div>
+                  {monthOrders.map((order,i)=>{
+                    const orderCogs=(order.order_items||[]).reduce((s,item)=>{
+                      const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                      return s+((prod?.cost_price||0)*item.quantity)
+                    },0)
+                    const orderProfit = order.total - orderCogs
+                    const orderMargin = order.total>0?((orderProfit/order.total)*100).toFixed(1):0
+                    const clientName  = (order.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim()||'Client'
+                    const accLabel    = ACCOUNTS.find(a=>a.key===(order.payment_account||'company'))?.label||'Company'
+                    const accColor    = ACCOUNTS.find(a=>a.key===(order.payment_account||'company'))?.color||'#60a5fa'
+                    return (
+                      <div key={order.id} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'10px 12px',borderTop:'0.5px solid rgba(255,255,255,0.05)',alignItems:'center',background:i%2===1?'rgba(255,255,255,0.01)':'transparent'}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:600,color:'#ccc'}}>#{order.order_number}</div>
+                          <div style={{fontSize:10,color:'#555'}}>{clientName}</div>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:600,color:'#60a5fa',textAlign:'right'}}>{money(order.total)}</div>
+                        <div style={{fontSize:12,color:'#f87171',textAlign:'right'}}>{orderCogs>0?money(orderCogs):<span style={{color:'#444'}}>—</span>}</div>
+                        <div style={{fontSize:13,fontWeight:700,color:orderProfit>=0?'#4ade80':'#f87171',textAlign:'right'}}>{orderProfit>=0?'+':''}{money(orderProfit)}</div>
+                        <div style={{textAlign:'right'}}>
+                          <span style={{fontSize:11,fontWeight:700,color:parseFloat(orderMargin)>30?'#4ade80':parseFloat(orderMargin)>15?'#fbbf24':'#f87171'}}>
+                            {orderCogs>0?orderMargin+'%':'—'}
+                          </span>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <span style={{fontSize:9,padding:'2px 8px',borderRadius:8,background:accColor+'20',color:accColor,fontWeight:600}}>{accLabel}</span>
+                        </div>
                       </div>
-                      <div style={{fontSize:13,fontWeight:700,color:'#60a5fa',flexShrink:0}}>{money(iv.total_cost)}</div>
-                    </div>
-                  ))}
-                  <div style={{marginTop:10,padding:'8px 10px',background:'rgba(96,165,250,0.06)',border:'0.5px solid rgba(96,165,250,0.15)',borderRadius:4,display:'flex',justifyContent:'space-between'}}>
-                    <span style={{fontSize:11,color:'#888'}}>Total invested in inventory</span>
-                    <span style={{fontSize:14,fontWeight:700,color:'#60a5fa'}}>{money(totalInventory)}</span>
+                    )
+                  })}
+                  <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'12px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)',borderRadius:'0 0 8px 8px',marginTop:4}}>
+                    <div style={{fontSize:12,fontWeight:700,color:'#888'}}>{monthOrders.length} orders</div>
+                    <div style={{fontSize:13,fontWeight:800,color:'#60a5fa',textAlign:'right'}}>{money(revenue)}</div>
+                    <div style={{fontSize:13,fontWeight:800,color:'#f87171',textAlign:'right'}}>{money(cogs)}</div>
+                    <div style={{fontSize:14,fontWeight:900,color:grossProfit>=0?'#4ade80':'#f87171',textAlign:'right'}}>{grossProfit>=0?'+':''}{money(grossProfit)}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:revenue>0&&((grossProfit/revenue)*100)>20?'#4ade80':'#fbbf24',textAlign:'right'}}>{revenue>0?((grossProfit/revenue)*100).toFixed(1)+'%':'—'}</div>
+                    <div/>
                   </div>
                 </>
               }
@@ -535,7 +375,197 @@ export default function AdminProfit() {
           </div>
         )}
 
-        {/* ══ EXPENSES ══════════════════════════════════════════ */}
+        {/* ══ ACCOUNTS ════════════════════════════════════════ */}
+        {view==='accounts' && (
+          <div style={{animation:'fadeIn 0.3s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Account balances</div>
+                <div style={{fontSize:12,color:'#555',marginTop:2}}>What each account actually has right now</div>
+              </div>
+              <button onClick={()=>setShowAddAcctPay(true)} style={{padding:'10px 18px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Record payment</button>
+            </div>
+
+            {/* ADD PAYMENT FORM */}
+            {showAddAcctPay && (
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>Record account payment</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:12}}>
+                  <div>
+                    <label style={lbl}>Date</label>
+                    <input type="date" value={apForm.date} onChange={e=>setApForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/>
+                  </div>
+                  <div>
+                    <label style={lbl}>Account (who paid)</label>
+                    <select value={apForm.partner} onChange={e=>setApForm(f=>({...f,partner:e.target.value,selectedOrders:[]}))} style={inp}>
+                      {ACCOUNTS.map(a=><option key={a.key} value={a.label}>{a.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Payment type</label>
+                    <select value={apForm.type} onChange={e=>setApForm(f=>({...f,type:e.target.value}))} style={inp}>
+                      <option value="supplier_payment">Supplier payment (paid for orders)</option>
+                      <option value="profit_transfer">Profit transfer (sent to company)</option>
+                      <option value="other">Other outgoing payment</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Amount ($)</label>
+                    <input type="number" value={apForm.amount} onChange={e=>setApForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/>
+                  </div>
+                  <div style={{gridColumn:'span 2'}}>
+                    <label style={lbl}>Description</label>
+                    <input value={apForm.description} onChange={e=>setApForm(f=>({...f,description:e.target.value}))} placeholder="e.g. Paid World Family for JBL order" style={inp}/>
+                  </div>
+                </div>
+
+                {/* Order selector for supplier payments */}
+                {apForm.type==='supplier_payment' && selectableOrders.length>0 && (
+                  <div style={{marginBottom:12}}>
+                    <label style={lbl}>Link to orders (select which orders this payment covers)</label>
+                    <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto',background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,padding:8}}>
+                      {selectableOrders.map(o=>{
+                        const clientName=(o.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim()||'Client'
+                        const isSelected=apForm.selectedOrders.includes(o.id)
+                        const orderCogs=(o.order_items||[]).reduce((s,item)=>{
+                          const prod=products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                          return s+((prod?.cost_price||0)*item.quantity)
+                        },0)
+                        return (
+                          <div key={o.id} onClick={()=>setApForm(f=>({...f,selectedOrders:isSelected?f.selectedOrders.filter(id=>id!==o.id):[...f.selectedOrders,o.id]}))}
+                            style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:isSelected?'rgba(83,74,183,0.15)':'rgba(255,255,255,0.02)',border:`0.5px solid ${isSelected?'rgba(83,74,183,0.4)':'rgba(255,255,255,0.06)'}`,borderRadius:4,cursor:'pointer'}}>
+                            <div>
+                              <span style={{fontSize:12,fontWeight:600,color:isSelected?'#a78bfa':'#ccc'}}>#{o.order_number}</span>
+                              <span style={{fontSize:10,color:'#555',marginLeft:8}}>{clientName}</span>
+                            </div>
+                            <div style={{textAlign:'right'}}>
+                              <div style={{fontSize:11,color:'#888'}}>{money(o.total)} total</div>
+                              {orderCogs>0&&<div style={{fontSize:10,color:'#f87171'}}>Cost: {money(orderCogs)}</div>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {apForm.selectedOrders.length>0&&(
+                      <div style={{marginTop:6,fontSize:11,color:'#a78bfa'}}>{apForm.selectedOrders.length} order(s) selected</div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label style={lbl}>Notes</label>
+                  <input value={apForm.notes} onChange={e=>setApForm(f=>({...f,notes:e.target.value}))} placeholder="Additional details..." style={{...inp,marginBottom:10}}/>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={saveAcctPay} disabled={saving} style={{padding:'10px 20px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Record payment'}</button>
+                  <button onClick={()=>setShowAddAcctPay(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* ACCOUNT CARDS */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem'}}>
+              {ACCOUNTS.map(acc=>{
+                const ad = getAccountData(acc.key)
+                if(ad.totalIn===0 && ad.payments.length===0) return null
+                return (
+                  <div key={acc.key} style={{background:'#111',border:`1px solid ${acc.color}25`,borderLeft:`4px solid ${acc.color}`,borderRadius:12,padding:'1.5rem'}}>
+                    {/* Header */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'1.25rem'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontSize:22}}>{acc.icon}</span>
+                        <div>
+                          <div style={{fontSize:15,fontWeight:800,color:'#fff'}}>{acc.label}</div>
+                          <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em'}}>Account balance</div>
+                        </div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:28,fontWeight:900,color:ad.balance>=0?'#4ade80':'#f87171'}}>{money(ad.balance)}</div>
+                        <div style={{fontSize:10,color:'#555'}}>current balance</div>
+                      </div>
+                    </div>
+
+                    {/* IN / OUT / FREE */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:'1rem'}}>
+                      {[
+                        ['💰 Total in',money(ad.totalIn),'#34d399'],
+                        ['💸 Total out',money(ad.totalOut),'#f87171'],
+                        ['🏦 Balance',money(ad.balance),ad.balance>=0?'#4ade80':'#f87171'],
+                      ].map(([l,v,c])=>(
+                        <div key={l} style={{padding:'8px',background:'rgba(255,255,255,0.03)',border:`0.5px solid ${c}15`,borderRadius:6,textAlign:'center'}}>
+                          <div style={{fontSize:9,color:'#555',marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* BREAKDOWN of balance */}
+                    <div style={{padding:'10px 12px',background:'rgba(255,255,255,0.02)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6,marginBottom:'1rem'}}>
+                      <div style={{fontSize:9,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:8}}>Balance breakdown</div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:11}}>
+                        <span style={{color:'#888'}}>📦 Committed to pending orders</span>
+                        <span style={{color:'#fbbf24',fontWeight:600}}>{money(ad.committedToOrders)}</span>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:11,borderTop:'0.5px solid rgba(255,255,255,0.04)'}}>
+                        <span style={{color:'#888'}}>✅ Free profit (can transfer)</span>
+                        <span style={{color:ad.freeProfitBalance>0?'#4ade80':'#555',fontWeight:700}}>{money(ad.freeProfitBalance)}</span>
+                      </div>
+                      {ad.profitXfer>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:11,borderTop:'0.5px solid rgba(255,255,255,0.04)'}}>
+                          <span style={{color:'#888'}}>🔄 Already transferred to company</span>
+                          <span style={{color:'#34d399',fontWeight:600}}>{money(ad.profitXfer)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Unpaid orders */}
+                    {ad.unpaidOrders.length>0&&(
+                      <div style={{padding:'8px 12px',background:'rgba(248,113,113,0.05)',border:'0.5px solid rgba(248,113,113,0.15)',borderRadius:6,marginBottom:'1rem'}}>
+                        <div style={{fontSize:9,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:6}}>⚠ Orders awaiting payment</div>
+                        {ad.unpaidOrders.slice(0,3).map(o=>{
+                          const remaining=Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0))
+                          const clientName=(o.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim()||'Client'
+                          return (
+                            <div key={o.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'2px 0'}}>
+                              <span>#{o.order_number} {clientName}</span>
+                              <span style={{color:'#f87171',fontWeight:600}}>{money(remaining)} due</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Payment history */}
+                    {ad.payments.length>0&&(
+                      <div>
+                        <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:6}}>Payment history</div>
+                        {ad.payments.map(p=>{
+                          const typeColor={supplier_payment:'#fbbf24',profit_transfer:'#34d399',other:'#888'}
+                          const typeLabel={supplier_payment:'Supplier paid',profit_transfer:'Profit transferred',other:'Other'}
+                          return (
+                            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',padding:'7px 0',borderTop:'0.5px solid rgba(255,255,255,0.04)'}}>
+                              <div>
+                                <div style={{fontSize:11,color:'#ccc'}}>{p.description}</div>
+                                <div style={{fontSize:9,color:'#555'}}>{typeLabel[p.type]} · {fmt(p.date)}</div>
+                                {p.order_ids?.length>0&&<div style={{fontSize:9,color:'#a78bfa'}}>covers {p.order_ids.length} order(s)</div>}
+                              </div>
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <span style={{fontSize:12,fontWeight:700,color:typeColor[p.type]||'#888'}}>-{money(p.amount)}</span>
+                                <button onClick={()=>del('account_payments',p.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:12,opacity:0.4,padding:0}}>×</button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ══ EXPENSES ════════════════════════════════════════ */}
         {view==='expenses' && (
           <div style={{animation:'fadeIn 0.3s ease'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
@@ -545,37 +575,23 @@ export default function AdminProfit() {
               </div>
               <button onClick={()=>setShowAddExpense(true)} style={{padding:'10px 18px',background:'#2d7dd2',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add expense</button>
             </div>
-
-            {/* Add expense form */}
-            {showAddExpense && (
-              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+            {showAddExpense&&(
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New expense</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
-                  <div><label style={lbl}>Date *</label><input type="date" value={expForm.date} onChange={e=>setExpForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
-                  <div><label style={lbl}>Category *</label>
-                    <select value={expForm.category} onChange={e=>setExpForm(f=>({...f,category:e.target.value}))} style={inp}>
-                      {EXPENSE_CATS.map(c=><option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div><label style={lbl}>Amount ($) *</label><input type="number" value={expForm.amount} onChange={e=>setExpForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
-                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description *</label><input value={expForm.description} onChange={e=>setExpForm(f=>({...f,description:e.target.value}))} placeholder="What was this for?" style={inp}/></div>
-                  <div><label style={lbl}>Paid by</label>
-                    <select value={expForm.paid_by} onChange={e=>setExpForm(f=>({...f,paid_by:e.target.value}))} style={inp}>
-                      <option value="company">Company</option>
-                      <option value="Victor">Victor</option>
-                      <option value="Leopoldo">Leopoldo</option>
-                    </select>
-                  </div>
+                  <div><label style={lbl}>Date</label><input type="date" value={expForm.date} onChange={e=>setExpForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div><label style={lbl}>Category</label><select value={expForm.category} onChange={e=>setExpForm(f=>({...f,category:e.target.value}))} style={inp}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div><label style={lbl}>Amount ($)</label><input type="number" value={expForm.amount} onChange={e=>setExpForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description</label><input value={expForm.description} onChange={e=>setExpForm(f=>({...f,description:e.target.value}))} placeholder="What was this for?" style={inp}/></div>
+                  <div><label style={lbl}>Paid by</label><select value={expForm.paid_by} onChange={e=>setExpForm(f=>({...f,paid_by:e.target.value}))} style={inp}><option value="company">Company</option><option value="Victor">Victor</option><option value="Leopoldo">Leopoldo</option></select></div>
                   <div style={{gridColumn:'span 3'}}><label style={lbl}>Notes</label><input value={expForm.notes} onChange={e=>setExpForm(f=>({...f,notes:e.target.value}))} placeholder="Additional details..." style={inp}/></div>
                 </div>
                 <div style={{display:'flex',gap:8}}>
-                  <button onClick={saveExpense} disabled={saving} style={{padding:'10px 20px',background:'#2d7dd2',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save expense'}</button>
+                  <button onClick={saveExpense} disabled={saving} style={{padding:'10px 20px',background:'#2d7dd2',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save'}</button>
                   <button onClick={()=>setShowAddExpense(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
                 </div>
               </div>
             )}
-
-            {/* Expenses table */}
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'10px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
                 {['Description','Category','Amount','Paid by','Date',''].map((h,i)=><div key={i} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>=2?'right':'left'}}>{h}</div>)}
@@ -584,212 +600,124 @@ export default function AdminProfit() {
                 ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No expenses for {fmtM(month+'-01')}</div>
                 : monthExpenses.map((e,i)=>(
                   <div key={e.id} style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',alignItems:'center'}}>
-                    <div>
-                      <div style={{fontSize:13,color:'#ccc',fontWeight:500}}>{e.description}</div>
-                      {e.notes&&<div style={{fontSize:10,color:'#555',marginTop:1}}>{e.notes}</div>}
-                    </div>
-                    <div><span style={{fontSize:10,padding:'2px 8px',background:'rgba(251,191,36,0.1)',color:'#fbbf24',borderRadius:10,fontWeight:600}}>{e.category}</span></div>
+                    <div><div style={{fontSize:13,color:'#ccc'}}>{e.description}</div>{e.notes&&<div style={{fontSize:10,color:'#555'}}>{e.notes}</div>}</div>
+                    <div><span style={{fontSize:10,padding:'2px 8px',background:'rgba(251,191,36,0.1)',color:'#fbbf24',borderRadius:10}}>{e.category}</span></div>
                     <div style={{fontSize:13,fontWeight:700,color:'#f87171',textAlign:'right'}}>{money(e.amount)}</div>
                     <div style={{fontSize:11,color:'#888',textAlign:'right'}}>{e.paid_by}</div>
                     <div style={{fontSize:10,color:'#555',textAlign:'right'}}>{fmt(e.date)}</div>
-                    <div style={{textAlign:'right'}}><button onClick={()=>deleteExp(e.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
+                    <div style={{textAlign:'right'}}><button onClick={()=>del('expenses',e.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
                   </div>
                 ))
               }
               {monthExpenses.length>0&&(
                 <div style={{display:'grid',gridTemplateColumns:'1fr 140px 120px 100px 80px 40px',padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
-                  <div style={{fontSize:12,fontWeight:700,color:'#888'}}>Total</div>
-                  <div/><div style={{fontSize:15,fontWeight:800,color:'#fbbf24',textAlign:'right'}}>{money(totalExpenses)}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:'#888'}}>Total</div><div/><div style={{fontSize:15,fontWeight:800,color:'#fbbf24',textAlign:'right'}}>{money(totalExpenses)}</div>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ══ INVENTORY ══════════════════════════════════════════ */}
+        {/* ══ INVENTORY ════════════════════════════════════════ */}
         {view==='inventory' && (
           <div style={{animation:'fadeIn 0.3s ease'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
-              <div>
-                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Inventory purchases</div>
-                <div style={{fontSize:12,color:'#555',marginTop:2}}>Track what you bought, at what cost, and from where</div>
-              </div>
-              <button onClick={()=>setShowAddInventory(true)} style={{padding:'10px 18px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add purchase</button>
+              <div><div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Inventory purchases</div><div style={{fontSize:12,color:'#555',marginTop:2}}>All-time · {money(inventory.reduce((s,i)=>s+(i.total_cost||0),0))} total invested</div></div>
+              <button onClick={()=>setShowAddInv(true)} style={{padding:'10px 18px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add purchase</button>
             </div>
-
-            {showAddInventory && (
-              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+            {showAddInv&&(
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New inventory purchase</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
-                  <div><label style={lbl}>Date *</label><input type="date" value={invForm.date} onChange={e=>setInvForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
-                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Product name *</label><input value={invForm.product_name} onChange={e=>setInvForm(f=>({...f,product_name:e.target.value}))} placeholder="e.g. JBL PartyBox 710" style={inp}/></div>
-                  <div><label style={lbl}>Supplier</label><input value={invForm.supplier} onChange={e=>setInvForm(f=>({...f,supplier:e.target.value}))} placeholder="e.g. D&H Distributing" style={inp}/></div>
-                  <div><label style={lbl}>Units *</label><input type="number" value={invForm.units} onChange={e=>setInvForm(f=>({...f,units:e.target.value}))} placeholder="0" style={inp}/></div>
-                  <div><label style={lbl}>Unit cost ($) *</label><input type="number" value={invForm.unit_cost} onChange={e=>setInvForm(f=>({...f,unit_cost:e.target.value}))} placeholder="0.00" style={inp}/></div>
-                  <div><label style={lbl}>Paid by</label>
-                    <select value={invForm.paid_by} onChange={e=>setInvForm(f=>({...f,paid_by:e.target.value}))} style={inp}>
-                      <option value="company">Company</option>
-                      <option value="Victor">Victor</option>
-                      <option value="Leopoldo">Leopoldo</option>
-                    </select>
-                  </div>
-                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Notes</label><input value={invForm.notes} onChange={e=>setInvForm(f=>({...f,notes:e.target.value}))} placeholder="PO number, tracking, etc." style={inp}/></div>
+                  <div><label style={lbl}>Date</label><input type="date" value={invForm.date} onChange={e=>setInvForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Product name</label><input value={invForm.product_name} onChange={e=>setInvForm(f=>({...f,product_name:e.target.value}))} placeholder="e.g. JBL PartyBox 710" style={inp}/></div>
+                  <div><label style={lbl}>Supplier</label><input value={invForm.supplier} onChange={e=>setInvForm(f=>({...f,supplier:e.target.value}))} placeholder="e.g. World Family" style={inp}/></div>
+                  <div><label style={lbl}>Units</label><input type="number" value={invForm.units} onChange={e=>setInvForm(f=>({...f,units:e.target.value}))} placeholder="0" style={inp}/></div>
+                  <div><label style={lbl}>Unit cost ($)</label><input type="number" value={invForm.unit_cost} onChange={e=>setInvForm(f=>({...f,unit_cost:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div><label style={lbl}>Paid by</label><select value={invForm.paid_by} onChange={e=>setInvForm(f=>({...f,paid_by:e.target.value}))} style={inp}><option value="company">Company</option><option value="Victor">Victor</option><option value="Leopoldo">Leopoldo</option></select></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Notes</label><input value={invForm.notes} onChange={e=>setInvForm(f=>({...f,notes:e.target.value}))} placeholder="PO, tracking, etc." style={inp}/></div>
                 </div>
-                {invForm.units&&invForm.unit_cost&&(
-                  <div style={{padding:'8px 12px',background:'rgba(96,165,250,0.08)',border:'0.5px solid rgba(96,165,250,0.2)',borderRadius:4,marginBottom:10,fontSize:12,color:'#60a5fa'}}>
-                    Total: <strong>{money(parseFloat(invForm.unit_cost)*parseInt(invForm.units))}</strong>
-                  </div>
-                )}
+                {invForm.units&&invForm.unit_cost&&<div style={{padding:'8px 12px',background:'rgba(96,165,250,0.08)',border:'0.5px solid rgba(96,165,250,0.2)',borderRadius:4,marginBottom:10,fontSize:12,color:'#60a5fa'}}>Total: <strong>{money(parseFloat(invForm.unit_cost)*parseInt(invForm.units))}</strong></div>}
                 <div style={{display:'flex',gap:8}}>
-                  <button onClick={saveInventory} disabled={saving} style={{padding:'10px 20px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save purchase'}</button>
-                  <button onClick={()=>setShowAddInventory(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
+                  <button onClick={saveInv} disabled={saving} style={{padding:'10px 20px',background:'#2a7d4f',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save'}</button>
+                  <button onClick={()=>setShowAddInv(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
                 </div>
               </div>
             )}
-
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'10px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 110px 120px 80px 40px',padding:'10px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
                 {['Product','Units','Unit cost','Total','Supplier','Date',''].map((h,i)=><div key={i} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>=1?'right':'left'}}>{h}</div>)}
               </div>
               {inventory.length===0
-                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No inventory purchases recorded</div>
+                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No purchases recorded</div>
                 : inventory.map((iv,i)=>(
-                  <div key={iv.id} style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',alignItems:'center',background:inMonth(iv.date)?'transparent':'rgba(255,255,255,0.01)'}}>
-                    <div>
-                      <div style={{fontSize:13,color:'#ccc',fontWeight:600}}>{iv.product_name}</div>
-                      {iv.notes&&<div style={{fontSize:10,color:'#555',marginTop:1}}>{iv.notes}</div>}
-                      <div style={{fontSize:10,color:'#444',marginTop:1}}>Paid by: {iv.paid_by}</div>
-                    </div>
+                  <div key={iv.id} style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 110px 120px 80px 40px',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',alignItems:'center'}}>
+                    <div><div style={{fontSize:13,color:'#ccc',fontWeight:600}}>{iv.product_name}</div>{iv.notes&&<div style={{fontSize:10,color:'#555'}}>{iv.notes}</div>}<div style={{fontSize:10,color:'#444'}}>Paid by: {iv.paid_by}</div></div>
                     <div style={{fontSize:12,color:'#aaa',textAlign:'right'}}>{iv.units}</div>
                     <div style={{fontSize:12,color:'#aaa',textAlign:'right'}}>{money(iv.unit_cost)}</div>
                     <div style={{fontSize:13,fontWeight:700,color:'#60a5fa',textAlign:'right'}}>{money(iv.total_cost)}</div>
                     <div style={{fontSize:11,color:'#888',textAlign:'right'}}>{iv.supplier||'—'}</div>
-                    <div style={{fontSize:10,color:inMonth(iv.date)?'#ccc':'#555',textAlign:'right'}}>{fmt(iv.date)}</div>
-                    <div style={{textAlign:'right'}}><button onClick={()=>deleteInv(iv.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
+                    <div style={{fontSize:10,color:'#555',textAlign:'right'}}>{fmt(iv.date)}</div>
+                    <div style={{textAlign:'right'}}><button onClick={()=>del('inventory_purchases',iv.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button></div>
                   </div>
                 ))
               }
-              <div style={{display:'grid',gridTemplateColumns:'1fr 100px 80px 100px 120px 80px 40px',padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
-                <div style={{fontSize:12,color:'#888',fontWeight:700}}>All-time total invested</div>
-                <div/><div/><div style={{fontSize:15,fontWeight:800,color:'#60a5fa',textAlign:'right'}}>{money(allInventory)}</div>
-              </div>
             </div>
           </div>
         )}
 
-        {/* ══ PARTNERS ══════════════════════════════════════════ */}
+        {/* ══ PARTNERS ════════════════════════════════════════ */}
         {view==='partners' && (
           <div style={{animation:'fadeIn 0.3s ease'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
-              <div>
-                <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Partner transactions</div>
-                <div style={{fontSize:12,color:'#555',marginTop:2}}>Investments, withdrawals & distributions</div>
-              </div>
+              <div><div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Partner transactions</div><div style={{fontSize:12,color:'#555',marginTop:2}}>Investments, withdrawals & distributions</div></div>
               <button onClick={()=>setShowAddPartner(true)} style={{padding:'10px 18px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:6,cursor:'pointer'}}>+ Add transaction</button>
             </div>
-
-            {showAddPartner && (
-              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem',animation:'fadeIn 0.2s ease'}}>
+            {showAddPartner&&(
+              <div style={{background:'#141414',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'1.5rem',marginBottom:'1.5rem'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1rem'}}>New transaction</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:10}}>
-                  <div><label style={lbl}>Date *</label><input type="date" value={ptxForm.date} onChange={e=>setPtxForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
-                  <div><label style={lbl}>Partner *</label>
-                    <select value={ptxForm.partner} onChange={e=>setPtxForm(f=>({...f,partner:e.target.value}))} style={inp}>
-                      {PARTNERS.map(p=><option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div><label style={lbl}>Type *</label>
-                    <select value={ptxForm.type} onChange={e=>setPtxForm(f=>({...f,type:e.target.value}))} style={inp}>
-                      <option value="investment">Investment (put money in)</option>
-                      <option value="withdrawal">Withdrawal (take money out)</option>
-                      <option value="distribution">Distribution (profit share)</option>
-                      <option value="expense_reimbursement">Expense reimbursement</option>
-                    </select>
-                  </div>
-                  <div><label style={lbl}>Amount ($) *</label><input type="number" value={ptxForm.amount} onChange={e=>setPtxForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
-                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description *</label><input value={ptxForm.description} onChange={e=>setPtxForm(f=>({...f,description:e.target.value}))} placeholder="What is this for?" style={inp}/></div>
+                  <div><label style={lbl}>Date</label><input type="date" value={ptxForm.date} onChange={e=>setPtxForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}}/></div>
+                  <div><label style={lbl}>Partner</label><select value={ptxForm.partner} onChange={e=>setPtxForm(f=>({...f,partner:e.target.value}))} style={inp}>{PARTNERS.map(p=><option key={p}>{p}</option>)}</select></div>
+                  <div><label style={lbl}>Type</label><select value={ptxForm.type} onChange={e=>setPtxForm(f=>({...f,type:e.target.value}))} style={inp}><option value="investment">Investment</option><option value="withdrawal">Withdrawal</option><option value="distribution">Distribution</option><option value="expense_reimbursement">Expense reimbursement</option></select></div>
+                  <div><label style={lbl}>Amount ($)</label><input type="number" value={ptxForm.amount} onChange={e=>setPtxForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={inp}/></div>
+                  <div style={{gridColumn:'span 2'}}><label style={lbl}>Description</label><input value={ptxForm.description} onChange={e=>setPtxForm(f=>({...f,description:e.target.value}))} placeholder="What is this?" style={inp}/></div>
                   <div style={{gridColumn:'span 3'}}><label style={lbl}>Notes</label><input value={ptxForm.notes} onChange={e=>setPtxForm(f=>({...f,notes:e.target.value}))} placeholder="Additional details..." style={inp}/></div>
                 </div>
                 <div style={{display:'flex',gap:8}}>
-                  <button onClick={savePartnerTx} disabled={saving} style={{padding:'10px 20px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save'}</button>
+                  <button onClick={savePtx} disabled={saving} style={{padding:'10px 20px',background:'#534ab7',color:'#fff',fontSize:12,fontWeight:700,border:'none',borderRadius:4,cursor:'pointer'}}>{saving?'Saving...':'✓ Save'}</button>
                   <button onClick={()=>setShowAddPartner(false)} style={{padding:'10px 16px',background:'transparent',color:'#555',fontSize:12,border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,cursor:'pointer'}}>Cancel</button>
                 </div>
               </div>
             )}
-
-            {/* Partner summary cards */}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem',marginBottom:'1.5rem'}}>
               {PARTNERS.map(partner=>{
-                const txs = partnerTx.filter(t=>t.partner===partner)
-                const totalIn = txs.filter(t=>['investment'].includes(t.type)).reduce((s,t)=>s+(t.amount||0),0)
-                const totalOut = txs.filter(t=>['withdrawal','distribution'].includes(t.type)).reduce((s,t)=>s+(t.amount||0),0)
-                const reimbursed = txs.filter(t=>t.type==='expense_reimbursement').reduce((s,t)=>s+(t.amount||0),0)
-                const monthShare = profitPerPartner
-                return (
+                const txs=partnerTx.filter(t=>t.partner===partner)
+                const totalIn=txs.filter(t=>t.type==='investment').reduce((s,t)=>s+(t.amount||0),0)
+                const totalOut=txs.filter(t=>['withdrawal','distribution'].reduce((s,t)=>s+(t.amount||0),0))
+                return(
                   <div key={partner} style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
-                      <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>👤 {partner}</div>
-                      <span style={{fontSize:10,padding:'3px 10px',background:'rgba(83,74,183,0.15)',color:'#a78bfa',borderRadius:10,fontWeight:700}}>50% partner</span>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:'1rem'}}>
-                      {[
-                        ['This month profit','$'+(monthShare>=0?'+':'')+money(monthShare).replace('$',''),monthShare>=0?'#4ade80':'#f87171'],
-                        ['Total invested',money(totalIn),'#60a5fa'],
-                        ['Total withdrawn',money(totalOut),'#fbbf24'],
-                        ['Reimbursed',money(reimbursed),'#34d399'],
-                      ].map(([l,v,c])=>(
-                        <div key={l} style={{padding:'8px',background:'rgba(255,255,255,0.03)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6}}>
-                          <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>{l}</div>
-                          <div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Recent activity</div>
-                    {txs.slice(0,3).map((t,i)=>{
-                      const typeColor = {investment:'#60a5fa',withdrawal:'#fbbf24',distribution:'#4ade80',expense_reimbursement:'#34d399'}
-                      return (
-                        <div key={t.id} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none',fontSize:11}}>
+                    <div style={{fontSize:15,fontWeight:800,color:'#fff',marginBottom:'1rem'}}>👤 {partner}</div>
+                    {txs.slice(0,5).map((t,i)=>{
+                      const tc={investment:'#60a5fa',withdrawal:'#fbbf24',distribution:'#4ade80',expense_reimbursement:'#34d399'}
+                      const ti={investment:'⬆',withdrawal:'⬇',distribution:'💚',expense_reimbursement:'🔄'}
+                      return(
+                        <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none'}}>
                           <div>
-                            <span style={{color:typeColor[t.type]||'#ccc',fontSize:9,fontWeight:600,textTransform:'uppercase'}}>{t.type.replace('_',' ')} </span>
-                            <span style={{color:'#888'}}>{t.description}</span>
+                            <div style={{fontSize:11,color:'#ccc'}}><span style={{color:tc[t.type]||'#ccc'}}>{ti[t.type]} </span>{t.description}</div>
+                            <div style={{fontSize:9,color:'#555'}}>{t.type.replace('_',' ')} · {fmt(t.date)}</div>
                           </div>
-                          <span style={{color:'#ccc',fontWeight:600}}>{money(t.amount)}</span>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:13,fontWeight:700,color:tc[t.type]||'#ccc'}}>{money(t.amount)}</span>
+                            <button onClick={()=>del('partner_transactions',t.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:12,opacity:0.4,padding:0}}>×</button>
+                          </div>
                         </div>
                       )
                     })}
+                    {txs.length===0&&<div style={{textAlign:'center',color:'#555',fontSize:12,padding:'1rem'}}>No transactions</div>}
                   </div>
                 )
               })}
-            </div>
-
-            {/* All transactions table */}
-            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
-              <div style={{padding:'14px 16px',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)',fontSize:11,fontWeight:700,color:'#888'}}>All partner transactions</div>
-              {partnerTx.length===0
-                ? <div style={{padding:'3rem',textAlign:'center',color:'#555',fontSize:12}}>No transactions yet</div>
-                : partnerTx.map((t,i)=>{
-                  const typeColor = {investment:'#60a5fa',withdrawal:'#fbbf24',distribution:'#4ade80',expense_reimbursement:'#34d399'}
-                  const typeIcon = {investment:'⬆',withdrawal:'⬇',distribution:'💚',expense_reimbursement:'🔄'}
-                  return (
-                    <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:12,flex:1}}>
-                        <div style={{width:32,height:32,borderRadius:'50%',background:`${typeColor[t.type]||'#888'}20`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>
-                          {typeIcon[t.type]||'·'}
-                        </div>
-                        <div>
-                          <div style={{fontSize:12,color:'#ccc',fontWeight:600}}>{t.description}</div>
-                          <div style={{fontSize:10,color:'#555'}}>{t.partner} · {t.type.replace('_',' ')} · {fmt(t.date)}</div>
-                          {t.notes&&<div style={{fontSize:10,color:'#444'}}>{t.notes}</div>}
-                        </div>
-                      </div>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
-                        <span style={{fontSize:14,fontWeight:700,color:typeColor[t.type]||'#ccc'}}>{money(t.amount)}</span>
-                        <button onClick={()=>deletePtx(t.id)} style={{background:'none',border:'none',color:'#e74c3c',cursor:'pointer',fontSize:14,opacity:0.5,padding:0}}>×</button>
-                      </div>
-                    </div>
-                  )
-                })
-              }
             </div>
           </div>
         )}
