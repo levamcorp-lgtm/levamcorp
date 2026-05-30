@@ -312,6 +312,69 @@ export default function AdminProfit() {
               })()}
             </div>
 
+            {/* PROFIT PER ORDER */}
+            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem',gridColumn:'span 2'}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>Profit per order — {fmtM(month+'-01')}</div>
+              {monthOrders.length===0
+                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'2rem'}}>No confirmed orders this month</div>
+                : (
+                  <>
+                    <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'8px 12px',background:'#0d0d0d',borderRadius:6,marginBottom:6}}>
+                      {['Order / Client','Revenue','Cost','Gross profit','Margin','Status'].map((h,i)=>(
+                        <div key={h} style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,textAlign:i>0?'right':'left'}}>{h}</div>
+                      ))}
+                    </div>
+                    {monthOrders.map((order,i)=>{
+                      const orderCogs = (order.order_items||[]).reduce((s,item)=>{
+                        const prod = products.find(p=>p.id===item.product_id||p.name===item.product_name)
+                        return s + ((prod?.cost_price||0)*item.quantity)
+                      },0)
+                      const orderRevenue = order.total||0
+                      const orderProfit  = orderRevenue - orderCogs
+                      const orderMargin  = orderRevenue>0 ? ((orderProfit/orderRevenue)*100).toFixed(1) : 0
+                      const isProfitable = orderProfit >= 0
+                      const clientName   = (order.notes||'').split('Business: ')[1]?.split(/[|
+]/)[0]?.trim() || 'Client'
+                      return (
+                        <div key={order.id} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'10px 12px',borderTop:'0.5px solid rgba(255,255,255,0.05)',alignItems:'center',background:i%2===1?'rgba(255,255,255,0.01)':'transparent'}}>
+                          <div>
+                            <div style={{fontSize:12,fontWeight:600,color:'#ccc'}}>#{order.order_number}</div>
+                            <div style={{fontSize:10,color:'#555'}}>{clientName}</div>
+                          </div>
+                          <div style={{fontSize:12,fontWeight:600,color:'#60a5fa',textAlign:'right'}}>{money(orderRevenue)}</div>
+                          <div style={{fontSize:12,color:'#f87171',textAlign:'right'}}>{orderCogs>0?money(orderCogs):<span style={{color:'#444'}}>No cost data</span>}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:isProfitable?'#4ade80':'#f87171',textAlign:'right'}}>
+                            {isProfitable?'+':''}{money(orderProfit)}
+                          </div>
+                          <div style={{textAlign:'right'}}>
+                            <span style={{fontSize:11,fontWeight:700,color:parseFloat(orderMargin)>30?'#4ade80':parseFloat(orderMargin)>15?'#fbbf24':'#f87171'}}>
+                              {orderCogs>0?orderMargin+'%':'—'}
+                            </span>
+                          </div>
+                          <div style={{textAlign:'right'}}>
+                            <span style={{fontSize:9,padding:'2px 8px',borderRadius:8,background:'rgba(83,74,183,0.15)',color:'#a78bfa',fontWeight:600}}>
+                              {order.status}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {/* Summary row */}
+                    <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'12px',background:'rgba(255,255,255,0.03)',borderTop:'1px solid rgba(255,255,255,0.08)',borderRadius:'0 0 8px 8px',marginTop:4}}>
+                      <div style={{fontSize:12,fontWeight:700,color:'#888'}}>{monthOrders.length} orders total</div>
+                      <div style={{fontSize:13,fontWeight:800,color:'#60a5fa',textAlign:'right'}}>{money(revenue)}</div>
+                      <div style={{fontSize:13,fontWeight:800,color:'#f87171',textAlign:'right'}}>{money(cogs)}</div>
+                      <div style={{fontSize:14,fontWeight:900,color:grossProfit>=0?'#4ade80':'#f87171',textAlign:'right'}}>{grossProfit>=0?'+':''}{money(grossProfit)}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:revenue>0&&((grossProfit/revenue)*100)>20?'#4ade80':'#fbbf24',textAlign:'right'}}>
+                        {revenue>0?((grossProfit/revenue)*100).toFixed(1)+'%':'—'}
+                      </div>
+                      <div/>
+                    </div>
+                  </>
+                )
+              }
+            </div>
+
             {/* RECENT INVENTORY PURCHASES */}
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
