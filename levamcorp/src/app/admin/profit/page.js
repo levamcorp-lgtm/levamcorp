@@ -333,8 +333,7 @@ export default function AdminProfit() {
                       const orderProfit  = orderRevenue - orderCogs
                       const orderMargin  = orderRevenue>0 ? ((orderProfit/orderRevenue)*100).toFixed(1) : 0
                       const isProfitable = orderProfit >= 0
-                      const clientName   = (order.notes||'').split('Business: ')[1]?.split(/[|
-]/)[0]?.trim() || 'Client'
+                      const clientName = (order.notes||'').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
                       return (
                         <div key={order.id} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 1fr 1fr 1fr 1fr',padding:'10px 12px',borderTop:'0.5px solid rgba(255,255,255,0.05)',alignItems:'center',background:i%2===1?'rgba(255,255,255,0.01)':'transparent'}}>
                           <div>
