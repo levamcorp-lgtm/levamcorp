@@ -109,21 +109,55 @@ export default function AdminProfit() {
     { key:'world_family', label:'World Family', color:'#fbbf24', icon:'🏭' },
   ]
   const accountBreakdown = ACCOUNTS.map(acc => {
+    // Money IN — payments received into this account
     const accOrders = orders.filter(o =>
       ['confirmed','dispatched','completed'].includes(o.status) &&
       (o.payment_account||'company') === acc.key
     )
     const accMonthOrders = accOrders.filter(o => inMonthTS(o.submitted_at))
+    const totalCollected   = accOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
+    const monthCollected   = accMonthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0)
+    const totalOutstanding = accOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0)
+
+    // Map account key to paid_by values used in expenses/inventory
+    const paidByKeys = acc.key === 'company' ? ['company','Company']
+      : acc.key === 'victor' ? ['Victor','victor']
+      : acc.key === 'leopoldo' ? ['Leopoldo','leopoldo']
+      : acc.key === 'world_family' ? ['World Family','world_family','WorldFamily']
+      : [acc.label]
+
+    // Money OUT — expenses paid from this account
+    const accExpenses   = expenses.filter(e => paidByKeys.includes(e.paid_by))
+    const accInv        = inventory.filter(i => paidByKeys.includes(i.paid_by))
+    const accPartnerTxOut = partnerTx.filter(t =>
+      ['withdrawal','distribution'].includes(t.type) &&
+      paidByKeys.some(k => k.toLowerCase() === t.partner?.toLowerCase())
+    )
+    const totalOut      = accExpenses.reduce((s,e)=>s+(e.amount||0),0)
+                        + accInv.reduce((s,i)=>s+(i.total_cost||0),0)
+    const monthOut      = accExpenses.filter(e=>inMonth(e.date)).reduce((s,e)=>s+(e.amount||0),0)
+                        + accInv.filter(i=>inMonth(i.date)).reduce((s,i)=>s+(i.total_cost||0),0)
+
+    // Balance = what's actually in the account
+    const balance       = totalCollected - totalOut
+    const monthBalance  = monthCollected - monthOut
+
     return {
       ...acc,
-      monthRevenue: accMonthOrders.reduce((s,o)=>s+(o.total||0),0),
-      monthCollected: accMonthOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0),
-      monthOrders: accMonthOrders.length,
-      totalRevenue: accOrders.reduce((s,o)=>s+(o.total||0),0),
-      totalCollected: accOrders.reduce((s,o)=>s+(parseFloat(o.amount_paid)||0),0),
-      totalOutstanding: accOrders.reduce((s,o)=>s+Math.max(0,(o.total||0)-(parseFloat(o.amount_paid)||0)),0),
+      monthRevenue:    accMonthOrders.reduce((s,o)=>s+(o.total||0),0),
+      monthCollected,
+      monthOrders:     accMonthOrders.length,
+      totalRevenue:    accOrders.reduce((s,o)=>s+(o.total||0),0),
+      totalCollected,
+      totalOutstanding,
+      totalOut,
+      monthOut,
+      balance,
+      monthBalance,
+      expenseItems:    accExpenses.slice(0,3),
+      invItems:        accInv.slice(0,3),
     }
-  }).filter(a => a.totalRevenue > 0 || a.monthRevenue > 0)
+  }).filter(a => a.totalCollected > 0 || a.totalRevenue > 0)
 
   // Expense by category
   const byCat = EXPENSE_CATS.map(cat => ({
@@ -278,29 +312,74 @@ export default function AdminProfit() {
             <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'1.5rem'}}>
               <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:'1.25rem'}}>💳 Revenue by account</div>
               {accountBreakdown.length===0
-                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'1.5rem'}}>No account data yet — set accounts on orders</div>
+                ? <div style={{textAlign:'center',color:'#555',fontSize:12,padding:'1.5rem'}}>No account data yet — assign accounts on orders</div>
                 : accountBreakdown.map(acc=>(
-                  <div key={acc.key} style={{marginBottom:12,padding:'12px',background:'rgba(255,255,255,0.03)',border:`0.5px solid ${acc.color}25`,borderLeft:`3px solid ${acc.color}`,borderRadius:6}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                  <div key={acc.key} style={{marginBottom:14,padding:'14px',background:'rgba(255,255,255,0.02)',border:`1px solid ${acc.color}30`,borderLeft:`4px solid ${acc.color}`,borderRadius:8}}>
+                    {/* Header */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:16}}>{acc.icon}</span>
-                        <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{acc.label}</span>
+                        <span style={{fontSize:18}}>{acc.icon}</span>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:800,color:'#fff'}}>{acc.label}</div>
+                          <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em'}}>Account balance</div>
+                        </div>
                       </div>
-                      <span style={{fontSize:16,fontWeight:800,color:acc.color}}>{money(acc.monthRevenue)}</span>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:22,fontWeight:900,color:acc.balance>=0?'#4ade80':'#f87171'}}>{money(acc.balance)}</div>
+                        <div style={{fontSize:9,color:'#555'}}>all-time net</div>
+                      </div>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+                    {/* IN / OUT / BALANCE grid */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:8}}>
                       {[
-                        ['This month',money(acc.monthRevenue),acc.color],
-                        ['Collected',money(acc.monthCollected),'#34d399'],
-                        ['Outstanding',money(acc.monthRevenue-acc.monthCollected),acc.monthRevenue-acc.monthCollected>0?'#f87171':'#34d399'],
+                        ['💰 Collected in',money(acc.totalCollected),'#34d399'],
+                        ['💸 Paid out',money(acc.totalOut),'#f87171'],
+                        ['🏦 Balance',money(acc.balance),acc.balance>=0?'#4ade80':'#f87171'],
                       ].map(([l,v,c])=>(
-                        <div key={l} style={{padding:'6px 8px',background:'rgba(255,255,255,0.03)',borderRadius:4}}>
-                          <div style={{fontSize:8,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{l}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
+                        <div key={l} style={{padding:'8px 10px',background:'rgba(255,255,255,0.04)',border:`0.5px solid ${c}20`,borderRadius:6}}>
+                          <div style={{fontSize:9,color:'#555',marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
                         </div>
                       ))}
                     </div>
-                    <div style={{marginTop:6,fontSize:10,color:'#555'}}>{acc.monthOrders} orders this month · {money(acc.totalCollected)} collected all-time · <span style={{color:acc.totalOutstanding>0?'#f87171':'#555'}}>{money(acc.totalOutstanding)} outstanding</span></div>
+                    {/* This month */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:acc.totalOutstanding>0||acc.expenseItems.length>0||acc.invItems.length>0?8:0}}>
+                      {[
+                        ['This month in',money(acc.monthCollected),'#60a5fa'],
+                        ['This month out',money(acc.monthOut),'#fbbf24'],
+                        ['Month net',money(acc.monthBalance),acc.monthBalance>=0?'#4ade80':'#f87171'],
+                      ].map(([l,v,c])=>(
+                        <div key={l} style={{padding:'6px 8px',background:'rgba(255,255,255,0.02)',borderRadius:4}}>
+                          <div style={{fontSize:8,color:'#555',marginBottom:2}}>{l}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:c}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Outstanding */}
+                    {acc.totalOutstanding>0 && (
+                      <div style={{padding:'6px 10px',background:'rgba(248,113,113,0.06)',border:'0.5px solid rgba(248,113,113,0.2)',borderRadius:4,fontSize:11,color:'#f87171',marginBottom:6}}>
+                        ⚠ {money(acc.totalOutstanding)} still owed to this account
+                      </div>
+                    )}
+                    {/* What went out breakdown */}
+                    {(acc.expenseItems.length>0||acc.invItems.length>0) && (
+                      <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:8,marginTop:4}}>
+                        <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Paid from this account</div>
+                        {acc.invItems.map(iv=>(
+                          <div key={iv.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'3px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
+                            <span>📦 {iv.product_name} ×{iv.units} <span style={{color:'#444'}}>({iv.date})</span></span>
+                            <span style={{color:'#fbbf24',fontWeight:600}}>-{money(iv.total_cost)}</span>
+                          </div>
+                        ))}
+                        {acc.expenseItems.map(e=>(
+                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#888',padding:'3px 0',borderTop:'0.5px solid rgba(255,255,255,0.03)'}}>
+                            <span>🧾 {e.description} <span style={{color:'#444'}}>({e.date})</span></span>
+                            <span style={{color:'#f87171',fontWeight:600}}>-{money(e.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{marginTop:6,fontSize:9,color:'#444'}}>{acc.monthOrders} orders this month · {acc.totalRevenue>0?acc.label+' total invoiced: '+money(acc.totalRevenue):''}</div>
                   </div>
                 ))
               }
