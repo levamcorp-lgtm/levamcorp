@@ -27,8 +27,14 @@ export default function AdminProfit() {
   const [partnerTx,setPartnerTx]= useState([])
   const [acctPay,  setAcctPay]  = useState([])
   const [loading,  setLoading]  = useState(true)
-  const [month,    setMonth]    = useState(new Date().toISOString().slice(0,7))
+  const getDefaultMonth = () => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    return d.toISOString().slice(0,7)
+  }
+  const [month, setMonth] = useState(getDefaultMonth())
   const [view,     setView]     = useState('overview')
+  const [allTime,  setAllTime]  = useState(false)
   const [saving,   setSaving]   = useState(false)
 
   // Forms
@@ -74,8 +80,8 @@ export default function AdminProfit() {
   const logout = async()=>{ await createClient().auth.signOut(); window.location.href='/admin' }
 
   // ── HELPERS ──────────────────────────────────────────────
-  const inMonth   = (d)  => d && d.startsWith(month)
-  const inMonthTS = (ts) => ts && new Date(ts).toISOString().slice(0,7)===month
+  const inMonth   = (d)  => allTime ? true : (d && d.startsWith(month))
+  const inMonthTS = (ts) => allTime ? true : (ts && new Date(ts).toISOString().slice(0,7)===month)
 
   const confirmedOrders = orders.filter(o=>['confirmed','dispatched','completed'].includes(o.status))
 
@@ -209,8 +215,12 @@ export default function AdminProfit() {
           </div>
         </div>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
-          <input type="month" value={month} onChange={e=>setMonth(e.target.value)}
-            style={{background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ccc',fontSize:12,padding:'6px 10px',borderRadius:4,outline:'none',colorScheme:'dark'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:6,background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:4,overflow:'hidden'}}>
+            <button onClick={()=>setAllTime(false)} style={{padding:'6px 12px',fontSize:11,fontWeight:600,background:!allTime?'#2d7dd2':'transparent',color:!allTime?'#fff':'#555',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Monthly</button>
+            <button onClick={()=>setAllTime(true)} style={{padding:'6px 12px',fontSize:11,fontWeight:600,background:allTime?'#2d7dd2':'transparent',color:allTime?'#fff':'#555',border:'none',cursor:'pointer',fontFamily:'inherit'}}>All time</button>
+          </div>
+          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} disabled={allTime}
+            style={{background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:allTime?'#444':'#ccc',fontSize:12,padding:'6px 10px',borderRadius:4,outline:'none',colorScheme:'dark'}}/>
           <button onClick={logout} style={{fontSize:11,color:'#555',border:'0.5px solid rgba(255,255,255,0.08)',padding:'6px 14px',borderRadius:2,background:'transparent',cursor:'pointer'}}>Sign out</button>
         </div>
       </nav>
@@ -222,7 +232,7 @@ export default function AdminProfit() {
           <div style={{position:'absolute',top:-30,right:-30,fontSize:160,opacity:0.04}}>{isPos?'↑':'↓'}</div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
             <div>
-              <div style={{fontSize:11,color:isPos?'rgba(74,222,128,0.7)':'rgba(248,113,113,0.7)',textTransform:'uppercase',letterSpacing:'0.2em',fontWeight:700,marginBottom:6}}>{fmtM(month+'-01')} · Net profit</div>
+              <div style={{fontSize:11,color:isPos?'rgba(74,222,128,0.7)':'rgba(248,113,113,0.7)',textTransform:'uppercase',letterSpacing:'0.2em',fontWeight:700,marginBottom:6}}>{allTime?'All time':''+fmtM(month+'-01')} · Net profit</div>
               <div style={{fontSize:56,fontWeight:900,color:isPos?'#4ade80':'#f87171',letterSpacing:'-0.02em',lineHeight:1}}>
                 {isPos?'+':''}{netProfit>=0?money(netProfit):'-'+money(Math.abs(netProfit))}
               </div>
