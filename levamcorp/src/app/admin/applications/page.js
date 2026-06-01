@@ -73,10 +73,19 @@ export default function AdminApplications() {
   }
 
   const getDocUrl = async (path) => {
-    if (!path) return
+    if (!path) { alert('No document found for this application.'); return }
+    if (path.startsWith('http')) { window.open(path, '_blank'); return }
     const supabase = createClient()
-    const { data } = await supabase.storage.from('documents').createSignedUrl(path, 3600)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+    // Try capital D first (that's the bucket name)
+    let result = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
+    if (result.data?.signedUrl) { window.open(result.data.signedUrl, '_blank'); return }
+    // Try lowercase fallback
+    result = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    if (result.data?.signedUrl) { window.open(result.data.signedUrl, '_blank'); return }
+    // Try public URL
+    const { data: pub } = supabase.storage.from('Documents').getPublicUrl(path)
+    if (pub?.publicUrl) { window.open(pub.publicUrl, '_blank'); return }
+    alert('Could not open document.\nPath: ' + path + '\nError: ' + (result.error?.message || 'Not found'))
   }
 
   const fmtDate = (d) => {
