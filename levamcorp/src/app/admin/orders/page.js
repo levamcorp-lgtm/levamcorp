@@ -13,7 +13,7 @@ const NEXT_LABEL   = { new:'Move to review', review:'Confirm order', confirmed:'
 const fmt  = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
 const fmtL = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '—'
 const money = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
-const inp = { width:'100%', background:'#1a1a1a', border:'0.5px solid rgba(255,255,255,0.1)', color:'#ddd', fontSize:12, padding:'8px 10px', borderRadius:4, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
+const inp = { width:'100%', background:'#f0f1f3', border:'0.5px solid rgba(0,0,0,0.1)', color:'#888', fontSize:12, padding:'8px 10px', borderRadius:4, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
 
 export default function AdminOrders() {
   const [orders,  setOrders]  = useState([])
@@ -268,7 +268,7 @@ export default function AdminOrders() {
     return matchF && matchS
   })
 
-  if (loading) return <div style={{minHeight:'100vh',background:'#080808',display:'flex',alignItems:'center',justifyContent:'center',color:'#555'}}>Loading...</div>
+  if (loading) return <div style={{minHeight:'100vh',background:'#f4f5f7',display:'flex',alignItems:'center',justifyContent:'center',color:'#999'}}>Loading...</div>
 
   const sc = sel ? (STATUS_COLOR[sel.status]||'#888') : '#888'
   const paid = parseFloat(sel?.amount_paid)||0
@@ -276,22 +276,22 @@ export default function AdminOrders() {
   const selClient = sel ? clientFor(sel) : null
 
   return (
-    <div style={{background:'#0a0a0a',minHeight:'100vh'}}>
+    <div style={{background:'#f4f5f7',minHeight:'100vh'}}>
       {/* NAV */}
-      <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 2rem',background:'#111',borderBottom:'0.5px solid rgba(255,255,255,0.06)'}}>
+      <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 2rem',background:'#fff',borderBottom:'0.5px solid rgba(0,0,0,0.08)'}}>
         <div style={{display:'flex',alignItems:'center',gap:16}}>
-          <div style={{fontSize:13,fontWeight:700,letterSpacing:'0.15em',color:'#fff',textTransform:'uppercase'}}>Levam Admin</div>
-          <div style={{display:'flex',borderLeft:'0.5px solid rgba(255,255,255,0.06)',paddingLeft:16}}>
+          <div style={{fontSize:13,fontWeight:700,letterSpacing:'0.15em',color:'#333',textTransform:'uppercase'}}>Levam Admin</div>
+          <div style={{display:'flex',borderLeft:'0.5px solid rgba(0,0,0,0.06)',paddingLeft:16}}>
             {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([l,h])=>(
               <Link key={l} href={h} style={{fontSize:12,color:l==='Orders'?'#2d7dd2':'#777',textDecoration:'none',padding:'4px 14px',borderBottom:l==='Orders'?'2px solid #2d7dd2':'2px solid transparent',fontWeight:l==='Orders'?700:400}}>{l}</Link>
             ))}
           </div>
         </div>
-        <button onClick={logout} style={{fontSize:11,color:'#555',border:'0.5px solid rgba(255,255,255,0.08)',padding:'6px 14px',borderRadius:2,background:'transparent',cursor:'pointer'}}>Sign out</button>
+        <button onClick={logout} style={{fontSize:11,color:'#666',border:'0.5px solid rgba(0,0,0,0.15)',padding:'6px 14px',borderRadius:2,background:'transparent',cursor:'pointer'}}>Sign out</button>
       </nav>
 
       {/* STATS BAR */}
-      <div style={{padding:'1rem 2rem',background:'#111',borderBottom:'0.5px solid rgba(255,255,255,0.06)',display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8}}>
+      <div style={{padding:'1rem 2rem',background:'#fff',borderBottom:'0.5px solid rgba(0,0,0,0.08)',display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8}}>
         {[
           ['New',grouped.new.length,'#2d7dd2'],
           ['Review',grouped.review.length,'#c49a00'],
@@ -301,8 +301,8 @@ export default function AdminOrders() {
           ['Cancelled',grouped.cancelled.length,'#e74c3c'],
           ['Revenue','$'+orders.filter(o=>['confirmed','dispatched','completed'].includes(o.status)).reduce((s,o)=>s+(o.total||0),0).toLocaleString(),'#2a7d4f'],
         ].map(([l,v,c])=>(
-          <div key={l} style={{background:'rgba(255,255,255,0.03)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:4,padding:'0.6rem 0.875rem'}}>
-            <div style={{fontSize:9,color:'#555',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:3}}>{l}</div>
+          <div key={l} style={{background:'rgba(0,0,0,0.03)',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:4,padding:'0.6rem 0.875rem'}}>
+            <div style={{fontSize:9,color:'#999',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:3}}>{l}</div>
             <div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div>
           </div>
         ))}
@@ -316,11 +316,11 @@ export default function AdminOrders() {
           <div style={{display:'flex',gap:8,marginBottom:'1rem',flexWrap:'wrap',alignItems:'center'}}>
             <div style={{position:'relative',flex:1,minWidth:180}}>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search orders..."
-                style={{...inp,padding:'7px 12px 7px 28px',borderRadius:20,background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ccc'}}/>
-              <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#555'}}>🔍</span>
+                style={{...inp,padding:'7px 12px 7px 28px',borderRadius:20,background:'rgba(0,0,0,0.05)',border:'0.5px solid rgba(0,0,0,0.1)',color:'#333'}}/>
+              <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#999'}}>🔍</span>
             </div>
             {['all','new','review','confirmed','dispatched','completed','cancelled'].map(s=>(
-              <button key={s} onClick={()=>setFilter(s)} style={{fontSize:11,padding:'6px 12px',borderRadius:20,border:`0.5px solid ${filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'rgba(255,255,255,0.08)'}`,background:filter===s?`${STATUS_COLOR[s]||'#2d7dd2'}20`:'transparent',color:filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'#555',cursor:'pointer',fontWeight:filter===s?700:400,fontFamily:'inherit'}}>
+              <button key={s} onClick={()=>setFilter(s)} style={{fontSize:11,padding:'6px 12px',borderRadius:20,border:`0.5px solid ${filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'rgba(0,0,0,0.08)'}`,background:filter===s?`${STATUS_COLOR[s]||'#2d7dd2'}20`:'transparent',color:filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'#555',cursor:'pointer',fontWeight:filter===s?700:400,fontFamily:'inherit'}}>
                 {s==='all'?`All (${orders.length})`:STATUS_LABEL[s]+' ('+grouped[s].length+')'}
               </button>
             ))}
@@ -347,17 +347,17 @@ export default function AdminOrders() {
               const hasPartial = (parseFloat(order.amount_paid)||0) > 0 && !isPaid
               return (
                 <div key={order.id} onClick={()=>{setSel(order===sel?null:order);setTab('details');setShowETA(false);setShowPayment(false);setShowUnits(false)}}
-                  style={{background: (parseFloat(order.amount_paid)||0)<=0 && !['completed','cancelled'].includes(order.status) ? 'rgba(231,76,60,0.03)' : '#111', border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(255,255,255,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
+                  style={{background: (parseFloat(order.amount_paid)||0)<=0 && !['completed','cancelled'].includes(order.status) ? 'rgba(231,76,60,0.03)' : '#111', border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(0,0,0,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                     <div>
-                      <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:1}}>#{order.order_number}</div>
-                      <div style={{fontSize:12,fontWeight:600,color:'#aaa',marginBottom:1}}>
+                      <div style={{fontSize:14,fontWeight:700,color:'#111',marginBottom:1}}>#{order.order_number}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:'#777',marginBottom:1}}>
                         {oc ? `${oc.contact_name} · ${oc.business_name}` : (order.notes||'').split('Business: ')[1]?.split(/[|\n]/)[0]?.trim() || 'Unknown client'}
                       </div>
-                      <div style={{fontSize:10,color:'#555'}}>{fmt(order.submitted_at)}</div>
+                      <div style={{fontSize:10,color:'#999'}}>{fmt(order.submitted_at)}</div>
                     </div>
                     <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{money(order.total)}</div>
+                      <div style={{fontSize:18,fontWeight:800,color:'#111'}}>{money(order.total)}</div>
                       <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:STATUS_COLOR[order.status]+'20',color:STATUS_COLOR[order.status],fontWeight:700}}>{STATUS_LABEL[order.status]}</span>
                       {isPaid
                         ? <div style={{fontSize:9,color:'#2a7d4f',marginTop:2,fontWeight:700}}>✓ Paid</div>
@@ -374,9 +374,9 @@ export default function AdminOrders() {
                   </div>
                   <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
                     {order.order_items?.slice(0,3).map((i,idx)=>(
-                      <span key={idx} style={{fontSize:9,padding:'2px 7px',background:'rgba(255,255,255,0.04)',color:'#666',borderRadius:8}}>{i.product_name} ×{i.quantity}</span>
+                      <span key={idx} style={{fontSize:9,padding:'2px 7px',background:'rgba(0,0,0,0.04)',color:'#666',borderRadius:8}}>{i.product_name} ×{i.quantity}</span>
                     ))}
-                    {order.order_items?.length>3 && <span style={{fontSize:9,color:'#444'}}>+{order.order_items.length-3} more</span>}
+                    {order.order_items?.length>3 && <span style={{fontSize:9,color:'#888'}}>+{order.order_items.length-3} more</span>}
                     {order.payment_proof_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(42,125,79,0.1)',color:'#2a7d4f',borderRadius:8}}>✓ Proof</span>}
                     {order.bol_url && <span style={{fontSize:9,padding:'2px 7px',background:'rgba(45,125,210,0.1)',color:'#2d7dd2',borderRadius:8}}>BOL</span>}
                   </div>
@@ -388,7 +388,7 @@ export default function AdminOrders() {
               <>
                 {/* ACTIVE ORDERS */}
                 {active.length === 0 && filter==='all'
-                  ? <div style={{padding:'2rem',textAlign:'center',color:'#555',fontSize:13,background:'#111',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6,marginBottom:12}}>No active orders 🎉</div>
+                  ? <div style={{padding:'2rem',textAlign:'center',color:'#999',fontSize:13,background:'#fff',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:6,marginBottom:12}}>No active orders 🎉</div>
                   : active.map(renderOrder)
                 }
 
@@ -396,11 +396,11 @@ export default function AdminOrders() {
                 {done.length > 0 && filter==='all' && (
                   <div style={{marginTop:8,marginBottom:4}}>
                     <button onClick={()=>setShowDone(p=>!p)}
-                      style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'rgba(255,255,255,0.02)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:6,cursor:'pointer',color:'#555',fontFamily:'inherit',fontSize:12}}>
+                      style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'rgba(0,0,0,0.02)',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:6,cursor:'pointer',color:'#999',fontFamily:'inherit',fontSize:12}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <span style={{fontSize:14}}>{showDone?'▾':'▸'}</span>
                         <span style={{fontWeight:600,color:'#666'}}>Completed & archived</span>
-                        <span style={{fontSize:10,padding:'2px 8px',background:'rgba(255,255,255,0.06)',borderRadius:10,color:'#555'}}>{done.length} orders</span>
+                        <span style={{fontSize:10,padding:'2px 8px',background:'rgba(0,0,0,0.06)',borderRadius:10,color:'#999'}}>{done.length} orders</span>
                       </div>
                       <span style={{fontSize:11,color:'#2a7d4f',fontWeight:600}}>
                         ${done.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+(o.total||0),0).toLocaleString()} completed
@@ -424,25 +424,25 @@ export default function AdminOrders() {
         {/* RIGHT DETAIL */}
         {sel && (
           <div style={{position:'sticky',top:20}}>
-            <div style={{background:'#111',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:8,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.4)',maxHeight:'92vh',display:'flex',flexDirection:'column'}}>
+            <div style={{background:'#fff',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:8,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.4)',maxHeight:'92vh',display:'flex',flexDirection:'column'}}>
 
               {/* HEADER */}
               <div style={{background:'linear-gradient(135deg,#0d0d0d,#1a1a2e)',padding:'1.25rem 1.5rem',flexShrink:0}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'0.875rem'}}>
                   <div>
                     <div style={{fontSize:10,color:sc,letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:3,fontWeight:700}}>{STATUS_LABEL[sel.status]}</div>
-                    <div style={{fontSize:22,fontWeight:900,color:'#fff',marginBottom:2}}>#{sel.order_number}</div>
-                    <div style={{fontSize:11,color:'#555'}}>{fmt(sel.submitted_at)}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:'#111',marginBottom:2}}>#{sel.order_number}</div>
+                    <div style={{fontSize:11,color:'#999'}}>{fmt(sel.submitted_at)}</div>
                   </div>
                   <div style={{display:'flex',gap:6,alignItems:'center'}}>
                     <button onClick={()=>printInvoice(sel)} style={{padding:'8px 14px',background:'rgba(45,125,210,0.15)',color:'#2d7dd2',fontSize:11,fontWeight:700,border:'0.5px solid rgba(45,125,210,0.35)',cursor:'pointer',borderRadius:4}}>🖨 Invoice</button>
-                    <button onClick={()=>setSel(null)} style={{background:'rgba(255,255,255,0.08)',border:'none',color:'#888',cursor:'pointer',width:28,height:28,borderRadius:'50%',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                    <button onClick={()=>setSel(null)} style={{background:'rgba(0,0,0,0.08)',border:'none',color:'#666',cursor:'pointer',width:28,height:28,borderRadius:'50%',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                   </div>
                 </div>
                 {/* Next action */}
                 {NEXT_STATUS[sel.status] && (
                   <button onClick={()=>updateStatus(sel.id,NEXT_STATUS[sel.status])}
-                    style={{width:'100%',padding:'9px',background:sc,color:'#fff',fontSize:12,fontWeight:700,border:'none',cursor:'pointer',borderRadius:4,boxShadow:`0 4px 16px ${sc}40`,marginBottom:6}}>
+                    style={{width:'100%',padding:'9px',background:sc,color:'#111',fontSize:12,fontWeight:700,border:'none',cursor:'pointer',borderRadius:4,boxShadow:`0 4px 16px ${sc}40`,marginBottom:6}}>
                     {NEXT_LABEL[sel.status]} →
                   </button>
                 )}
@@ -452,7 +452,7 @@ export default function AdminOrders() {
               </div>
 
               {/* TABS */}
-              <div style={{display:'flex',background:'#0d0d0d',borderBottom:'0.5px solid rgba(255,255,255,0.06)',flexShrink:0}}>
+              <div style={{display:'flex',background:'#f8f9fa',borderBottom:'0.5px solid rgba(0,0,0,0.08)',flexShrink:0}}>
                 {[['details','📋 Details'],['client','👤 Client'],['payment','💳 Payment'],['shipment','📦 Shipment']].map(([k,l])=>(
                   <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'9px 4px',fontSize:10,fontWeight:600,color:tab===k?'#2d7dd2':'#555',background:'transparent',border:'none',borderBottom:`2px solid ${tab===k?'#2d7dd2':'transparent'}`,cursor:'pointer'}}>
                     {l}
@@ -467,45 +467,45 @@ export default function AdminOrders() {
                 {tab==='details' && (
                   <div style={{padding:'1.25rem 1.5rem'}}>
                     {/* Items */}
-                    <div style={{fontSize:9,color:'#888',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{fontSize:9,color:'#666',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                       <span>Items · {sel.order_items?.length} products · {sel.order_items?.reduce((s,i)=>s+i.quantity,0)} units</span>
                       <button onClick={()=>{setShowUnits(!showUnits);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
                     </div>
                     {showUnits ? (
                       <div style={{background:'rgba(196,154,0,0.04)',border:'0.5px solid rgba(196,154,0,0.15)',borderRadius:4,padding:'0.875rem',marginBottom:12}}>
                         {unitItems.map((item,i)=>(
-                          <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:i<unitItems.length-1?'0.5px solid rgba(255,255,255,0.04)':'none'}}>
-                            <span style={{fontSize:12,color:'#ccc',flex:1}}>{item.product_name}</span>
+                          <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:i<unitItems.length-1?'0.5px solid rgba(0,0,0,0.04)':'none'}}>
+                            <span style={{fontSize:12,color:'#333',flex:1}}>{item.product_name}</span>
                             <div style={{display:'flex',alignItems:'center',gap:8}}>
                               <input type="number" min="1" value={item.quantity}
                                 onChange={e=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,quantity:parseInt(e.target.value)||1}:it))}
-                                style={{width:60,background:'#1a1a1a',border:'0.5px solid rgba(255,255,255,0.1)',color:'#ddd',fontSize:12,padding:'5px 8px',borderRadius:3,outline:'none',textAlign:'center'}}/>
-                              <span style={{fontSize:11,color:'#555'}}>${(item.unit_price*(unitItems[i].quantity||1)).toLocaleString()}</span>
+                                style={{width:60,background:'#f0f1f3',border:'0.5px solid rgba(0,0,0,0.1)',color:'#888',fontSize:12,padding:'5px 8px',borderRadius:3,outline:'none',textAlign:'center'}}/>
+                              <span style={{fontSize:11,color:'#999'}}>${(item.unit_price*(unitItems[i].quantity||1)).toLocaleString()}</span>
                             </div>
                           </div>
                         ))}
-                        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',marginTop:4,borderTop:'0.5px solid rgba(255,255,255,0.08)'}}>
-                          <span style={{fontSize:11,color:'#888'}}>New total</span>
-                          <span style={{fontSize:14,fontWeight:700,color:'#fff'}}>${unitItems.reduce((s,i)=>s+(i.unit_price*(parseInt(i.quantity)||1)),0).toLocaleString()}</span>
+                        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',marginTop:4,borderTop:'0.5px solid rgba(0,0,0,0.08)'}}>
+                          <span style={{fontSize:11,color:'#666'}}>New total</span>
+                          <span style={{fontSize:14,fontWeight:700,color:'#111'}}>${unitItems.reduce((s,i)=>s+(i.unit_price*(parseInt(i.quantity)||1)),0).toLocaleString()}</span>
                         </div>
                         <div style={{display:'flex',gap:6,marginTop:8}}>
-                          <button onClick={saveUnits} disabled={saving} style={{flex:1,padding:8,background:'#c49a00',color:'#fff',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Save'}</button>
-                          <button onClick={()=>setShowUnits(false)} style={{padding:'8px 12px',background:'transparent',color:'#555',fontSize:11,border:'0.5px solid rgba(255,255,255,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
+                          <button onClick={saveUnits} disabled={saving} style={{flex:1,padding:8,background:'#c49a00',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Save'}</button>
+                          <button onClick={()=>setShowUnits(false)} style={{padding:'8px 12px',background:'transparent',color:'#999',fontSize:11,border:'0.5px solid rgba(0,0,0,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <>
                         {sel.order_items?.map((item,i)=>(
-                          <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i<sel.order_items.length-1?'0.5px solid rgba(255,255,255,0.05)':'none'}}>
+                          <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i<sel.order_items.length-1?'0.5px solid rgba(0,0,0,0.05)':'none'}}>
                             <div>
-                              <div style={{fontSize:13,fontWeight:600,color:'#ccc',marginBottom:1}}>{item.product_name}</div>
-                              <div style={{fontSize:10,color:'#555'}}>{item.quantity} units × {money(item.unit_price)}</div>
+                              <div style={{fontSize:13,fontWeight:600,color:'#333',marginBottom:1}}>{item.product_name}</div>
+                              <div style={{fontSize:10,color:'#999'}}>{item.quantity} units × {money(item.unit_price)}</div>
                             </div>
-                            <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{money(item.unit_price*item.quantity)}</div>
+                            <div style={{fontSize:14,fontWeight:700,color:'#111'}}>{money(item.unit_price*item.quantity)}</div>
                           </div>
                         ))}
                         <div style={{marginTop:10,padding:'12px 14px',background:`${sc}15`,border:`0.5px solid ${sc}30`,borderRadius:4,display:'flex',justifyContent:'space-between'}}>
-                          <span style={{fontSize:12,fontWeight:600,color:'#ccc'}}>Order total</span>
+                          <span style={{fontSize:12,fontWeight:600,color:'#333'}}>Order total</span>
                           <span style={{fontSize:22,fontWeight:900,color:sc}}>{money(sel.total)}</span>
                         </div>
                       </>
@@ -516,7 +516,7 @@ export default function AdminOrders() {
                       <div style={{marginTop:12,padding:'10px 14px',background:'rgba(42,125,79,0.08)',border:'0.5px solid rgba(42,125,79,0.25)',borderRadius:4}}>
                         <div style={{fontSize:9,color:'#2a7d4f',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:2}}>ETA</div>
                         <div style={{fontSize:14,fontWeight:700,color:'#4ade80'}}>{new Date(sel.eta+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-                        {sel.eta_notes && <div style={{fontSize:11,color:'#888',marginTop:2}}>{sel.eta_notes}</div>}
+                        {sel.eta_notes && <div style={{fontSize:11,color:'#666',marginTop:2}}>{sel.eta_notes}</div>}
                       </div>
                     )}
                   </div>
@@ -532,8 +532,8 @@ export default function AdminOrders() {
                             {selClient.business_name?.[0]||'?'}
                           </div>
                           <div>
-                            <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{selClient.business_name}</div>
-                            <div style={{fontSize:11,color:'#888'}}>{selClient.contact_name}</div>
+                            <div style={{fontSize:14,fontWeight:700,color:'#111'}}>{selClient.business_name}</div>
+                            <div style={{fontSize:11,color:'#666'}}>{selClient.contact_name}</div>
                           </div>
                           <Link href="/admin/clients" style={{marginLeft:'auto',fontSize:10,color:'#2d7dd2',textDecoration:'none',background:'rgba(45,125,210,0.1)',padding:'5px 10px',borderRadius:3,border:'0.5px solid rgba(45,125,210,0.2)'}}>View profile →</Link>
                         </div>
@@ -548,13 +548,13 @@ export default function AdminOrders() {
                           ['EIN','🔢',selClient.ein_number||selClient.ein],
                           ['Resale tax #','📄',selClient.resale_tax_number],
                         ].filter(([,, v])=>v).map(([label,icon,val])=>(
-                          <div key={label} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderTop:'0.5px solid rgba(255,255,255,0.05)',alignItems:'flex-start',gap:8}}>
-                            <span style={{fontSize:11,color:'#555',flexShrink:0}}>{icon} {label}</span>
-                            <span style={{fontSize:11,color:'#ccc',textAlign:'right',wordBreak:'break-all'}}>{val}</span>
+                          <div key={label} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderTop:'0.5px solid rgba(0,0,0,0.05)',alignItems:'flex-start',gap:8}}>
+                            <span style={{fontSize:11,color:'#999',flexShrink:0}}>{icon} {label}</span>
+                            <span style={{fontSize:11,color:'#333',textAlign:'right',wordBreak:'break-all'}}>{val}</span>
                           </div>
                         ))}
                         <a href={`tel:${selClient.phone}`} style={{display:'block',marginTop:10,padding:'9px',background:'rgba(45,125,210,0.1)',border:'0.5px solid rgba(45,125,210,0.25)',borderRadius:4,fontSize:12,fontWeight:600,color:'#2d7dd2',textAlign:'center',textDecoration:'none'}}>📞 Call client</a>
-                        <a href={`mailto:${selClient.email}`} style={{display:'block',marginTop:6,padding:'9px',background:'rgba(255,255,255,0.04)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:4,fontSize:12,fontWeight:600,color:'#aaa',textAlign:'center',textDecoration:'none'}}>📧 Email client</a>
+                        <a href={`mailto:${selClient.email}`} style={{display:'block',marginTop:6,padding:'9px',background:'rgba(0,0,0,0.04)',border:'0.5px solid rgba(0,0,0,0.08)',borderRadius:4,fontSize:12,fontWeight:600,color:'#777',textAlign:'center',textDecoration:'none'}}>📧 Email client</a>
                       </>
                     ) : (
                       <div>
@@ -566,9 +566,9 @@ export default function AdminOrders() {
                           ['Email',(sel.notes||'').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim()],
                           ['Phone',(sel.notes||'').split('Phone: ')[1]?.split(/[|\n]/)[0]?.trim()],
                         ].filter(([,v])=>v).map(([l,v])=>(
-                          <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'0.5px solid rgba(255,255,255,0.05)',fontSize:11}}>
-                            <span style={{color:'#555'}}>{l}</span>
-                            <span style={{color:'#ccc'}}>{v}</span>
+                          <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'0.5px solid rgba(0,0,0,0.05)',fontSize:11}}>
+                            <span style={{color:'#999'}}>{l}</span>
+                            <span style={{color:'#333'}}>{v}</span>
                           </div>
                         ))}
                         {sel.payment_proof_url && (
@@ -591,22 +591,22 @@ export default function AdminOrders() {
                         ['Paid',money(paid),'#2a7d4f'],
                         ['Balance',money(balance),balance>0?'#e74c3c':'#2a7d4f'],
                       ].map(([l,v,c])=>(
-                        <div key={l} style={{padding:'10px',background:'rgba(255,255,255,0.03)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:4,textAlign:'center'}}>
-                          <div style={{fontSize:8,color:'#555',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:4}}>{l}</div>
+                        <div key={l} style={{padding:'10px',background:'rgba(0,0,0,0.03)',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:4,textAlign:'center'}}>
+                          <div style={{fontSize:8,color:'#999',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:4}}>{l}</div>
                           <div style={{fontSize:15,fontWeight:700,color:c}}>{v}</div>
                         </div>
                       ))}
                     </div>
                     {/* Progress bar */}
-                    <div style={{height:5,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden',marginBottom:'1rem'}}>
+                    <div style={{height:5,background:'rgba(0,0,0,0.06)',borderRadius:3,overflow:'hidden',marginBottom:'1rem'}}>
                       <div style={{height:'100%',width:`${Math.min(100,(paid/sel.total)*100)}%`,background:'#2a7d4f',borderRadius:3}}/>
                     </div>
                     {/* Payment log */}
                     {sel.payment_notes && (
-                      <div style={{marginBottom:'1rem',padding:'10px 12px',background:'rgba(255,255,255,0.03)',border:'0.5px solid rgba(255,255,255,0.06)',borderRadius:4}}>
-                        <div style={{fontSize:9,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Payment log</div>
+                      <div style={{marginBottom:'1rem',padding:'10px 12px',background:'rgba(0,0,0,0.03)',border:'0.5px solid rgba(0,0,0,0.06)',borderRadius:4}}>
+                        <div style={{fontSize:9,color:'#666',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontWeight:700}}>Payment log</div>
                         {sel.payment_notes.split('\n').filter(Boolean).map((line,i)=>(
-                          <div key={i} style={{fontSize:11,color:'#aaa',padding:'4px 0',borderTop:i>0?'0.5px solid rgba(255,255,255,0.04)':'none'}}>{line}</div>
+                          <div key={i} style={{fontSize:11,color:'#777',padding:'4px 0',borderTop:i>0?'0.5px solid rgba(0,0,0,0.04)':'none'}}>{line}</div>
                         ))}
                       </div>
                     )}
@@ -620,7 +620,7 @@ export default function AdminOrders() {
                             await createClient().from('orders').update({payment_account:val}).eq('id',sel.id)
                             setSel(prev=>({...prev,payment_account:val}))
                             setOrders(prev=>prev.map(o=>o.id===sel.id?{...o,payment_account:val}:o))
-                          }} style={{padding:'7px 4px',fontSize:10,fontWeight:700,border:`1px solid ${(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'rgba(255,255,255,0.08)'}`,background:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'rgba(167,139,250,0.15)':'transparent',color:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'#555',borderRadius:4,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
+                          }} style={{padding:'7px 4px',fontSize:10,fontWeight:700,border:`1px solid ${(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'rgba(0,0,0,0.08)'}`,background:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'rgba(167,139,250,0.15)':'transparent',color:(sel.payment_account||'company')===acc.toLowerCase().replace(' ','_')?'#a78bfa':'#555',borderRadius:4,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
                             {acc}
                           </button>
                         ))}
@@ -644,8 +644,8 @@ export default function AdminOrders() {
                           </div>
                         </div>
                         <div style={{display:'flex',gap:6}}>
-                          <button onClick={savePayment} disabled={saving} style={{flex:1,padding:8,background:'#2d7dd2',color:'#fff',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Record'}</button>
-                          <button onClick={()=>setShowPayment(false)} style={{padding:'8px 12px',background:'transparent',color:'#555',fontSize:11,border:'0.5px solid rgba(255,255,255,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
+                          <button onClick={savePayment} disabled={saving} style={{flex:1,padding:8,background:'#2d7dd2',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Record'}</button>
+                          <button onClick={()=>setShowPayment(false)} style={{padding:'8px 12px',background:'transparent',color:'#999',fontSize:11,border:'0.5px solid rgba(0,0,0,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
                         </div>
                       </div>
                     )}
@@ -664,7 +664,7 @@ export default function AdminOrders() {
                     {/* ETA */}
                     <div style={{marginBottom:'1.25rem'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                        <div style={{fontSize:9,color:'#888',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700}}>ETA — Estimated arrival</div>
+                        <div style={{fontSize:9,color:'#666',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700}}>ETA — Estimated arrival</div>
                         <button onClick={()=>{setShowETA(!showETA);setEtaForm({eta:sel.eta||'',eta_notes:sel.eta_notes||''})}} style={{fontSize:10,color:'#2d7dd2',background:'rgba(45,125,210,0.1)',border:'0.5px solid rgba(45,125,210,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>
                           {sel.eta?'✏️ Edit':'+ Set ETA'}
                         </button>
@@ -672,37 +672,37 @@ export default function AdminOrders() {
                       {sel.eta && !showETA && (
                         <div style={{padding:'12px',background:'rgba(42,125,79,0.08)',border:'0.5px solid rgba(42,125,79,0.25)',borderRadius:4}}>
                           <div style={{fontSize:16,fontWeight:700,color:'#4ade80'}}>{new Date(sel.eta+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-                          {sel.eta_notes && <div style={{fontSize:11,color:'#888',marginTop:2}}>{sel.eta_notes}</div>}
+                          {sel.eta_notes && <div style={{fontSize:11,color:'#666',marginTop:2}}>{sel.eta_notes}</div>}
                         </div>
                       )}
                       {showETA && (
                         <div style={{background:'rgba(45,125,210,0.04)',border:'0.5px solid rgba(45,125,210,0.15)',borderRadius:4,padding:'0.875rem'}}>
                           <div style={{marginBottom:8}}>
                             <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Arrival date</label>
-                            <input type="date" value={etaForm.eta} onChange={e=>setEtaForm(f=>({...f,eta:e.target.value}))} style={{...inp,colorScheme:'dark'}}/>
+                            <input type="date" value={etaForm.eta} onChange={e=>setEtaForm(f=>({...f,eta:e.target.value}))} style={{...inp,colorScheme:'light'}}/>
                           </div>
                           <div style={{marginBottom:8}}>
                             <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Notes (optional)</label>
                             <input value={etaForm.eta_notes} onChange={e=>setEtaForm(f=>({...f,eta_notes:e.target.value}))} placeholder="e.g. Arriving by truck" style={inp}/>
                           </div>
                           <div style={{display:'flex',gap:6}}>
-                            <button onClick={saveETA} disabled={saving} style={{flex:1,padding:8,background:'#2d7dd2',color:'#fff',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Save ETA'}</button>
-                            <button onClick={()=>setShowETA(false)} style={{padding:'8px 12px',background:'transparent',color:'#555',fontSize:11,border:'0.5px solid rgba(255,255,255,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
+                            <button onClick={saveETA} disabled={saving} style={{flex:1,padding:8,background:'#2d7dd2',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Save ETA'}</button>
+                            <button onClick={()=>setShowETA(false)} style={{padding:'8px 12px',background:'transparent',color:'#999',fontSize:11,border:'0.5px solid rgba(0,0,0,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
                           </div>
                         </div>
                       )}
                     </div>
                     {/* Shipment details */}
-                    <div style={{fontSize:9,color:'#888',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:8}}>Shipment details</div>
+                    <div style={{fontSize:9,color:'#666',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:8}}>Shipment details</div>
                     {[
                       ['Weight',sel.shipment_weight],
                       ['Dimensions',sel.shipment_dimensions],
                       ['Pallets',sel.shipment_pallets ? sel.shipment_pallets+' pallet(s)':null],
                       ['Notes',sel.shipment_notes],
                     ].filter(([,v])=>v).map(([l,v])=>(
-                      <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'0.5px solid rgba(255,255,255,0.05)',fontSize:11}}>
-                        <span style={{color:'#555'}}>{l}</span>
-                        <span style={{color:'#ccc'}}>{v}</span>
+                      <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'0.5px solid rgba(0,0,0,0.05)',fontSize:11}}>
+                        <span style={{color:'#999'}}>{l}</span>
+                        <span style={{color:'#333'}}>{v}</span>
                       </div>
                     ))}
                     {/* BOL & Labels */}
