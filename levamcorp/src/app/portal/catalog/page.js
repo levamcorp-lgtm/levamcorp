@@ -434,9 +434,15 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
   const [qty, setQty] = useState(product.moq || 1)
   const [added, setAdded] = useState(inCart)
   const [expanded, setExpanded] = useState(false)
+  const [selVar, setSelVar] = useState(null) // selected variation index
   const maxQty = product.stock || 0
   const outOfStock = product.stock === 0 || product.stock === null
   const handleAdd = () => { if (outOfStock) return; onAdd(qty); setAdded(true) }
+  const hasVariations = product.variations?.length > 0
+  const activeVar = selVar !== null ? product.variations[selVar] : null
+  const displayImage = activeVar?.image_url || product.image_url
+  const displayPrice = activeVar ? (product.price + (activeVar.price_diff || 0)) : product.price
+  const displayStock = activeVar?.stock != null ? activeVar.stock : product.stock
 
   return (
     <div onMouseEnter={() => onHover(product.id)} onMouseLeave={() => onHover(null)}
@@ -444,8 +450,8 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
 
       {/* IMAGE */}
       <div style={{ position: 'relative', width: '100%', paddingBottom: '72%', overflow: 'hidden', background: '#fafafa', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-        {product.image_url ? (
-          <img src={product.image_url} alt={product.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 12 }} />
+        {displayImage ? (
+          <img src={displayImage} alt={activeVar?.name || product.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 12, transition: 'opacity 0.2s' }} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>{categoryIcon(product.category)}</div>
         )}
@@ -465,20 +471,47 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
       <div style={{ padding: '0.875rem' }}>
         {product.brand && <div style={{ fontSize: 9, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{product.brand}</div>}
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3, lineHeight: 1.3 }}>{product.name}</div>
-        {product.variations?.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
-            {product.variations.slice(0, 8).map((v, i) => (
-              <div key={i} title={v.name + (v.color ? ' — ' + v.color : '')}
-                style={{ width: 14, height: 14, borderRadius: '50%', background: v.hex || '#888', border: '1.5px solid rgba(0,0,0,0.12)', cursor: 'default', flexShrink: 0 }}/>
-            ))}
-            {product.variations.length > 8 && <span style={{ fontSize: 9, color: '#aaa' }}>+{product.variations.length - 8}</span>}
-            <span style={{ fontSize: 9, color: '#aaa', marginLeft: 2 }}>{product.variations.length} color{product.variations.length !== 1 ? 's' : ''}</span>
+        {hasVariations && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 9, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 6 }}>
+              Available colors — {product.variations.length} option{product.variations.length !== 1 ? 's' : ''}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {/* "All / Default" tab */}
+              <button onClick={() => setSelVar(null)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px 4px 6px', background: selVar === null ? '#111' : '#f7f8fa', border: `1.5px solid ${selVar === null ? '#111' : 'rgba(0,0,0,0.1)'}`, borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'linear-gradient(135deg,#eee 50%,#333 50%)', border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0 }}/>
+                <span style={{ fontSize: 10, fontWeight: 600, color: selVar === null ? '#fff' : '#555' }}>All</span>
+              </button>
+              {product.variations.map((v, i) => (
+                <button key={i} onClick={() => setSelVar(selVar === i ? null : i)}
+                  title={v.color || v.name}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px 4px 6px', background: selVar === i ? '#111' : '#f7f8fa', border: `1.5px solid ${selVar === i ? '#111' : 'rgba(0,0,0,0.1)'}`, borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: v.hex || '#888', border: '1.5px solid rgba(0,0,0,0.15)', flexShrink: 0 }}/>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: selVar === i ? '#fff' : '#555' }}>{v.name}</span>
+                  {v.stock != null && <span style={{ fontSize: 9, color: selVar === i ? 'rgba(255,255,255,0.5)' : '#bbb' }}>·{v.stock}</span>}
+                </button>
+              ))}
+            </div>
+            {activeVar && (
+              <div style={{ marginTop: 6, fontSize: 10, color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeVar.hex }}/>
+                {activeVar.color || activeVar.name}
+                {activeVar.price_diff && activeVar.price_diff !== 0 && (
+                  <span style={{ color: activeVar.price_diff > 0 ? '#e74c3c' : '#2a7d4f', fontWeight: 600 }}>
+                    {activeVar.price_diff > 0 ? '+' : ''}${activeVar.price_diff}
+                  </span>
+                )}
+                {activeVar.stock != null && <span>· {activeVar.stock} units</span>}
+                {activeVar.image_url && <span style={{ color: '#2d7dd2' }}>· Photo available</span>}
+              </div>
+            )}
           </div>
         )}
         <div style={{ fontSize: 10, color: '#bbb', marginBottom: 8, fontFamily: 'monospace' }}>{product.sku}</div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>${product.price?.toLocaleString()}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>${displayPrice?.toLocaleString()}<span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>/unit</span></div>
           <div style={{ fontSize: 10, color: '#bbb' }}>⏱ {product.dispatch_days}</div>
         </div>
 
