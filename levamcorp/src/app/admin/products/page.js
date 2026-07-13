@@ -14,8 +14,20 @@ const emptyProduct = {
   condition: 'New', price: '', cost_price: '', stock: '', moq: '1',
   dispatch_days: '1-2 days', warehouse: 'WH: FL', upc: '', asin: '',
   weight: '', dimensions: '', description: '', image_url: '',
-  amazon_url: '', walmart_url: '', active: true,
+  amazon_url: '', walmart_url: '', active: true, variations: [],
 }
+
+const emptyVariation = { name: '', color: '', hex: '#888888', stock: '', price_diff: '0', image_url: '' }
+const PRESET_COLORS = [
+  { name:'Black',   hex:'#1a1a1a' },{ name:'White',   hex:'#f5f5f5' },
+  { name:'Red',     hex:'#e74c3c' },{ name:'Blue',    hex:'#2d7dd2' },
+  { name:'Green',   hex:'#2a7d4f' },{ name:'Yellow',  hex:'#f1c40f' },
+  { name:'Orange',  hex:'#e67e22' },{ name:'Purple',  hex:'#8e44ad' },
+  { name:'Pink',    hex:'#e91e8c' },{ name:'Gray',    hex:'#888888' },
+  { name:'Silver',  hex:'#bdc3c7' },{ name:'Gold',    hex:'#c49a00' },
+  { name:'Navy',    hex:'#2c3e7a' },{ name:'Teal',    hex:'#16a085' },
+  { name:'Brown',   hex:'#795548' },{ name:'Beige',   hex:'#d4b896' },
+]
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([])
@@ -28,6 +40,8 @@ export default function AdminProducts() {
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
   const [imageFile, setImageFile] = useState(null)
+  const [showVariations, setShowVariations] = useState(false)
+  const [newVariation, setNewVariation] = useState(emptyVariation)
   const [uploadingImg, setUploadingImg] = useState(false)
 
   useEffect(() => {
@@ -80,7 +94,27 @@ export default function AdminProducts() {
       const supabase = createClient()
       let imageUrl = form.image_url
       if (imageFile) { imageUrl = await uploadImage(imageFile) || imageUrl }
-      const payload = { ...form, image_url: imageUrl, price: parseFloat(form.price) || 0, cost_price: parseFloat(form.cost_price) || 0, stock: parseInt(form.stock) || 0, moq: parseInt(form.moq) || 1 }
+      const payload = {
+        ...form,
+        image_url: imageUrl,
+        price: parseFloat(form.price) || 0,
+        cost_price: parseFloat(form.cost_price) || null,
+        stock: parseInt(form.stock) || 0,
+        moq: parseInt(form.moq) || 1,
+        delivery_days: form.delivery_days ? parseInt(form.delivery_days) : null,
+        sku: form.sku || null,
+        upc: form.upc || null,
+        asin: form.asin || null,
+        weight: form.weight || null,
+        dimensions: form.dimensions || null,
+        condition: form.condition || null,
+        warehouse: form.warehouse || null,
+        amazon_url: form.amazon_url || null,
+        walmart_url: form.walmart_url || null,
+        description: form.description || null,
+        brand: form.brand || null,
+        variations: form.variations || [],
+      }
       if (editingId) {
         await supabase.from('products').update(payload).eq('id', editingId)
       } else {
@@ -91,6 +125,8 @@ export default function AdminProducts() {
       setEditingId(null)
       setForm(emptyProduct)
       setImageFile(null)
+      setShowVariations(false)
+      setNewVariation(emptyVariation)
     } catch (e) { alert('Error saving: ' + e.message) }
     setSaving(false)
   }
@@ -199,6 +235,98 @@ export default function AdminProducts() {
                     {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label style={lbl}>Delivery time (days)</label>
+                  <input style={inp} type="number" min="1" value={form.delivery_days || 2} onChange={e => setField('delivery_days', parseInt(e.target.value))} placeholder="2" />
+                </div>
+                {/* VARIATIONS SECTION */}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div>
+                      <label style={lbl}>Color / Size variations</label>
+                      <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>Add different colors or sizes with their own stock and price</div>
+                    </div>
+                    <button onClick={() => setShowVariations(!showVariations)}
+                      style={{ fontSize: 11, padding: '6px 12px', background: showVariations ? 'rgba(45,125,210,0.15)' : 'rgba(255,255,255,0.06)', color: showVariations ? '#2d7dd2' : '#888', border: `0.5px solid ${showVariations ? 'rgba(45,125,210,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                      {showVariations ? '▲ Hide' : '+ Add variations'}
+                    </button>
+                  </div>
+
+                  {/* Existing variations */}
+                  {form.variations?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                      {form.variations.map((v, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 6px', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6 }}>
+                          <div style={{ width: 16, height: 16, borderRadius: '50%', background: v.hex, border: '1px solid rgba(255,255,255,0.15)', flexShrink: 0 }}/>
+                          <span style={{ fontSize: 11, color: '#ccc', fontWeight: 600 }}>{v.name}</span>
+                          {v.stock && <span style={{ fontSize: 10, color: '#555' }}>·{v.stock}u</span>}
+                          {parseFloat(v.price_diff) !== 0 && <span style={{ fontSize: 10, color: parseFloat(v.price_diff) > 0 ? '#2a7d4f' : '#e74c3c' }}>{parseFloat(v.price_diff) > 0 ? '+' : ''}{v.price_diff}</span>}
+                          <button onClick={() => setForm(f => ({ ...f, variations: f.variations.filter((_, idx) => idx !== i) }))}
+                            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add variation form */}
+                  {showVariations && (
+                    <div style={{ background: 'rgba(45,125,210,0.04)', border: '0.5px solid rgba(45,125,210,0.15)', borderRadius: 8, padding: '1rem' }}>
+                      {/* Color presets */}
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Quick select color</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {PRESET_COLORS.map(pc => (
+                            <button key={pc.name} onClick={() => setNewVariation(v => ({ ...v, name: pc.name, hex: pc.hex }))}
+                              title={pc.name}
+                              style={{ width: 28, height: 28, borderRadius: '50%', background: pc.hex, border: `2px solid ${newVariation.hex === pc.hex ? '#2d7dd2' : 'transparent'}`, cursor: 'pointer', outline: 'none', boxShadow: newVariation.hex === pc.hex ? '0 0 0 1px #2d7dd2' : 'none' }}/>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Fields */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px 90px', gap: 8, marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Variation name *</div>
+                          <input value={newVariation.name} onChange={e => setNewVariation(v => ({ ...v, name: e.target.value }))} placeholder="e.g. Black, XL, Red..."
+                            style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Custom color name</div>
+                          <input value={newVariation.color} onChange={e => setNewVariation(v => ({ ...v, color: e.target.value }))} placeholder="e.g. Midnight Blue"
+                            style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>HEX color</div>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <input type="color" value={newVariation.hex} onChange={e => setNewVariation(v => ({ ...v, hex: e.target.value }))}
+                              style={{ width: 36, height: 34, borderRadius: 4, border: '0.5px solid rgba(255,255,255,0.1)', cursor: 'pointer', background: 'none', padding: 2 }}/>
+                            <input value={newVariation.hex} onChange={e => setNewVariation(v => ({ ...v, hex: e.target.value }))}
+                              style={{ flex: 1, background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 4, outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' }}/>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Stock</div>
+                          <input type="number" value={newVariation.stock} onChange={e => setNewVariation(v => ({ ...v, stock: e.target.value }))} placeholder="0"
+                            style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>+/- Price</div>
+                          <input type="number" value={newVariation.price_diff} onChange={e => setNewVariation(v => ({ ...v, price_diff: e.target.value }))} placeholder="0"
+                            style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '8px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!newVariation.name) return
+                          setForm(f => ({ ...f, variations: [...(f.variations || []), { ...newVariation, stock: newVariation.stock ? parseInt(newVariation.stock) : null, price_diff: parseFloat(newVariation.price_diff) || 0 }] }))
+                          setNewVariation(emptyVariation)
+                        }}
+                        style={{ padding: '8px 18px', background: '#2d7dd2', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        + Add variation
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label style={lbl}>Active</label>
                   <select style={inp} value={form.active ? 'true' : 'false'} onChange={e => setField('active', e.target.value === 'true')}>
