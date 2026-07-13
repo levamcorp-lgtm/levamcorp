@@ -465,6 +465,16 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
       <div style={{ padding: '0.875rem' }}>
         {product.brand && <div style={{ fontSize: 9, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{product.brand}</div>}
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 3, lineHeight: 1.3 }}>{product.name}</div>
+        {product.variations?.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
+            {product.variations.slice(0, 8).map((v, i) => (
+              <div key={i} title={v.name + (v.color ? ' — ' + v.color : '')}
+                style={{ width: 14, height: 14, borderRadius: '50%', background: v.hex || '#888', border: '1.5px solid rgba(0,0,0,0.12)', cursor: 'default', flexShrink: 0 }}/>
+            ))}
+            {product.variations.length > 8 && <span style={{ fontSize: 9, color: '#aaa' }}>+{product.variations.length - 8}</span>}
+            <span style={{ fontSize: 9, color: '#aaa', marginLeft: 2 }}>{product.variations.length} color{product.variations.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
         <div style={{ fontSize: 10, color: '#bbb', marginBottom: 8, fontFamily: 'monospace' }}>{product.sku}</div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
