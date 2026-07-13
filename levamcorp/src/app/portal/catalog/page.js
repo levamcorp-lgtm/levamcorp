@@ -330,8 +330,27 @@ export default function CatalogPage() {
                       <span style={{ fontWeight: 600, color: '#111' }}>${(item.price * item.qty).toLocaleString()}</span>
                     </div>
                   ))}
+                  {/* Prep center fees */}
+                  {shippingMethod === 'prep_center' && cartItems.some(i => i.prep_fee) && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                      <div style={{ fontSize: 9, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>Prep center fees</div>
+                      {cartItems.filter(i => i.prep_fee).map(item => (
+                        <div key={item.id + '_prep'} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
+                          <span style={{ color: '#888' }}>{item.name} prep ({item.qty} × ${item.prep_fee?.toFixed(2)})</span>
+                          <span style={{ fontWeight: 600, color: '#854f0b' }}>${(item.prep_fee * item.qty).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 11, fontWeight: 700 }}>
+                        <span style={{ color: '#555' }}>Total prep fees</span>
+                        <span style={{ color: '#854f0b' }}>${cartItems.filter(i=>i.prep_fee).reduce((s,i)=>s+(i.prep_fee*i.qty),0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.08)', fontSize: 16, fontWeight: 800, color: '#111' }}>
-                    <span>Total</span><span style={{ color: '#2d7dd2' }}>${cartTotal.toLocaleString()}</span>
+                    <span>Total</span>
+                    <span style={{ color: '#2d7dd2' }}>
+                      ${(cartTotal + (shippingMethod === 'prep_center' ? cartItems.filter(i=>i.prep_fee).reduce((s,i)=>s+(i.prep_fee*i.qty),0) : 0)).toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
@@ -504,19 +523,21 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
 
         {/* Stock + MOQ — CLEAR AND PROMINENT */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-          <div style={{ padding: '7px 10px', background: outOfStock ? '#f8f8f8' : displayStock <= 5 ? '#fff8ed' : '#f0faf4', border: `1px solid ${outOfStock ? '#eee' : displayStock <= 5 ? '#f0d080' : 'rgba(42,125,79,0.2)'}`, borderRadius: 6 }}>
-            <div style={{ fontSize: 8, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontWeight: 600 }}>In stock</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: outOfStock ? '#ccc' : displayStock <= 5 ? '#854f0b' : '#2a7d4f' }}>
-              {outOfStock ? '—' : displayStock}
-              {!outOfStock && <span style={{ fontSize: 10, fontWeight: 400, color: '#aaa', marginLeft: 3 }}>units</span>}
+          {/* STOCK */}
+          <div style={{ padding: '10px 12px', background: outOfStock ? '#fafafa' : displayStock <= 5 ? '#fffbeb' : '#f0fdf4', border: `1.5px solid ${outOfStock ? '#e5e5e5' : displayStock <= 5 ? '#fcd34d' : '#86efac'}`, borderRadius: 8 }}>
+            <div style={{ fontSize: 9, color: outOfStock ? '#bbb' : displayStock <= 5 ? '#92400e' : '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontWeight: 700 }}>
+              {outOfStock ? 'Out of stock' : displayStock <= 5 ? 'Low stock' : 'In stock'}
             </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: outOfStock ? '#d1d5db' : displayStock <= 5 ? '#b45309' : '#16a34a', lineHeight: 1 }}>
+              {outOfStock ? '0' : displayStock}
+            </div>
+            <div style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>units available</div>
           </div>
-          <div style={{ padding: '7px 10px', background: '#f0f4ff', border: '1px solid rgba(45,125,210,0.15)', borderRadius: 6 }}>
-            <div style={{ fontSize: 8, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontWeight: 600 }}>Min. order</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#2d7dd2' }}>
-              {moq}
-              <span style={{ fontSize: 10, fontWeight: 400, color: '#aaa', marginLeft: 3 }}>units</span>
-            </div>
+          {/* MOQ */}
+          <div style={{ padding: '10px 12px', background: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: 8 }}>
+            <div style={{ fontSize: 9, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontWeight: 700 }}>Min. order</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>{moq}</div>
+            <div style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>units minimum</div>
           </div>
         </div>
 
@@ -535,6 +556,23 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
           </div>
         )}
       </div>
+
+      {/* PREP CENTER NOTE */}
+      {product.prep_fee && (
+        <div style={{ margin: '0 14px 10px', padding: '10px 12px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+          <div style={{ fontSize: 9, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>Prep center service</div>
+          <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>
+            If you select <strong>Prep Center</strong> as your shipping method, labeling and prep services are available for this product.
+          </div>
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>${product.prep_fee.toFixed(2)}</span>
+            <span style={{ fontSize: 10, color: '#9ca3af' }}>per unit · includes labeling & prep</span>
+          </div>
+          <div style={{ marginTop: 4, fontSize: 10, color: '#9ca3af' }}>
+            For {qty} units: <strong style={{ color: '#374151' }}>${(product.prep_fee * qty).toFixed(2)}</strong> additional
+          </div>
+        </div>
+      )}
 
       {/* ADD TO QUOTE — fixed at bottom */}
       <div style={{ padding: '0 14px 14px' }}>
