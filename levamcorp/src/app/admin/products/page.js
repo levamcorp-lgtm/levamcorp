@@ -14,7 +14,7 @@ const emptyProduct = {
   condition: 'New', price: '', cost_price: '', stock: '', moq: '1',
   dispatch_days: '1-2 days', warehouse: 'WH: FL', upc: '', asin: '',
   weight: '', dimensions: '', description: '', image_url: '',
-  amazon_url: '', walmart_url: '', active: true, variations: [],
+  amazon_url: '', walmart_url: '', active: true, variations: [], prep_fee: '',
 }
 
 const emptyVariation = { name: '', color: '', hex: '#888888', stock: '', price_diff: '0', image_url: '' }
@@ -114,6 +114,7 @@ export default function AdminProducts() {
         description: form.description || null,
         brand: form.brand || null,
         variations: form.variations || [],
+        prep_fee: form.prep_fee ? parseFloat(form.prep_fee) : null,
       }
       if (editingId) {
         await supabase.from('products').update(payload).eq('id', editingId)
@@ -238,6 +239,11 @@ export default function AdminProducts() {
                 <div>
                   <label style={lbl}>Delivery time (days)</label>
                   <input style={inp} type="number" min="1" value={form.delivery_days || 2} onChange={e => setField('delivery_days', parseInt(e.target.value))} placeholder="2" />
+                </div>
+                <div>
+                  <label style={lbl}>Prep center fee ($/unit)</label>
+                  <input style={inp} type="number" step="0.25" min="0" value={form.prep_fee || ''} onChange={e => setField('prep_fee', e.target.value)} placeholder="e.g. 0.50 or 1.00" />
+                  <div style={{ fontSize: 9, color: '#555', marginTop: 4 }}>Fee for labeling/prep service · typically $0.50–$1.00/unit</div>
                 </div>
                 <div>
                   <label style={lbl}>Active</label>
@@ -405,6 +411,30 @@ export default function AdminProducts() {
                           style={{ width: '100%', background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 12, padding: '9px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
                       </div>
                     </div>
+                    {/* Variation image upload */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>Photo for this variation (optional)</div>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <input type="file" accept="image/*" onChange={async e => {
+                          const file = e.target.files[0]
+                          if (!file) return
+                          const sb = createClient()
+                          const ext = file.name.split('.').pop()
+                          const path = 'products/' + Date.now() + '-var.' + ext
+                          await sb.storage.from('product-images').upload(path, file, { upsert: true })
+                          const { data } = sb.storage.from('product-images').getPublicUrl(path)
+                          setNewVariation(v => ({ ...v, image_url: data.publicUrl }))
+                        }}
+                        style={{ background: '#1a1a1a', border: '0.5px solid rgba(255,255,255,0.1)', color: '#ddd', fontSize: 11, padding: '7px 10px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flex: 1 }}/>
+                        {newVariation.image_url && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <img src={newVariation.image_url} style={{ width: 48, height: 48, objectFit: 'contain', background: '#111', borderRadius: 4, border: '0.5px solid rgba(255,255,255,0.1)' }}/>
+                            <button onClick={() => setNewVariation(v => ({ ...v, image_url: '' }))} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 18, padding: 0 }}>×</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <button onClick={() => {
                           if (!newVariation.name) { alert('Enter a variation name'); return }
@@ -623,3 +653,4 @@ export default function AdminProducts() {
     </div>
   )
 }
+                      
