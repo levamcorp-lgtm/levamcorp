@@ -19,7 +19,7 @@ export default function OrdersPage() {
       const { data: ordersData } = await supabase
         .from('orders')
         .select('*, order_items(*)')
-        .eq('user_id', data.user.id)
+        .or(`user_id.eq.${data.user.id},notes.ilike.%${data.user.email}%`)
         .order('submitted_at', { ascending: false })
       setOrders(ordersData || [])
       setLoading(false)
