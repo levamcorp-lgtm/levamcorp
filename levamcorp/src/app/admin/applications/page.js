@@ -111,16 +111,16 @@ export default function AdminApplications() {
   const approved = applications.filter(a => a.status === 'approved').length
   const rejected = applications.filter(a => a.status === 'rejected').length
 
-  if (loading) return <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>Loading...</div>
+  if (loading) return <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>Loading...</div>
 
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
+    <div style={{ background: '#f4f5f7', minHeight: '100vh' }}>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#fff', textTransform: 'uppercase' }}>Levam Admin</div>
-          <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(255,255,255,0.06)', paddingLeft: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
+          <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.06)', paddingLeft: 16 }}>
             {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Applications' ? '#2d7dd2' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Applications' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
                 {label}
@@ -129,20 +129,20 @@ export default function AdminApplications() {
             ))}
           </div>
         </div>
-        <button onClick={handleLogout} style={{ fontSize: 11, color: '#555', border: '0.5px solid rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        <button onClick={handleLogout} style={{ fontSize: 11, color: '#999', border: '0.5px solid rgba(0,0,0,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
       </nav>
 
       {/* STATS */}
-      <div style={{ background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', padding: '1.25rem 2rem', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+      <div style={{ background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', padding: '1.25rem 2rem', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
         {[
           { label: 'Total applications', value: applications.length, color: '#2d7dd2', icon: '📋' },
           { label: 'Pending review', value: pending, color: pending > 0 ? '#854f0b' : '#555', icon: '⏳' },
           { label: 'Approved', value: approved, color: '#2a7d4f', icon: '✅' },
           { label: 'Rejected', value: rejected, color: rejected > 0 ? '#e74c3c' : '#555', icon: '✕' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 4, padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div key={s.label} style={{ background: 'rgba(0,0,0,0.03)', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 4, padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 9, color: '#999', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
             </div>
             <span style={{ fontSize: 20, opacity: 0.25 }}>{s.icon}</span>
@@ -153,8 +153,8 @@ export default function AdminApplications() {
       {/* FILTERS */}
       <div style={{ padding: '1.25rem 2rem', display: 'flex', gap: 8, alignItems: 'center' }}>
         {[['pending','⏳ Pending',pending,'#854f0b'],['approved','✅ Approved',approved,'#2a7d4f'],['rejected','✕ Rejected',rejected,'#e74c3c'],['all','All',applications.length,'#2d7dd2']].map(([val, label, count, color]) => (
-          <button key={val} onClick={() => setFilter(val)} style={{ fontSize: 11, fontWeight: filter === val ? 700 : 400, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${filter === val ? color : 'rgba(255,255,255,0.08)'}`, background: filter === val ? color + '20' : 'transparent', color: filter === val ? color : '#777', display: 'flex', alignItems: 'center', gap: 6 }}>
-            {label} <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '1px 6px' }}>{count}</span>
+          <button key={val} onClick={() => setFilter(val)} style={{ fontSize: 11, fontWeight: filter === val ? 700 : 400, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${filter === val ? color : 'rgba(0,0,0,0.08)'}`, background: filter === val ? color + '20' : 'transparent', color: filter === val ? color : '#777', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {label} <span style={{ fontSize: 9, background: 'rgba(0,0,0,0.08)', borderRadius: 10, padding: '1px 6px' }}>{count}</span>
           </button>
         ))}
       </div>
@@ -162,15 +162,15 @@ export default function AdminApplications() {
       {/* APPLICATIONS */}
       <div style={{ padding: '0 2rem 2rem' }}>
         {filtered.length === 0 ? (
-          <div style={{ background: '#111', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '4rem', textAlign: 'center' }}>
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, padding: '4rem', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 14, color: '#555' }}>No applications in this category</div>
+            <div style={{ fontSize: 14, color: '#999' }}>No applications in this category</div>
           </div>
         ) : filtered.map(app => {
           const s = statusConfig[app.status || 'pending']
           const isExpanded = expanded === app.id
           return (
-            <div key={app.id} style={{ background: '#111', border: `1px solid ${isExpanded ? s.color + '50' : 'rgba(255,255,255,0.06)'}`, borderLeft: `4px solid ${s.color}`, borderRadius: 6, marginBottom: 10, overflow: 'hidden', transition: 'all 0.2s' }}>
+            <div key={app.id} style={{ background: '#fff', border: `1px solid ${isExpanded ? s.color + '50' : 'rgba(0,0,0,0.06)'}`, borderLeft: `4px solid ${s.color}`, borderRadius: 6, marginBottom: 10, overflow: 'hidden', transition: 'all 0.2s' }}>
 
               {/* HEADER ROW */}
               <div onClick={() => setExpanded(isExpanded ? null : app.id)}
@@ -184,14 +184,14 @@ export default function AdminApplications() {
                 {/* Info */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{app.business_name}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#111' }}>{app.business_name}</div>
                     <span style={{ fontSize: 9, padding: '3px 10px', borderRadius: 10, background: s.bg, color: s.color, fontWeight: 700 }}>{s.icon} {s.label}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: '#888' }}>👤 {app.contact_name}</span>
-                    <span style={{ fontSize: 12, color: '#888' }}>📧 {app.email}</span>
-                    <span style={{ fontSize: 12, color: '#888' }}>📞 {app.phone}</span>
-                    <span style={{ fontSize: 12, color: '#555' }}>📅 {fmtDate(app.created_at)}</span>
+                    <span style={{ fontSize: 12, color: '#666' }}>👤 {app.contact_name}</span>
+                    <span style={{ fontSize: 12, color: '#666' }}>📧 {app.email}</span>
+                    <span style={{ fontSize: 12, color: '#666' }}>📞 {app.phone}</span>
+                    <span style={{ fontSize: 12, color: '#999' }}>📅 {fmtDate(app.created_at)}</span>
                   </div>
                 </div>
 
@@ -216,7 +216,7 @@ export default function AdminApplications() {
                 <div style={{ borderTop: `0.5px solid ${s.color}30` }}>
 
                   {/* FULL DETAILS GRID */}
-                  <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ padding: '1.5rem', background: 'rgba(0,0,0,0.02)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>📋 Complete application details</div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: '1.5rem' }}>
@@ -234,8 +234,8 @@ export default function AdminApplications() {
                         ['Applied on', fmtDate(app.created_at) + ' at ' + fmtTime(app.created_at), '🕐'],
                         ['Application ID', app.id?.slice(0,8).toUpperCase(), '🆔'],
                       ].map(([label, val, icon]) => (
-                        <div key={label} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 5 }}>
-                          <div style={{ fontSize: 9, color: '#555', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div key={label} style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 5 }}>
+                          <div style={{ fontSize: 9, color: '#999', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span>{icon}</span> {label}
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: val ? '#e0e0e0' : '#444' }}>{val || '—'}</div>
@@ -244,7 +244,7 @@ export default function AdminApplications() {
                     </div>
 
                     {/* DOCUMENTS */}
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#888', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>📁 Documents submitted</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#666', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>📁 Documents submitted</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: '1.5rem' }}>
                       {[
                         { label: 'EIN / SS4 Letter', number: app.ein_number, url: app.ein_document_url, icon: '🏛' },
@@ -254,12 +254,12 @@ export default function AdminApplications() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                             <span style={{ fontSize: 24 }}>{doc.icon}</span>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{doc.label}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 2 }}>{doc.label}</div>
                               <div style={{ fontSize: 11, color: '#666' }}>Number: {doc.number || '—'}</div>
                             </div>
                           </div>
                           {doc.url ? (
-                            <button onClick={() => getDocUrl(doc.url)} style={{ width: '100%', padding: '10px', background: '#2d7dd2', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 4, letterSpacing: '0.06em' }}>
+                            <button onClick={() => getDocUrl(doc.url)} style={{ width: '100%', padding: '10px', background: '#2d7dd2', color: '#111', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: 4, letterSpacing: '0.06em' }}>
                               📄 View / Download PDF
                             </button>
                           ) : (
@@ -276,7 +276,7 @@ export default function AdminApplications() {
                       {(!app.status || app.status === 'pending') && (
                         <>
                           <button onClick={() => approveApp(app)} disabled={approving === app.id}
-                            style={{ flex: 1, padding: '13px', background: approving === app.id ? '#333' : '#2a7d4f', color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 4, boxShadow: '0 4px 14px rgba(42,125,79,0.3)' }}>
+                            style={{ flex: 1, padding: '13px', background: approving === app.id ? '#333' : '#2a7d4f', color: '#111', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', borderRadius: 4, boxShadow: '0 4px 14px rgba(42,125,79,0.3)' }}>
                             {approving === app.id ? 'Approving...' : '✅ Approve & create client'}
                           </button>
                           <button onClick={() => rejectApp(app.id)}
