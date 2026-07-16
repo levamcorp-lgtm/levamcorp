@@ -3,237 +3,363 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
+const ADMIN_EMAIL = 'levamcorp@gmail.com'
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
-export default function AdminBroadcast() {
-  const [products, setProducts]   = useState([])
-  const [selected, setSelected]   = useState([])
-  const [loading,  setLoading]    = useState(true)
-  const [search,   setSearch]     = useState('')
-  const [filter,   setFilter]     = useState('all')
-  const [copied,   setCopied]     = useState(false)
-  const [template, setTemplate]   = useState('full') // full | compact | promo
-  const [header,   setHeader]     = useState('🔥 *LEVAM CORP — NEW ARRIVALS*\n_Premium wholesale deals, limited stock_\n\n')
-  const [footer,   setFooter]     = useState('\n\n📦 *Minimum order quantities apply*\n📍 Doral, FL — Fast dispatch\n📲 Contact us to place your order!')
-  const [note,     setNote]       = useState('')
+export default function AdminDashboard() {
+  const [data, setData] = useState({
+    orders: [], clients: [], applications: [], products: [],
+    payments: [], messages: [], investments: []
+  })
+  const [loading, setLoading] = useState(true)
+
+  const now = new Date()
+  const currentMonth = now.toLocaleString('en-US', { month: 'long' })
+  const currentYear = now.getFullYear()
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
 
   useEffect(() => {
-    const sb = createClient()
-    sb.auth.getUser().then(async ({ data }) => {
-      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
-      const { data: p } = await sb.from('products').select('*').eq('active', true).order('name')
-      setProducts(p || [])
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: authData }) => {
+      if (!authData.user || authData.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
+      const [
+        { data: orders }, { data: clients }, { data: applications },
+        { data: products }, { data: payments }, { data: messages },
+        { data: investments }
+      ] = await Promise.all([
+        supabase.from('orders').select('*, order_items(*, products(cost_price))').order('submitted_at', { ascending: false }),
+        supabase.from('clients').select('*').order('created_at', { ascending: false }),
+        supabase.from('applications').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('*').order('name'),
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+        supabase.from('partner_investments').select('*'),
+      ])
+      setData({ orders: orders||[], clients: clients||[], applications: applications||[], products: products||[], payments: payments||[], messages: messages||[], investments: investments||[] })
       setLoading(false)
     })
   }, [])
 
-  const logout = async () => { await createClient().auth.signOut(); window.location.href = '/admin' }
+  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
-  const toggle = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  const selProducts = products.filter(p => selected.includes(p.id))
+  // Calculations
+  const completedOrders = data.orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
+  const newOrders = data.orders.filter(o => o.status === 'new')
+  const activeOrders = data.orders.filter(o => ['review','confirmed','dispatched'].includes(o.status))
+  const pendingApps = data.applications.filter(a => a.status === 'pending' || !a.status)
+  const unreadMessages = data.messages.filter(m => m.status === 'new')
+  const pendingPayments = data.payments.filter(p => p.status === 'requested')
+  const proofSubmitted = data.payments.filter(p => p.status === 'processing')
+  const outOfStock = data.products.filter(p => p.stock === 0)
+  const lowStock = data.products.filter(p => p.stock > 0 && p.stock <= 5)
 
-  const cats = ['all', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))]
-  const visible = products.filter(p => {
-    const matchCat = filter === 'all' || p.category === filter
-    const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+  const totalRevenue = completedOrders.reduce((s, o) => s + (o.total || 0), 0)
+  const calcCost = (order) => (order.order_items || []).reduce((s, i) => s + ((i.products?.cost_price || 0) * i.quantity), 0)
+  const totalCost = completedOrders.reduce((s, o) => s + calcCost(o), 0)
+  const totalProfit = totalRevenue - totalCost
+
+  // Revenue includes confirmed, dispatched and completed orders
+  const monthOrders = completedOrders.filter(o => {
+    const d = new Date(o.submitted_at)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
   })
+  const monthRevenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0)
+  const monthCost = monthOrders.reduce((s, o) => s + calcCost(o), 0)
+  const monthProfit = monthRevenue - monthCost
 
-  const buildMessage = () => {
-    if (selProducts.length === 0) return ''
-    const divider = '━━━━━━━━━━━━━━━━━━━━━━━'
+  const currentInvestments = data.investments.filter(i => i.month === currentMonth && i.year === currentYear)
+  const victorInvested = currentInvestments.filter(i => i.partner_name === 'Victor').reduce((s, i) => s + i.amount, 0)
+  const leopoldoInvested = currentInvestments.filter(i => i.partner_name === 'Leopoldo').reduce((s, i) => s + i.amount, 0)
+  const totalInvested = victorInvested + leopoldoInvested
+  const victorShare = totalInvested > 0 ? victorInvested / totalInvested : 0.5
+  const leopoldoShare = totalInvested > 0 ? leopoldoInvested / totalInvested : 0.5
 
-    const lines = selProducts.map((p, i) => {
-      if (template === 'full') {
-        const parts = []
-        parts.push(`*${i + 1}. ${p.name}*`)
-        if (p.brand) parts.push(`🏷 Brand: ${p.brand}`)
-        parts.push(`💰 Price: *$${p.price?.toLocaleString()}*`)
-        if (p.moq) parts.push(`📦 MOQ: ${p.moq} unit${p.moq > 1 ? 's' : ''}`)
-        if (p.stock) parts.push(`✅ In stock: ${p.stock} units`)
-        if (p.delivery_days) parts.push(`⏱ Delivery: ${p.delivery_days} days`)
-        if (p.description) parts.push(`_${p.description}_`)
-        return parts.join('\n')
-      }
-      if (template === 'compact') {
-        return `*${i + 1}. ${p.name}*${p.brand ? ' — ' + p.brand : ''}\n💰 $${p.price?.toLocaleString()} | 📦 MOQ ${p.moq || 1} | ✅ ${p.stock || '?'} units`
-      }
-      if (template === 'promo') {
-        return `🔥 *${p.name}*\n💥 Only *$${p.price?.toLocaleString()}* per unit\n📦 MOQ: ${p.moq || 1} | Stock: ${p.stock || '?'} units`
-      }
-      return ''
-    }).join('\n' + divider + '\n')
-
-    return header + divider + '\n' + lines + '\n' + divider + (note ? '\n\n📝 ' + note : '') + footer
-  }
-
-  const message = buildMessage()
-
-  const copy = () => {
-    navigator.clipboard.writeText(message)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const openWhatsApp = () => {
-    const encoded = encodeURIComponent(message)
-    window.open(`https://wa.me/?text=${encoded}`, '_blank')
-  }
-
-  if (loading) return <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>Loading...</div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ position: 'relative', width: 48, height: 48, margin: '0 auto 16px' }}>
+          <div style={{ position: 'absolute', left: 10, top: 0, width: 3, height: 38, background: '#ddd' }} />
+          <div style={{ position: 'absolute', left: 10, bottom: 0, width: 26, height: 3, background: '#ddd' }} />
+          <div style={{ position: 'absolute', left: 16, bottom: 10, width: 16, height: 3, background: '#2d7dd2' }} />
+        </div>
+        <div style={{ fontSize: 12, color: '#666', letterSpacing: '0.1em' }}>Loading dashboard...</div>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ background: '#f4f5f7', minHeight: '100vh' }}>
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+
+      {/* NAV */}
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative', width: 28, height: 28 }}>
+              <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#ddd' }} />
+              <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#ddd' }} />
+              <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2.5, background: '#2d7dd2' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
+              <div style={{ fontSize: 7, color: '#666', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Staff only</div>
+            </div>
+          </div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast']].map(([l,h])=>(
-              <Link key={l} href={h} style={{ fontSize: 12, color: l==='Broadcast'?'#25D366':'#777', textDecoration: 'none', padding: '4px 14px', borderBottom: l==='Broadcast'?'2px solid #25D366':'2px solid transparent', fontWeight: l==='Broadcast'?700:400 }}>{l}</Link>
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([label, href]) => (
+              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 12px', borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
+                {label}
+                {label === 'Orders' && newOrders.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+                {label === 'Messages' && unreadMessages.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+                {label === 'Applications' && pendingApps.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
+              </Link>
             ))}
           </div>
         </div>
-        <button onClick={logout} style={{ fontSize: 11, color: '#999', border: '0.5px solid rgba(0,0,0,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 11, color: '#666' }}>{now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+          <button onClick={handleLogout} style={{ fontSize: 11, color: '#888', border: '0.5px solid rgba(0,0,0,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
+        </div>
       </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', height: 'calc(100vh - 57px)' }}>
-
-        {/* LEFT — Product selector */}
-        <div style={{ overflowY: 'auto', padding: '1.5rem 2rem', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 4 }}>Select products to broadcast</div>
-            <div style={{ fontSize: 12, color: '#999' }}>{selected.length} selected · {products.length} available</div>
-          </div>
-
-          {/* Search + filter */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products..."
-                style={{ width: '100%', background: 'rgba(0,0,0,0.05)', border: '0.5px solid rgba(0,0,0,0.1)', color: '#333', fontSize: 12, padding: '8px 12px 8px 28px', borderRadius: 20, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-              <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#999' }}>🔍</span>
-            </div>
-            {cats.map(c => (
-              <button key={c} onClick={() => setFilter(c)}
-                style={{ fontSize: 11, padding: '6px 12px', borderRadius: 20, border: `0.5px solid ${filter===c?'#25D366':'rgba(0,0,0,0.08)'}`, background: filter===c?'rgba(37,211,102,0.1)':'transparent', color: filter===c?'#25D366':'#555', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
-                {c}
-              </button>
-            ))}
-          </div>
-
-          {/* Select all / clear */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: '1rem' }}>
-            <button onClick={() => setSelected(visible.map(p => p.id))}
-              style={{ fontSize: 11, padding: '6px 14px', background: 'rgba(37,211,102,0.08)', border: '0.5px solid rgba(37,211,102,0.2)', color: '#25D366', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-              Select all visible
-            </button>
-            {selected.length > 0 && (
-              <button onClick={() => setSelected([])}
-                style={{ fontSize: 11, padding: '6px 14px', background: 'rgba(231,76,60,0.08)', border: '0.5px solid rgba(231,76,60,0.2)', color: '#e74c3c', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Clear
-              </button>
-            )}
-          </div>
-
-          {/* Product grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {visible.map(p => {
-              const isSel = selected.includes(p.id)
-              return (
-                <div key={p.id} onClick={() => toggle(p.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isSel ? 'rgba(37,211,102,0.06)' : '#111', border: `1px solid ${isSel ? 'rgba(37,211,102,0.4)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}>
-                  {/* Checkbox */}
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${isSel ? '#25D366' : '#333'}`, background: isSel ? '#25D366' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {isSel && <span style={{ color: '#111', fontSize: 11, fontWeight: 900 }}>✓</span>}
-                  </div>
-                  {/* Image */}
-                  {p.image_url
-                    ? <img src={p.image_url} alt={p.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, background: '#f0f1f3', flexShrink: 0 }} />
-                    : <div style={{ width: 44, height: 44, borderRadius: 6, background: '#f0f1f3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📦</div>
-                  }
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: isSel ? '#fff' : '#ccc', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: '#999' }}>{p.brand} · MOQ {p.moq || 1} · {p.stock} units</div>
-                  </div>
-                  {/* Price */}
-                  <div style={{ fontSize: 15, fontWeight: 800, color: isSel ? '#25D366' : '#fff', flexShrink: 0 }}>${p.price?.toLocaleString()}</div>
-                </div>
-              )
-            })}
-          </div>
+      {/* HERO HEADER */}
+      <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #fff 50%, #f0faf4 100%)', padding: '2rem 2rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 6 }}>Command center</div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111', marginBottom: 4, letterSpacing: '-0.01em' }}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, Levam Corp 👋</h1>
+          <p style={{ fontSize: 12, color: '#666' }}>{currentMonth} {currentYear} · Here is everything happening right now</p>
         </div>
 
-        {/* RIGHT — Preview & send */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+        {/* TOP STATS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8 }}>
+          {[
+            { label: 'New orders', value: newOrders.length, color: newOrders.length > 0 ? '#e74c3c' : '#555', bg: newOrders.length > 0 ? 'rgba(231,76,60,0.1)' : '#f8f9fa', icon: '📥', href: '/admin/orders', alert: newOrders.length > 0 },
+            { label: 'Active orders', value: activeOrders.length, color: '#854f0b', bg: '#f8f9fa', icon: '⏳', href: '/admin/orders' },
+            { label: 'Pending apps', value: pendingApps.length, color: pendingApps.length > 0 ? '#e74c3c' : '#555', bg: pendingApps.length > 0 ? 'rgba(231,76,60,0.08)' : '#f8f9fa', icon: '📋', href: '/admin/applications', alert: pendingApps.length > 0 },
+            { label: 'Unread messages', value: unreadMessages.length, color: unreadMessages.length > 0 ? '#2d7dd2' : '#555', bg: unreadMessages.length > 0 ? 'rgba(45,125,210,0.08)' : '#f8f9fa', icon: '📩', href: '/admin/messages', alert: unreadMessages.length > 0 },
+            { label: 'Payment proofs', value: proofSubmitted.length, color: proofSubmitted.length > 0 ? '#2a7d4f' : '#555', bg: proofSubmitted.length > 0 ? 'rgba(42,125,79,0.08)' : '#f8f9fa', icon: '💳', href: '/admin/payments', alert: proofSubmitted.length > 0 },
+            { label: 'Approved clients', value: data.clients.length, color: '#2d7dd2', bg: '#f8f9fa', icon: '🤝', href: '/admin/clients' },
+          ].map(s => (
+            <Link key={s.label} href={s.href} style={{ textDecoration: 'none' }}>
+              <div style={{ background: s.bg, border: `0.5px solid ${s.alert ? s.color + '40' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, padding: '1rem', cursor: 'pointer', position: 'relative' }}>
+                {s.alert && <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, background: '#e74c3c', borderRadius: '50%' }} />}
+                <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color, marginBottom: 3 }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.label}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
 
-          {/* Template selector */}
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)', background: '#fff' }}>
-            <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, fontWeight: 700 }}>Message format</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-              {[['full','📋 Full','All details'],['compact','⚡ Compact','Quick view'],['promo','🔥 Promo','Sales pitch']].map(([k,l,sub])=>(
-                <button key={k} onClick={() => setTemplate(k)}
-                  style={{ padding: '8px', background: template===k?'rgba(37,211,102,0.1)':'rgba(0,0,0,0.03)', border: `1px solid ${template===k?'rgba(37,211,102,0.4)':'rgba(0,0,0,0.08)'}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
-                  <div style={{ fontSize: 13, color: template===k?'#25D366':'#aaa', fontWeight: 700 }}>{l}</div>
-                  <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>{sub}</div>
-                </button>
+      <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+
+        {/* COLUMN 1 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* FINANCIALS */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: 'rgba(42,125,79,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#2a7d4f' }}>💰 Financials</div>
+              <Link href="/admin/profit" style={{ fontSize: 10, color: '#2a7d4f', textDecoration: 'none' }}>View profit →</Link>
+            </div>
+            <div style={{ padding: '1rem 1.25rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: 9, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>All-time revenue</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#2d7dd2' }}>{fmtMoney(totalRevenue)}</div>
+              </div>
+              {[
+                ['Total cost', fmtMoney(totalCost), '#854f0b'],
+                ['Total profit', fmtMoney(totalProfit), totalProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
+                ['This month revenue', fmtMoney(monthRevenue), '#2d7dd2'],
+                ['This month profit', fmtMoney(monthProfit), monthProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color }}>{val}</span>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Custom header/footer */}
-          <div style={{ padding: '1rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Header</div>
-              <textarea value={header} onChange={e => setHeader(e.target.value)} rows={2}
-                style={{ width: '100%', background: '#f0f1f3', border: '0.5px solid rgba(0,0,0,0.08)', color: '#333', fontSize: 11, padding: '8px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }} />
+          {/* PARTNER SPLIT */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>👥 Partner split — {currentMonth}</div>
+              <Link href="/admin/profit" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
             </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Note (optional)</div>
-              <input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Valid until Friday, limited stock..."
-                style={{ width: '100%', background: '#f0f1f3', border: '0.5px solid rgba(0,0,0,0.08)', color: '#333', fontSize: 11, padding: '8px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                { name: 'Victor', invested: victorInvested, profit: monthProfit * victorShare, share: victorShare, color: '#2d7dd2' },
+                { name: 'Leopoldo', invested: leopoldoInvested, profit: monthProfit * leopoldoShare, share: leopoldoShare, color: '#534ab7' },
+              ].map(p => (
+                <div key={p.name} style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: p.color }}>{p.name}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>{fmtMoney(p.profit)}</div>
+                      <div style={{ fontSize: 9, color: '#666' }}>Invested: {fmtMoney(p.invested)}</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(0,0,0,0.06)', borderRadius: 2 }}>
+                    <div style={{ height: '100%', width: `${p.share * 100}%`, background: p.color, borderRadius: 2 }} />
+                  </div>
+                </div>
+              ))}
+              {totalInvested === 0 && <div style={{ fontSize: 11, color: '#666', textAlign: 'center', padding: '0.5rem' }}>No investments recorded this month</div>}
+            </div>
+          </div>
+
+          {/* INVENTORY */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>📦 Inventory</div>
+              <Link href="/admin/products" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
+            </div>
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                ['Total products', data.products.length, '#ccc'],
+                ['In stock', data.products.filter(p => p.stock > 5).length, '#2a7d4f'],
+                ['Low stock (≤5)', lowStock.length, lowStock.length > 0 ? '#854f0b' : '#555'],
+                ['Out of stock', outOfStock.length, outOfStock.length > 0 ? '#e74c3c' : '#555'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
+                </div>
+              ))}
+              {outOfStock.length > 0 && (
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(231,76,60,0.06)', border: '0.5px solid rgba(231,76,60,0.2)', borderRadius: 3 }}>
+                  <div style={{ fontSize: 9, color: '#e74c3c', fontWeight: 700, marginBottom: 4 }}>OUT OF STOCK</div>
+                  {outOfStock.slice(0,3).map(p => <div key={p.id} style={{ fontSize: 10, color: '#666' }}>{p.name}</div>)}
+                  {outOfStock.length > 3 && <div style={{ fontSize: 10, color: '#888' }}>+{outOfStock.length - 3} more</div>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 2 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* RECENT ORDERS */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>📋 Recent orders</div>
+              <Link href="/admin/orders" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
             </div>
             <div>
-              <div style={{ fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Footer</div>
-              <textarea value={footer} onChange={e => setFooter(e.target.value)} rows={3}
-                style={{ width: '100%', background: '#f0f1f3', border: '0.5px solid rgba(0,0,0,0.08)', color: '#333', fontSize: 11, padding: '8px', borderRadius: 4, outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }} />
+              {data.orders.slice(0, 6).map(order => {
+                const statusConfig = { new: { color: '#2d7dd2', label: 'New' }, review: { color: '#854f0b', label: 'Review' }, confirmed: { color: '#534ab7', label: 'Confirmed' }, dispatched: { color: '#2a7d4f', label: 'Dispatched' }, completed: { color: '#2a7d4f', label: 'Done' }, cancelled: { color: '#e74c3c', label: 'Cancelled' } }
+                const s = statusConfig[order.status] || statusConfig.new
+                return (
+                  <Link key={order.id} href="/admin/orders" style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 2 }}>#{order.order_number}</div>
+                        <div style={{ fontSize: 10, color: '#666' }}>{fmtDate(order.submitted_at)} at {fmtTime(order.submitted_at)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{fmtMoney(order.total)}</div>
+                        <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 10, background: s.color + '20', color: s.color, fontWeight: 600 }}>{s.label}</span>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
 
-          {/* Preview */}
-          <div style={{ flex: 1, padding: '1rem 1.5rem', overflowY: 'auto' }}>
-            <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, fontWeight: 700 }}>
-              Preview · {selected.length} product{selected.length !== 1 ? 's' : ''}
+          {/* PAYMENTS */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>💳 Payments</div>
+              <Link href="/admin/payments" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
             </div>
-            {selected.length === 0
-              ? <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#444', fontSize: 13 }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>📲</div>
-                  Select products on the left to preview your WhatsApp message
+            <div style={{ padding: '1rem 1.25rem' }}>
+              {[
+                ['Pending requests', pendingPayments.length, pendingPayments.length > 0 ? '#854f0b' : '#555'],
+                ['Proof submitted', proofSubmitted.length, proofSubmitted.length > 0 ? '#2d7dd2' : '#555'],
+                ['Paid', data.payments.filter(p => p.status === 'paid').length, '#2a7d4f'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
                 </div>
-              : (
-                <div style={{ background: '#0d1f0d', border: '0.5px solid rgba(37,211,102,0.15)', borderRadius: 10, padding: '1rem', fontFamily: 'monospace', fontSize: 12, color: '#333', lineHeight: 1.8, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {message}
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMN 3 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* PENDING APPLICATIONS */}
+          <div style={{ background: '#fff', border: `0.5px solid ${pendingApps.length > 0 ? 'rgba(231,76,60,0.25)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: pendingApps.length > 0 ? 'rgba(231,76,60,0.06)' : '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: pendingApps.length > 0 ? '#e74c3c' : '#ccc' }}>📋 Applications {pendingApps.length > 0 && `(${pendingApps.length} pending)`}</div>
+              <Link href="/admin/applications" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Review →</Link>
+            </div>
+            {pendingApps.length === 0 ? (
+              <div style={{ padding: '1.25rem', fontSize: 11, color: '#666', textAlign: 'center' }}>No pending applications</div>
+            ) : pendingApps.slice(0,4).map(app => (
+              <Link key={app.id} href="/admin/applications" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 1 }}>{app.business_name}</div>
+                    <div style={{ fontSize: 10, color: '#666' }}>{app.contact_name} · {fmtDate(app.created_at)}</div>
+                  </div>
+                  <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 10, background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontWeight: 700 }}>Review</span>
                 </div>
-              )
-            }
+              </Link>
+            ))}
           </div>
 
-          {/* Send buttons */}
-          {selected.length > 0 && (
-            <div style={{ padding: '1rem 1.5rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 8, background: '#f8f9fa' }}>
-              <button onClick={openWhatsApp}
-                style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #25D366, #128C7E)', color: '#111', fontSize: 14, fontWeight: 800, border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 20px rgba(37,211,102,0.3)', letterSpacing: '0.04em' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Open in WhatsApp
-              </button>
-              <button onClick={copy}
-                style={{ width: '100%', padding: '11px', background: copied ? 'rgba(37,211,102,0.1)' : 'rgba(0,0,0,0.06)', color: copied ? '#25D366' : '#aaa', fontSize: 13, fontWeight: 600, border: `0.5px solid ${copied ? 'rgba(37,211,102,0.3)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 8, cursor: 'pointer' }}>
-                {copied ? '✓ Copied!' : '📋 Copy to clipboard'}
-              </button>
-              <div style={{ fontSize: 10, color: '#444', textAlign: 'center' }}>
-                {message.length} characters · ~{Math.ceil(message.length / 160)} SMS equivalent
-              </div>
+          {/* RECENT CLIENTS */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>🤝 Recent clients</div>
+              <Link href="/admin/clients" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
             </div>
-          )}
+            {data.clients.slice(0,4).map(client => (
+              <Link key={client.id} href="/admin/clients" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(45,125,210,0.15)', border: '1px solid rgba(45,125,210,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2d7dd2' }}>{client.business_name?.[0]}</div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>{client.business_name}</div>
+                      <div style={{ fontSize: 10, color: '#666' }}>{client.contact_name}</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontWeight: 600 }}>Active</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* MESSAGES */}
+          <div style={{ background: '#fff', border: `0.5px solid ${unreadMessages.length > 0 ? 'rgba(45,125,210,0.25)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: unreadMessages.length > 0 ? '#2d7dd2' : '#ccc' }}>📩 Messages {unreadMessages.length > 0 && `(${unreadMessages.length} new)`}</div>
+              <Link href="/admin/messages" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
+            </div>
+            {data.messages.slice(0,4).map(msg => (
+              <Link key={msg.id} href="/admin/messages" style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, marginRight: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>{msg.name}</div>
+                      {msg.status === 'new' && <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 8, background: 'rgba(45,125,210,0.2)', color: '#2d7dd2', fontWeight: 700 }}>NEW</span>}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#666', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: 160 }}>{msg.message}</div>
+                  </div>
+                  <div style={{ fontSize: 9, color: '#555', flexShrink: 0 }}>{fmtDate(msg.created_at)}</div>
+                </div>
+              </Link>
+            ))}
+            {data.messages.length === 0 && <div style={{ padding: '1.25rem', fontSize: 11, color: '#666', textAlign: 'center' }}>No messages yet</div>}
+          </div>
         </div>
       </div>
     </div>
