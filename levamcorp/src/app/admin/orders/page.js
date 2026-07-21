@@ -282,7 +282,7 @@ export default function AdminOrders() {
         <div style={{display:'flex',alignItems:'center',gap:16}}>
           <div style={{fontSize:13,fontWeight:700,letterSpacing:'0.15em',color:'#333',textTransform:'uppercase'}}>Levam Admin</div>
           <div style={{display:'flex',borderLeft:'0.5px solid rgba(0,0,0,0.06)',paddingLeft:16}}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart']].map(([l,h])=>(
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers']].map(([l,h])=>(
               <Link key={l} href={h} style={{fontSize:12,color:l==='Orders'?'#2d7dd2':'#777',textDecoration:'none',padding:'4px 14px',borderBottom:l==='Orders'?'2px solid #2d7dd2':'2px solid transparent',fontWeight:l==='Orders'?700:400}}>{l}</Link>
             ))}
           </div>
