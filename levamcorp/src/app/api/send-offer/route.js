@@ -6,10 +6,16 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 
 export async function POST(req) {
   try {
-    const { products, subject, headline, message, ctaText, footer } = await req.json()
+    const { products, subject, headline, message, ctaText, footer, targetClients } = await req.json()
 
-    // Get all approved clients
-    const { data: clients } = await supabase.from('clients').select('email, contact_name, business_name')
+    // Use targetClients if provided, otherwise get all approved clients
+    let clients
+    if (targetClients?.length) {
+      clients = targetClients
+    } else {
+      const { data } = await supabase.from('clients').select('email, contact_name, business_name')
+      clients = data
+    }
     if (!clients?.length) return Response.json({ error: 'No clients found' }, { status: 400 })
 
     const productRows = products.map(p => `
