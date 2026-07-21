@@ -12,6 +12,9 @@ export default function AdminOffers() {
   const [loading,   setLoading]   = useState(true)
   const [sending,   setSending]   = useState(false)
   const [result,    setResult]    = useState(null)
+  const [sendMode,  setSendMode]  = useState('all') // 'all' | 'selected'
+  const [selClients,setSelClients]= useState([])
+  const [clientSearch, setClientSearch] = useState('')
   const [search,    setSearch]    = useState('')
   const [preview,   setPreview]   = useState(false)
 
@@ -45,13 +48,15 @@ export default function AdminOffers() {
     if (!selProds.length)    { alert('Select at least one product'); return }
     if (!form.subject)       { alert('Add a subject line'); return }
     if (!form.headline)      { alert('Add a headline'); return }
-    if (!window.confirm(`Send this offer to all ${clients.length} clients?`)) return
+    const targetClients = sendMode === 'selected' ? clients.filter(c => selClients.includes(c.email)) : clients
+    if (sendMode === 'selected' && !targetClients.length) { alert('Select at least one client'); return }
+    if (!window.confirm(`Send this offer to ${targetClients.length} client${targetClients.length !== 1 ? 's' : ''}?`)) return
     setSending(true); setResult(null)
     try {
       const res  = await fetch('/api/send-offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, products: selProds }),
+        body: JSON.stringify({ ...form, products: selProds, targetClients }),
       })
       const data = await res.json()
       setResult(data)
@@ -71,7 +76,7 @@ export default function AdminOffers() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Clients','/admin/clients'],['Products','/admin/products'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast'],['Offers','/admin/offers']].map(([l,h]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast'],['Offers','/admin/offers']].map(([l,h]) => (
               <Link key={l} href={h} style={{ fontSize: 12, color: l==='Offers'?'#2d7dd2':'#666', textDecoration: 'none', padding: '4px 14px', borderBottom: l==='Offers'?'2px solid #2d7dd2':'2px solid transparent', fontWeight: l==='Offers'?700:400 }}>{l}</Link>
             ))}
           </div>
@@ -165,21 +170,60 @@ export default function AdminOffers() {
           {/* Audience */}
           <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: 10, padding: '1.25rem' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Audience</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(45,125,210,0.1)', border: '1.5px solid rgba(45,125,210,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#2d7dd2' }}>{clients.length}</div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>Approved clients</div>
-                <div style={{ fontSize: 11, color: '#aaa' }}>All will receive this email</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 120, overflowY: 'auto' }}>
-              {clients.slice(0, 5).map(c => (
-                <div key={c.email} style={{ fontSize: 11, color: '#888', padding: '3px 0', borderTop: '0.5px solid #f5f5f5' }}>
-                  {c.contact_name || c.business_name} <span style={{ color: '#ccc' }}>· {c.email}</span>
-                </div>
+
+            {/* Mode toggle */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+              {[['all', `All clients (${clients.length})`], ['selected', 'Select specific']].map(([mode, label]) => (
+                <button key={mode} onClick={() => { setSendMode(mode); setSelClients([]) }}
+                  style={{ padding: '9px 8px', fontSize: 11, fontWeight: 700, background: sendMode === mode ? '#111' : '#f8f9fa', color: sendMode === mode ? '#fff' : '#888', border: `1px solid ${sendMode === mode ? '#111' : '#e5e7eb'}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {label}
+                </button>
               ))}
-              {clients.length > 5 && <div style={{ fontSize: 10, color: '#ccc' }}>+{clients.length - 5} more</div>}
             </div>
+
+            {/* All clients preview */}
+            {sendMode === 'all' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 140, overflowY: 'auto' }}>
+                {clients.map(c => (
+                  <div key={c.email} style={{ fontSize: 11, color: '#888', padding: '5px 0', borderTop: '0.5px solid #f5f5f5', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 500, color: '#444' }}>{c.contact_name || c.business_name}</span>
+                    <span style={{ color: '#ccc', fontSize: 10 }}>{c.email}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Specific client selector */}
+            {sendMode === 'selected' && (
+              <div>
+                <div style={{ position: 'relative', marginBottom: 8 }}>
+                  <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Search clients..."
+                    style={{ width: '100%', background: '#f8f9fa', border: '1px solid #e5e7eb', color: '#111', fontSize: 11, padding: '7px 10px 7px 26px', borderRadius: 6, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}/>
+                  <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#ccc' }}>🔍</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, color: '#aaa' }}>{selClients.length} selected</span>
+                  <button onClick={() => setSelClients(clients.map(c => c.email))} style={{ fontSize: 10, color: '#2d7dd2', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Select all</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+                  {clients.filter(c => !clientSearch || c.contact_name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.business_name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.email?.toLowerCase().includes(clientSearch.toLowerCase())).map(c => {
+                    const isSel = selClients.includes(c.email)
+                    return (
+                      <div key={c.email} onClick={() => setSelClients(prev => isSel ? prev.filter(e => e !== c.email) : [...prev, c.email])}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', background: isSel ? 'rgba(45,125,210,0.05)' : '#fafafa', border: `1px solid ${isSel ? 'rgba(45,125,210,0.3)' : '#f0f0f0'}`, borderRadius: 6, cursor: 'pointer' }}>
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${isSel ? '#2d7dd2' : '#ddd'}`, background: isSel ? '#2d7dd2' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {isSel && <span style={{ color: '#fff', fontSize: 9, fontWeight: 900 }}>✓</span>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.contact_name || c.business_name}</div>
+                          <div style={{ fontSize: 9, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Selected products summary */}
@@ -204,7 +248,7 @@ export default function AdminOffers() {
             </button>
             <button onClick={send} disabled={sending || !selProds.length}
               style={{ width: '100%', padding: '13px', background: sending || !selProds.length ? '#e5e7eb' : '#111', color: sending || !selProds.length ? '#aaa' : '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 6, cursor: sending || !selProds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: sending || !selProds.length ? 'none' : '0 4px 14px rgba(0,0,0,0.15)' }}>
-              {sending ? 'Sending...' : `Send to ${clients.length} clients`}
+              {sending ? 'Sending...' : `Send to ${sendMode === 'all' ? clients.length : selClients.length} client${(sendMode === 'all' ? clients.length : selClients.length) !== 1 ? 's' : ''}`}
             </button>
             {result && (
               <div style={{ padding: '12px 14px', background: result.error ? 'rgba(231,76,60,0.06)' : 'rgba(42,125,79,0.06)', border: `1px solid ${result.error ? 'rgba(231,76,60,0.2)' : 'rgba(42,125,79,0.2)'}`, borderRadius: 6, fontSize: 12, color: result.error ? '#c0392b' : '#2a7d4f', fontWeight: 600, textAlign: 'center' }}>
