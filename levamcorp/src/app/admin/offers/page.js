@@ -52,7 +52,7 @@ export default function AdminOffers() {
     const targetClients = sendMode === 'selected' ? clients.filter(c => selClients.includes(c.email)) : clients
     if (sendMode === 'selected' && !targetClients.length && !extraEmails.trim()) { alert('Select at least one client or add external emails'); return }
     // Parse extra emails
-    const parsedExtras = extraEmails.split(/[,\n;]+/).map(e => e.trim()).filter(e => e.includes('@')).map(e => ({ email: e, contact_name: '', business_name: '' }))
+    const parsedExtras = extraEmails.split(',').join('\n').split(';').join('\n').split('\n').map(e => e.trim()).filter(e => e.includes('@')).map(e => ({ email: e, contact_name: '', business_name: '' }))
     const allTargets = [...targetClients, ...parsedExtras]
     if (!window.confirm(`Send this offer to ${allTargets.length} recipient${allTargets.length !== 1 ? 's' : ''}${parsedExtras.length ? ` (including ${parsedExtras.length} external)` : ''}?`)) return
     setSending(true); setResult(null)
@@ -80,7 +80,7 @@ export default function AdminOffers() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast'],['Offers','/admin/offers']].map(([l,h]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast'],['Offers','/admin/offers'],['Recruit','/admin/recruit']].map(([l,h]) => (
               <Link key={l} href={h} style={{ fontSize: 12, color: l==='Offers'?'#2d7dd2':'#666', textDecoration: 'none', padding: '4px 14px', borderBottom: l==='Offers'?'2px solid #2d7dd2':'2px solid transparent', fontWeight: l==='Offers'?700:400 }}>{l}</Link>
             ))}
           </div>
@@ -270,7 +270,7 @@ export default function AdminOffers() {
               style={{ width: '100%', padding: '13px', background: sending || !selProds.length ? '#e5e7eb' : '#111', color: sending || !selProds.length ? '#aaa' : '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 6, cursor: sending || !selProds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: sending || !selProds.length ? 'none' : '0 4px 14px rgba(0,0,0,0.15)' }}>
               {(() => {
               const base = sendMode === 'all' ? clients.length : selClients.length
-              const extras = extraEmails.split(/[,\n;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length
+              const extras = extraEmails.split(',').join('\n').split(';').join('\n').split('\n').map(e=>e.trim()).filter(e=>e.includes('@')).length
               const total = base + extras
               return sending ? 'Sending...' : `Send to ${total} recipient${total !== 1 ? 's' : ''}`
             })()}
