@@ -15,6 +15,7 @@ export default function AdminOffers() {
   const [sendMode,  setSendMode]  = useState('all') // 'all' | 'selected'
   const [selClients,setSelClients]= useState([])
   const [clientSearch, setClientSearch] = useState('')
+  const [extraEmails,  setExtraEmails]  = useState('')
   const [search,    setSearch]    = useState('')
   const [preview,   setPreview]   = useState(false)
 
@@ -49,14 +50,17 @@ export default function AdminOffers() {
     if (!form.subject)       { alert('Add a subject line'); return }
     if (!form.headline)      { alert('Add a headline'); return }
     const targetClients = sendMode === 'selected' ? clients.filter(c => selClients.includes(c.email)) : clients
-    if (sendMode === 'selected' && !targetClients.length) { alert('Select at least one client'); return }
-    if (!window.confirm(`Send this offer to ${targetClients.length} client${targetClients.length !== 1 ? 's' : ''}?`)) return
+    if (sendMode === 'selected' && !targetClients.length && !extraEmails.trim()) { alert('Select at least one client or add external emails'); return }
+    // Parse extra emails
+    const parsedExtras = extraEmails.split(/[,\n;]+/).map(e => e.trim()).filter(e => e.includes('@')).map(e => ({ email: e, contact_name: '', business_name: '' }))
+    const allTargets = [...targetClients, ...parsedExtras]
+    if (!window.confirm(`Send this offer to ${allTargets.length} recipient${allTargets.length !== 1 ? 's' : ''}${parsedExtras.length ? ` (including ${parsedExtras.length} external)` : ''}?`)) return
     setSending(true); setResult(null)
     try {
       const res  = await fetch('/api/send-offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, products: selProds, targetClients }),
+        body: JSON.stringify({ ...form, products: selProds, targetClients: allTargets }),
       })
       const data = await res.json()
       setResult(data)
@@ -226,6 +230,22 @@ export default function AdminOffers() {
             )}
           </div>
 
+          {/* External emails */}
+          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: 10, padding: '1.25rem' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>External emails (optional)</div>
+            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>Add emails outside your client list — prospects, leads, partners. Separate by comma, semicolon or new line.</div>
+            <textarea value={extraEmails} onChange={e => setExtraEmails(e.target.value)} rows={3}
+              placeholder={"john@company.com, sarah@business.com\ninfo@prospect.com"}
+              style={{ width: '100%', background: '#f8f9fa', border: '1px solid #e5e7eb', color: '#111', fontSize: 12, padding: '9px 12px', borderRadius: 6, outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }}/>
+            {extraEmails.trim() && (
+              <div style={{ marginTop: 6, fontSize: 11, color: '#2d7dd2', fontWeight: 600 }}>
+                {extraEmails.split(/[,
+;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length} valid email{extraEmails.split(/[,
+;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length !== 1 ? 's' : ''} detected
+              </div>
+            )}
+          </div>
+
           {/* Selected products summary */}
           <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: 10, padding: '1.25rem' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Selected products · {selProds.length}</div>
@@ -248,7 +268,12 @@ export default function AdminOffers() {
             </button>
             <button onClick={send} disabled={sending || !selProds.length}
               style={{ width: '100%', padding: '13px', background: sending || !selProds.length ? '#e5e7eb' : '#111', color: sending || !selProds.length ? '#aaa' : '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', border: 'none', borderRadius: 6, cursor: sending || !selProds.length ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: sending || !selProds.length ? 'none' : '0 4px 14px rgba(0,0,0,0.15)' }}>
-              {sending ? 'Sending...' : `Send to ${sendMode === 'all' ? clients.length : selClients.length} client${(sendMode === 'all' ? clients.length : selClients.length) !== 1 ? 's' : ''}`}
+              {(() => {
+              const base = sendMode === 'all' ? clients.length : selClients.length
+              const extras = extraEmails.split(/[,\n;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length
+              const total = base + extras
+              return sending ? 'Sending...' : `Send to ${total} recipient${total !== 1 ? 's' : ''}`
+            })()}
             </button>
             {result && (
               <div style={{ padding: '12px 14px', background: result.error ? 'rgba(231,76,60,0.06)' : 'rgba(42,125,79,0.06)', border: `1px solid ${result.error ? 'rgba(231,76,60,0.2)' : 'rgba(42,125,79,0.2)'}`, borderRadius: 6, fontSize: 12, color: result.error ? '#c0392b' : '#2a7d4f', fontWeight: 600, textAlign: 'center' }}>
