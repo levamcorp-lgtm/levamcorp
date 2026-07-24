@@ -239,9 +239,7 @@ export default function AdminOffers() {
               style={{ width: '100%', background: '#f8f9fa', border: '1px solid #e5e7eb', color: '#111', fontSize: 12, padding: '9px 12px', borderRadius: 6, outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }}/>
             {extraEmails.trim() && (
               <div style={{ marginTop: 6, fontSize: 11, color: '#2d7dd2', fontWeight: 600 }}>
-                {extraEmails.split(/[,
-;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length} valid email{extraEmails.split(/[,
-;]+/).map(e=>e.trim()).filter(e=>e.includes('@')).length !== 1 ? 's' : ''} detected
+                {extraEmails.split(',').concat(extraEmails.split(';')).join(' ').split(' ').map(e=>e.trim()).filter(e=>e.includes('@')).length} valid email{extraEmails.split(',').concat(extraEmails.split(';')).join(' ').split(' ').map(e=>e.trim()).filter(e=>e.includes('@')).length !== 1 ? 's' : ''} detected
               </div>
             )}
           </div>
