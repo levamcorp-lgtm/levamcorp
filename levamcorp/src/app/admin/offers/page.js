@@ -74,12 +74,20 @@ export default function AdminOffers() {
 
   return (
     <div style={{ background: '#f4f5f7', minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
+      <style>{`
+        .offers-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+        @media (min-width: 1024px) { .offers-grid { grid-template-columns: 1fr 360px; } }
+        .offers-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+        @media (min-width: 1024px) { .offers-sidebar { position: sticky; top: 78px; align-self: start; } }
+        .admin-nav-scroll { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .admin-nav-scroll::-webkit-scrollbar { display: none; }
+      `}</style>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40 }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40, overflowX: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
-          <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
+          <div className="admin-nav-scroll" style={{ borderLeft: '0.5px solid rgba(0,0,0,0.08)', paddingLeft: 16 }}>
             {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Broadcast','/admin/broadcast'],['Offers','/admin/offers'],['Recruit','/admin/recruit']].map(([l,h]) => (
               <Link key={l} href={h} style={{ fontSize: 12, color: l==='Offers'?'#2d7dd2':'#666', textDecoration: 'none', padding: '4px 14px', borderBottom: l==='Offers'?'2px solid #2d7dd2':'2px solid transparent', fontWeight: l==='Offers'?700:400 }}>{l}</Link>
             ))}
@@ -88,7 +96,7 @@ export default function AdminOffers() {
         <Link href="/admin/dashboard" style={{ fontSize: 11, color: '#888', textDecoration: 'none', border: '0.5px solid #e5e7eb', padding: '6px 14px', borderRadius: 4 }}>← Back</Link>
       </nav>
 
-      <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', maxWidth: 1280, margin: '0 auto' }}>
+      <div className="offers-grid" style={{ padding: '1rem', maxWidth: 1280, margin: '0 auto' }}>
 
         {/* LEFT — product selector + form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
