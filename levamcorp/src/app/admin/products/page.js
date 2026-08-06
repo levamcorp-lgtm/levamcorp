@@ -573,6 +573,14 @@ export default function AdminProducts() {
                       {product.is_top_pick ? '⭐' : '☆'}
                     </button>
                     <button onClick={() => startEdit(product)} style={{ fontSize: 11, color: '#2d7dd2', background: 'rgba(45,125,210,0.1)', border: '0.5px solid rgba(45,125,210,0.3)', padding: '5px 12px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                    <button onClick={async (e) => {
+                      e.stopPropagation()
+                      const sb = createClient()
+                      await sb.from('products').update({ stock: 0 }).eq('id', product.id)
+                      setProducts(prev => prev.map(p => p.id === product.id ? {...p, stock: 0} : p))
+                    }} style={{ fontSize: 11, color: '#e67e22', background: 'rgba(230,126,34,0.08)', border: '0.5px solid rgba(230,126,34,0.25)', padding: '5px 12px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }} title="Set stock to 0">
+                      Out of stock
+                    </button>
                     <button onClick={() => deleteProduct(product.id, product.name)} style={{ fontSize: 11, color: '#e74c3c', background: 'rgba(231,76,60,0.08)', border: '0.5px solid rgba(231,76,60,0.25)', padding: '5px 12px', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                     <div onClick={() => setExpanded(isExpanded ? null : product.id)} style={{ fontSize: 16, color: '#444', cursor: 'pointer', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', padding: '0 4px' }}>⌄</div>
                   </div>
