@@ -91,6 +91,67 @@ const IC = {
   fridge:  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M4 10h16"/><path d="M8 6v2M8 14v4"/></svg>,
 }
 
+
+// ── MARKET INSIGHTS ──────────────────────────────────────────────────────────
+function MarketInsights() {
+  const [articles, setArticles] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`https://newsapi.org/v2/everything?q=electronics+wholesale+appliances+retail&language=en&sortBy=publishedAt&pageSize=4&apiKey=e8fc41dbc05743fda639248c99d039f6`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.articles) setArticles(data.articles.filter(a => a.title && a.url && a.title !== '[Removed]').slice(0, 4))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  return (
+    <section style={{ padding: '6rem 2rem', background: 'rgba(255,255,255,0.015)', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.25em', color: '#0EA5E9', textTransform: 'uppercase', marginBottom: 12 }}>Market Insights</div>
+            <h2 style={{ fontSize: 'clamp(24px,3vw,40px)', fontWeight: 900, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>Industry news &<br/>market trends.</h2>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>Powered by NewsAPI · Updated daily</div>
+        </div>
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px,1fr))', gap: 12 }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '1.5rem', height: 160, animation: 'pulse 1.5s infinite' }}/>
+            ))}
+          </div>
+        ) : articles.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No articles available at the moment.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px,1fr))', gap: 12 }}>
+            {articles.map((a, i) => (
+              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block' }}>
+                <div className="lc-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0EA5E9', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                    {a.source?.name || 'News'} · {new Date(a.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.5, flex: 1 }}>{a.title}</div>
+                  {a.description && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {a.description}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: '#0EA5E9', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Read article <span style={{ fontSize: 12 }}>→</span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export default function Home() {
   return (
     <div style={{ background: '#060810', color: '#fff', fontFamily: '-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', overflowX: 'hidden' }}>
@@ -412,6 +473,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── MARKET INSIGHTS ─────────────────────────────────── */}
+      <MarketInsights/>
 
       {/* ── LANGUAGE BANNER ─────────────────────────────────── */}
       <section style={{ padding: '4rem 2rem', background: 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(99,102,241,0.06) 100%)', borderTop: '1px solid rgba(14,165,233,0.15)', borderBottom: '1px solid rgba(14,165,233,0.15)' }}>
