@@ -161,6 +161,7 @@ export default function CinemaCanvas() {
         window.addEventListener('resize',    onResize)
 
         // ── RENDER LOOP ─────────────────────────────────────────────
+        console.log('CinemaCanvas: Three.js loaded successfully ✓')
         const clock = new THREE.Clock()
         const LERP  = 0.05  // transition smoothness
 
@@ -263,7 +264,7 @@ export default function CinemaCanvas() {
         height:        '100vh',
         pointerEvents: 'none',
         zIndex:        0,
-        opacity:       0.82,
+        opacity:       1,
       }}
     />
   )
