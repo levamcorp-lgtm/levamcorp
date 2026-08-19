@@ -413,6 +413,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── LANGUAGE BANNER ─────────────────────────────────── */}
+      <section style={{ padding: '4rem 2rem', background: 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(99,102,241,0.06) 100%)', borderTop: '1px solid rgba(14,165,233,0.15)', borderBottom: '1px solid rgba(14,165,233,0.15)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '3rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.25em', color: '#0EA5E9', textTransform: 'uppercase', marginBottom: 12 }}>We speak your language</div>
+            <h2 style={{ fontSize: 'clamp(24px,3vw,38px)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 1rem', lineHeight: 1.15 }}>
+              English & Español.<br/>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500, fontSize: '0.75em' }}>A dedicated rep for every partner.</span>
+            </h2>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, margin: 0, maxWidth: 480 }}>
+              Whether you communicate in English or Spanish, we have dedicated team members ready to assist you. We'll help you find exactly what you need — the right products, the right quantities, the right price. You are never left searching alone.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 260 }}>
+            {[
+              ['🇺🇸', 'English', 'Full support in English — orders, quotes, invoices, and communication.'],
+              ['🌎', 'Español', 'Atención completa en español — pedidos, cotizaciones y comunicación.'],
+            ].map(([flag, lang, desc]) => (
+              <div key={lang} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+                <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{flag}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }}>{lang}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ padding: '0.875rem 1.25rem', background: 'rgba(14,165,233,0.08)', border: '0.5px solid rgba(14,165,233,0.2)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+              📲 WhatsApp: <a href="https://wa.me/17864909005" style={{ color: '#0EA5E9', textDecoration: 'none', fontWeight: 600 }}>(786) 490-9005</a> · Mon–Fri 9AM–5PM ET
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ───────────────────────────────────────────── */}
       <footer style={{ padding: '2.5rem 2rem', borderTop: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(6,8,16,0.9)', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
