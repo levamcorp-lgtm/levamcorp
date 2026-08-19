@@ -90,9 +90,14 @@ export default function InsightsPage() {
             Real-time industry news and weekly analysis — everything you need to stay ahead of the market and make better buying decisions.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, maxWidth: 560 }}>
-            {[['📺','Electronics','Trending up'],['🏠','Home goods','Stable'],['☕','Kitchen','Peak season'],['🛒','E-commerce','Growing']].map(([icon,label,status]) => (
+            {[
+              { label:'Electronics', status:'Trending up', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> },
+              { label:'Home goods',  status:'Stable',      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg> },
+              { label:'Kitchen',     status:'Peak season', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> },
+              { label:'E-commerce',  status:'Growing',     icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> },
+            ].map(({icon,label,status}) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 6, padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+                <div style={{ color: '#0EA5E9', display: 'flex', justifyContent: 'center', marginBottom: 6 }}>{icon}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{label}</div>
                 <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 600 }}>↑ {status}</div>
               </div>
@@ -104,7 +109,7 @@ export default function InsightsPage() {
       {/* TABS */}
       <div style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', padding: '0 2rem' }}>
-          {[['news','🌐 Industry news — auto updated'],['insights','📊 Our market analysis']].map(([key, label]) => (
+          {[['news','Industry news — auto updated'],['insights','Our market analysis']].map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               style={{ padding: '14px 20px', fontSize: 12, fontWeight: 600, color: tab===key ? '#0EA5E9' : 'rgba(255,255,255,0.35)', background: 'transparent', border: 'none', borderBottom: `2px solid ${tab===key ? '#0EA5E9' : 'transparent'}`, cursor: 'pointer', letterSpacing: '0.03em', fontFamily: 'inherit' }}>
               {label}
@@ -132,7 +137,7 @@ export default function InsightsPage() {
               </div>
             ) : news.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(255,255,255,0.2)' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>📰</div>
+                <div style={{ marginBottom: 12 }}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a4 4 0 0 1-4 4z"/><path d="M16 12H8M16 8H8M10 16H8"/></svg></div>
                 <div style={{ fontSize: 14 }}>Could not load news right now. Check our market analysis below.</div>
               </div>
             ) : (
