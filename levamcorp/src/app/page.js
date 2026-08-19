@@ -576,7 +576,7 @@ export default function Home() {
 
         {/* Dot grid — parallax layer */}
         <div style={{ position:'absolute', inset:'-6%', backgroundImage:'radial-gradient(rgba(14,165,233,0.14) 1px, transparent 1px)', backgroundSize:'28px 28px',
-          transform:`translate(${mx*8}px,${my*6}px)`, transition:'transform 0.1s linear', pointerEvents:'none' }}/>
+          pointerEvents:'none' }}/>
 
         {/* Hero video background */}
         <HeroVideo/>
@@ -584,11 +584,11 @@ export default function Home() {
         {/* Hero glow behind text */}
         <div style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
           background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)',
-          transform:`translate(${mx*20}px,${my*14}px) translateY(${-scrollY*0.15}px)`,
+          style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
           transition:'transform 0.1s linear', pointerEvents:'none' }}/>
         <div style={{ position:'absolute', top:'45%', left:'15%', width:400, height:400,
           background:'radial-gradient(circle,rgba(99,102,241,0.05) 0%,transparent 70%)',
-          transform:`translate(${mx*12}px,${my*8}px)`, pointerEvents:'none' }}/>
+          pointerEvents:'none' }}/>
 
         {/* Content */}
         <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5 }}>
