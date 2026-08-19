@@ -17,7 +17,7 @@ function MobileMenu() {
         ))}
       </button>
       {open && (
-        <div style={{ position: 'fixed', inset: 0, background: '#080A0F', zIndex: 200, display: 'flex', flexDirection: 'column', padding: '5rem 2rem 3rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: '#060810', zIndex: 200, display: 'flex', flexDirection: 'column', padding: '5rem 2rem 3rem' }}>
           <button onClick={() => setOpen(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', width: 40, height: 40, borderRadius: '50%', fontSize: 20, cursor: 'pointer' }}>×</button>
           {[['#brands','Products'],['#process','How it works'],['#about','About'],['#contact','Contact'],['/apply','Apply now']].map(([href, label]) => (
             <a key={label} href={href} onClick={() => setOpen(false)}
@@ -93,7 +93,7 @@ const IC = {
 
 export default function Home() {
   return (
-    <div style={{ background: '#080A0F', color: '#fff', fontFamily: '-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', overflowX: 'hidden' }}>
+    <div style={{ background: '#060810', color: '#fff', fontFamily: '-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', overflowX: 'hidden' }}>
       <style>{`
         @keyframes ticker { from { transform: translateX(0) } to { transform: translateX(-50%) } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
@@ -106,7 +106,7 @@ export default function Home() {
         .lc-btn-primary:hover { background:#38BDF8; transform:translateY(-1px); box-shadow:0 8px 24px rgba(14,165,233,0.3); }
         .lc-btn-outline { display:inline-flex; align-items:center; gap:8px; padding:14px 28px; background:transparent; color:#fff; font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.2); border-radius:3px; text-decoration:none; cursor:pointer; transition:all 0.2s; }
         .lc-btn-outline:hover { border-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.05); }
-        .lc-card { background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08); border-radius:8px; padding:2rem; transition:all 0.3s; }
+        .lc-card { background:rgba(255,255,255,0.025); border:0.5px solid rgba(255,255,255,0.07); border-radius:8px; padding:2rem; transition:all 0.3s; backdrop-filter:blur(4px); }
         .lc-card:hover { background:rgba(14,165,233,0.05); border-color:rgba(14,165,233,0.2); transform:translateY(-2px); }
         .lc-step { display:flex; gap:1.5rem; align-items:flex-start; padding:1.5rem 0; border-bottom:0.5px solid rgba(255,255,255,0.06); }
         .lc-step:last-child { border-bottom:none; }
@@ -121,13 +121,29 @@ export default function Home() {
         }
         /* Dot grid background */
         .lc-dotgrid {
-          background-image: radial-gradient(rgba(14,165,233,0.12) 1px, transparent 1px);
-          background-size: 32px 32px;
+          background-image: radial-gradient(rgba(14,165,233,0.18) 1px, transparent 1px);
+          background-size: 28px 28px;
+          background-color: #060810;
         }
       `}</style>
 
+      <style>{`
+        @keyframes scanlines {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(4px); }
+        }
+        .lc-scanline {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(14,165,233,0.015) 2px, rgba(14,165,233,0.015) 4px);
+          pointer-events: none;
+          z-index: 1;
+          animation: scanlines 0.1s linear infinite;
+        }
+      `}</style>
+      <div className="lc-scanline"/>
       {/* ── NAV ──────────────────────────────────────────────── */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, borderBottom: '0.5px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', background: 'rgba(8,10,15,0.85)' }}>
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, borderBottom: '0.5px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', background: 'rgba(6,8,16,0.92)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', height: 64, maxWidth: 1200, margin: '0 auto' }}>
           {/* Logo */}
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -155,11 +171,22 @@ export default function Home() {
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="lc-dotgrid" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8rem 2rem 4rem', position: 'relative', overflow: 'hidden' }}>
         {/* Glow */}
-        <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, background: 'radial-gradient(circle, rgba(14,165,233,0.07) 0%, transparent 70%)', pointerEvents: 'none' }}/>
+        <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', width: 900, height: 900, background: 'radial-gradient(circle, rgba(14,165,233,0.12) 0%, rgba(56,189,248,0.04) 40%, transparent 70%)', pointerEvents: 'none' }}/>
+        <div style={{ position: 'absolute', bottom: '5%', right: '-10%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }}/>
+        {/* Corner grid decoration */}
+        <div style={{ position: 'absolute', bottom: 60, right: 60, opacity: 0.12, pointerEvents: 'none' }}>
+          {Array.from({length:6}).map((_,row) => (
+            <div key={row} style={{ display:'flex', gap:16, marginBottom:16 }}>
+              {Array.from({length:8}).map((_,col) => (
+                <div key={col} style={{ width:4, height:4, borderRadius:'50%', background:'#0EA5E9' }}/>
+              ))}
+            </div>
+          ))}
+        </div>
 
         <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
           {/* Eyebrow */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', border: '0.5px solid rgba(14,165,233,0.35)', borderRadius: 2, background: 'rgba(14,165,233,0.06)', marginBottom: '2rem', animation: 'fadeUp 0.6s ease' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', border: '1px solid rgba(14,165,233,0.4)', borderRadius: 2, background: 'rgba(14,165,233,0.1)', boxShadow: '0 0 20px rgba(14,165,233,0.15)', marginBottom: '2rem', animation: 'fadeUp 0.6s ease' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0EA5E9', animation: 'pulse 2s infinite' }}/>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#0EA5E9', textTransform: 'uppercase' }}>B2B Wholesale Distribution · Doral, FL</span>
           </div>
@@ -167,8 +194,8 @@ export default function Home() {
           {/* Headline */}
           <h1 className="lc-hero-headline" style={{ fontSize: 'clamp(44px,7vw,96px)', fontWeight: 900, lineHeight: 1.0, letterSpacing: '-0.03em', margin: '0 0 1.5rem', animation: 'fadeUp 0.6s 0.1s ease both' }}>
             Premium brands.<br/>
-            <span style={{ color: 'transparent', backgroundImage: 'linear-gradient(90deg, #0EA5E9, #38BDF8, #7DD3FC, #0EA5E9)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text', animation: 'shimmer 4s linear infinite' }}>Wholesale pricing.</span><br/>
-            <span style={{ color: 'rgba(255,255,255,0.45)' }}>Built for resellers.</span>
+            <span style={{ color: 'transparent', backgroundImage: 'linear-gradient(90deg, #0EA5E9, #38BDF8, #7DD3FC, #60A5FA, #0EA5E9)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text', animation: 'shimmer 3s linear infinite', textShadow: 'none', filter: 'drop-shadow(0 0 40px rgba(14,165,233,0.4))' }}>Wholesale pricing.</span><br/>
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Built for resellers.</span>
           </h1>
 
           <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, maxWidth: 560, marginBottom: '2.5rem', animation: 'fadeUp 0.6s 0.2s ease both' }}>
@@ -229,7 +256,7 @@ export default function Home() {
       </section>
 
       {/* ── STATS BAR ────────────────────────────────────────── */}
-      <section style={{ padding: '4rem 2rem', background: 'rgba(14,165,233,0.04)', borderTop: '0.5px solid rgba(14,165,233,0.1)', borderBottom: '0.5px solid rgba(14,165,233,0.1)' }}>
+      <section style={{ padding: '4rem 2rem', background: 'rgba(14,165,233,0.06)', borderTop: '1px solid rgba(14,165,233,0.2)', borderBottom: '1px solid rgba(14,165,233,0.2)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div className="lc-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '2rem', textAlign: 'center' }}>
             {[
@@ -238,7 +265,7 @@ export default function Home() {
               { n: 7, s: '+', label: 'Premium brands', sub: 'direct wholesale access' },
             ].map(stat => (
               <div key={stat.label}>
-                <div style={{ fontSize: 'clamp(40px,6vw,72px)', fontWeight: 900, letterSpacing: '-0.03em', color: '#fff', lineHeight: 1 }}>
+                <div style={{ fontSize: 'clamp(40px,6vw,72px)', fontWeight: 900, letterSpacing: '-0.03em', color: '#fff', lineHeight: 1, textShadow: '0 0 40px rgba(14,165,233,0.5)' }}>
                   <Counter to={stat.n} suffix={stat.s}/>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#0EA5E9', marginTop: 8, letterSpacing: '0.02em' }}>{stat.label}</div>
@@ -348,7 +375,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA BANNER ───────────────────────────────────────── */}
-      <section style={{ padding: '5rem 2rem', background: 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(14,165,233,0.02) 100%)', borderTop: '0.5px solid rgba(14,165,233,0.15)', borderBottom: '0.5px solid rgba(14,165,233,0.15)' }}>
+      <section style={{ padding: '5rem 2rem', background: 'linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(99,102,241,0.06) 50%, rgba(14,165,233,0.04) 100%)', borderTop: '1px solid rgba(14,165,233,0.2)', borderBottom: '1px solid rgba(14,165,233,0.2)' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.25em', color: '#0EA5E9', textTransform: 'uppercase', marginBottom: 16 }}>Ready to become a partner?</div>
           <h2 style={{ fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 1rem', lineHeight: 1.1 }}>Apply in 5 minutes.<br/>Response in 48 hours.</h2>
@@ -387,7 +414,7 @@ export default function Home() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────── */}
-      <footer style={{ padding: '2.5rem 2rem', borderTop: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.3)' }}>
+      <footer style={{ padding: '2.5rem 2rem', borderTop: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(6,8,16,0.9)', borderTop: '1px solid rgba(14,165,233,0.1)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
             LEVAM<span style={{ color: '#0EA5E9' }}>CORP</span>
