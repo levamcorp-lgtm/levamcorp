@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
+import { trackPageView, trackProductView, trackProductClick, trackSearch } from '../../../lib/analytics'
 
 export default function CatalogPage() {
   const [user, setUser] = useState(null)
@@ -32,17 +33,23 @@ export default function CatalogPage() {
       setProducts(prods || [])
       setFiltered(prods || [])
       setLoading(false)
+      trackPageView('/portal/catalog')
     })
   }, [])
 
   useEffect(() => {
     let list = products
     if (category !== 'all') list = list.filter(p => p.category === category)
+    if (search.trim().length > 2) trackSearch(search.trim(), list.length)
     if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()))
     setFiltered(list)
   }, [search, category, products])
 
-  const addToCart = (product, qty) => setCart(c => ({ ...c, [product.id]: { ...product, qty: parseInt(qty) || product.moq || 1 } }))
+  // Analytics tracked in addToCart
+const addToCart = (product, qty) => {
+  setCart(c => ({ ...c, [product.id]: { ...product, qty: parseInt(qty) || product.moq || 1 } }))
+  trackProductClick(product, 'add_to_quote')
+}
   const removeFromCart = (id) => setCart(c => { const n = { ...c }; delete n[id]; return n })
   const cartItems = Object.values(cart)
   const cartTotal = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0)
