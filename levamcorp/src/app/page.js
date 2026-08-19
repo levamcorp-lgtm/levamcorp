@@ -542,7 +542,7 @@ export default function Home() {
       `}</style>
 
       {/* ── FIXED DARK BASE ───────────────────────────────────────────── */}
-      <div style={{ position:'fixed', inset:0, background:'#060810', zIndex:-2 }}/>
+      <div style={{ position:'fixed', inset:0, background:'rgba(6,8,16,0.96)', zIndex:-2 }}/>
 
       {/* ── THREE.JS CINEMA CANVAS ────────────────────────────────────── */}
       <CinemaCanvas/>
@@ -702,7 +702,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── STATS ───────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(14,165,233,0.03)', borderTop:'1px solid rgba(14,165,233,0.07)', borderBottom:'1px solid rgba(14,165,233,0.07)' }}>
+      <section id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(14,165,233,0.015)', borderTop:'1px solid rgba(14,165,233,0.06)', borderBottom:'1px solid rgba(14,165,233,0.06)' }}>
         <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(14,165,233,0.05) 1px, transparent 1px)', backgroundSize:'38px 38px', pointerEvents:'none' }}/>
         <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2rem', textAlign:'center' }}>
@@ -771,7 +771,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── WHY LEVAM ───────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section id="features" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, background:'rgba(255,255,255,0.01)', borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+      <section id="features" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, background:'transparent', borderTop:'1px solid rgba(255,255,255,0.03)' }}>
         <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 50% at 0% 50%,rgba(14,165,233,0.03),transparent), radial-gradient(ellipse 70% 50% at 100% 50%,rgba(99,102,241,0.03),transparent)', pointerEvents:'none' }}/>
         <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <Reveal>
@@ -854,7 +854,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── LANGUAGE ────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ padding:'5rem 2rem', position:'relative', zIndex:5, background:'linear-gradient(135deg,rgba(14,165,233,0.05),rgba(99,102,241,0.03))', borderTop:'1px solid rgba(14,165,233,0.08)', borderBottom:'1px solid rgba(14,165,233,0.08)' }}>
+      <section style={{ padding:'5rem 2rem', position:'relative', zIndex:5, background:'rgba(14,165,233,0.02)', borderTop:'1px solid rgba(14,165,233,0.06)', borderBottom:'1px solid rgba(14,165,233,0.06)' }}>
         <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', alignItems:'center', gap:'3rem', flexWrap:'wrap', justifyContent:'space-between' }}>
           <Reveal>
             <div style={{ flex:1, minWidth:280 }}>
