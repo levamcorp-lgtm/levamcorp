@@ -223,6 +223,10 @@ export default function Home() {
             {[['#brands','Products'],['#process','Process'],['#about','About'],['#contact','Contact']].map(([h,l]) => (
               <a key={l} href={h} className="lc-nav-link" style={{ padding: '6px 14px' }}>{l}</a>
             ))}
+            <a href="/insights" className="lc-nav-link" style={{ padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 6px rgba(34,197,94,0.8)', animation: 'pulse 2s infinite', flexShrink: 0 }}/>
+              Market Insights
+            </a>
             <Link href="/apply" className="lc-btn-primary" style={{ padding: '9px 20px', fontSize: 12, marginLeft: 8 }}>Apply to partner {IC.arrow}</Link>
           </div>
           <MobileMenu/>
