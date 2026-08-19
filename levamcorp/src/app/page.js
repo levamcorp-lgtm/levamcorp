@@ -543,26 +543,35 @@ export default function Home() {
 
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
-      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, backdropFilter:'blur(24px)', background:'rgba(6,8,16,0.85)', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', height:58, maxWidth:1200, margin:'0 auto' }}>
-          <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:30, height:30, border:'1.5px solid rgba(14,165,233,0.35)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', animation:'breathe 3s infinite' }}>
-              <div style={{ width:9, height:9, background:'#0EA5E9', borderRadius:2, animation:'pulseDot 2s infinite' }}/>
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px)', background:'rgba(6,8,16,0.92)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', height:60, maxWidth:1200, margin:'0 auto' }}>
+          {/* LOGO */}
+          <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+            <div style={{ width:32, height:32, border:'1.5px solid rgba(14,165,233,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(14,165,233,0.06)' }}>
+              <div style={{ width:10, height:10, background:'#0EA5E9', borderRadius:2 }}/>
             </div>
             <div>
-              <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.2em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span></div>
-              <div style={{ fontSize:7, letterSpacing:'0.22em', color:'rgba(255,255,255,0.22)', textTransform:'uppercase', marginTop:2 }}>Distributors · Doral, FL</div>
+              <div style={{ fontSize:14, fontWeight:900, letterSpacing:'0.2em', color:'#ffffff', textTransform:'uppercase', lineHeight:1 }}>
+                LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span>
+              </div>
+              <div style={{ fontSize:7, letterSpacing:'0.2em', color:'rgba(255,255,255,0.3)', textTransform:'uppercase', marginTop:2 }}>
+                Distributors · Doral, FL
+              </div>
             </div>
           </Link>
-          <div className="lc-links" style={{ alignItems:'center', gap:1 }}>
+          {/* DESKTOP LINKS */}
+          <div style={{ display:'flex', alignItems:'center', gap:4 }} className="lc-nav-desktop">
             {[['#brands','Products'],['#process','Process'],['#about','About'],['#contact','Contact']].map(([h,l]) => (
-              <a key={l} href={h} className="lc-link">{l}</a>
+              <a key={l} href={h} style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.5)', textDecoration:'none', padding:'6px 12px', borderRadius:4, transition:'color 0.2s' }}
+                onMouseOver={e=>e.target.style.color='#fff'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.5)'}>{l}</a>
             ))}
-            <a href="/insights" className="lc-link" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-              <span style={{ width:6, height:6, background:'#22c55e', borderRadius:'50%', boxShadow:'0 0 6px #22c55e', animation:'pulseDot 2s infinite', flexShrink:0 }}/>
+            <a href="/insights" style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.5)', textDecoration:'none', padding:'6px 12px', borderRadius:4, display:'inline-flex', alignItems:'center', gap:6 }}>
+              <span style={{ width:6, height:6, background:'#22c55e', borderRadius:'50%', boxShadow:'0 0 6px #22c55e', flexShrink:0 }}/>
               Market Insights
             </a>
-            <Link href="/apply" className="lc-btn" style={{ padding:'8px 18px', fontSize:11, marginLeft:8 }}>Apply {IC.arrow}</Link>
+            <Link href="/apply" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'linear-gradient(135deg,#0EA5E9,#0284C7)', color:'#fff', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', marginLeft:8 }}>
+              Apply {IC.arrow}
+            </Link>
           </div>
           <MobileMenu/>
         </div>
