@@ -3,9 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-const CinemaCanvas   = dynamic(() => import('../components/CinemaCanvas'),   { ssr: false })
 // CinematicScroll components imported below as dynamic
-const ParallaxLayers = dynamic(() => import('../components/ParallaxLayers'), { ssr: false })
 
 // ── SMOOTH SPRING HOOK ────────────────────────────────────────────────────────
 function useSpring(target, stiffness = 0.07) {
@@ -453,7 +451,6 @@ function DrawLine({ height = 120, color = '#0EA5E9', delay = 0 }) {
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function Home() {
-  const { scrollY, mx, my } = useScene()
   const [loaded,    setLoaded]    = useState(false)
   const [heroPhase, setHeroPhase] = useState(0)
 
@@ -544,13 +541,6 @@ export default function Home() {
       {/* ── FIXED DARK BASE ───────────────────────────────────────────── */}
       <div style={{ position:'fixed', inset:0, background:'rgba(6,8,16,0.96)', zIndex:-2 }}/>
 
-      {/* ── THREE.JS CINEMA CANVAS ────────────────────────────────────── */}
-      <CinemaCanvas/>
-
-      {/* ── SCANLINE SWEEP ────────────────────────────────────────────── */}
-      <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:1, overflow:'hidden' }}>
-        <div style={{ position:'absolute', left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(14,165,233,0.08),transparent)', animation:'scanline 12s ease-in-out infinite' }}/>
-      </div>
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, backdropFilter:'blur(24px)', background:'rgba(6,8,16,0.85)', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
@@ -590,9 +580,6 @@ export default function Home() {
 
         {/* Hero video background */}
         <HeroVideo/>
-
-        {/* Layered parallax depth scene */}
-        {loaded && <ParallaxLayers scrollY={scrollY}/>}
 
         {/* Hero glow behind text */}
         <div style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
