@@ -651,24 +651,19 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-                  {featData.map((f, i) => (       desc:'Direct access to competitive wholesale rates — not inflated reseller prices.',          color:'#22c55e' },
-              { icon:IC.shield, title:'Verified partners only',  desc:'Every partner is vetted personally. This protects your margins.',                        color:'#0EA5E9' },
-              { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                           color:'#f59e0b' },
-              { icon:IC.box,    title:'Live catalog access',     desc:'Your private portal shows real-time pricing and stock. No guessing.',                    color:'#6366F1' },
-              { icon:IC.globe,  title:'U.S. based operation',    desc:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',                       color:'#0EA5E9' },
-              { icon:IC.users,  title:'Dedicated support',       desc:'Mon–Fri 9AM–5PM ET. We speak English and Spanish. You talk to us directly.',            color:'#22c55e' },
-            ].map((f, i) => (
-              <Reveal key={f.title} delay={i*0.07}>
-                <TiltCard glow={f.color} style={{ height:'100%' }}>
-                  <Card style={{ height:'100%' }} accent={f.color}>
-                    <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
-                    <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
-                    <div style={{ fontSize:12, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{f.desc}</div>
-                  </Card>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
+                  {featData.map((f, i) => (
+                    <TiltCard key={f.title} glow={f.color} style={{ height:'100%' }}>
+                      <Card style={{ height:'100%' }} accent={f.color}>
+                        <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
+                        <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
+                        <div style={{ fontSize:12, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{f.desc}</div>
+                      </Card>
+                    </TiltCard>
+                  ))}
+                </div>
+              )
+            })()
+          )}
         </div>
       </section>
 
