@@ -584,8 +584,7 @@ export default function Home() {
         {/* Hero glow behind text */}
         <div style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
           background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)',
-          style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
-          transition:'transform 0.1s linear', pointerEvents:'none' }}/>
+          pointerEvents:'none' }}/>
         <div style={{ position:'absolute', top:'45%', left:'15%', width:400, height:400,
           background:'radial-gradient(circle,rgba(99,102,241,0.05) 0%,transparent 70%)',
           pointerEvents:'none' }}/>
