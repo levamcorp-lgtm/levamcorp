@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
+import { trackPageView } from '../../../lib/analytics'
 
 const IC = {
   orders:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M16 2v4H8V2"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>,
@@ -39,6 +40,7 @@ export default function Dashboard() {
     sb.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
+      trackPageView('/portal/dashboard')
       const [{ data: o }, { data: cl }] = await Promise.all([
         sb.from('orders').select('*, order_items(*)').order('submitted_at', { ascending: false }).limit(10),
         sb.from('clients').select('*').eq('email', data.user.email).single(),
