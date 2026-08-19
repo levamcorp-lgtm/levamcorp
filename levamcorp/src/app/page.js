@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 const CinemaCanvas   = dynamic(() => import('../components/CinemaCanvas'),   { ssr: false })
 // CinematicScroll components imported below as dynamic
 const ParallaxLayers = dynamic(() => import('../components/ParallaxLayers'), { ssr: false })
+const TruckDoor      = dynamic(() => import('../components/TruckDoor'),      { ssr: false })
 
 // ── SMOOTH SPRING HOOK ────────────────────────────────────────────────────────
 function useSpring(target, stiffness = 0.07) {
@@ -581,6 +582,13 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── HERO ────────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── TRUCK DOOR ANIMATION — sticky scroll trigger ── */}
+      <div style={{ position:'relative', height:'200vh' }}>
+        <div style={{ position:'sticky', top:0, height:'100vh', overflow:'hidden', zIndex:3 }}>
+          {loaded && <TruckDoor/>}
+        </div>
+      </div>
+
       <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 5rem', position:'relative', overflow:'hidden',
         background:'radial-gradient(ellipse 90% 70% at 50% -5%, rgba(14,165,233,0.09) 0%, transparent 65%)' }}>
 
