@@ -4,10 +4,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 const CinemaCanvas   = dynamic(() => import('../components/CinemaCanvas'),   { ssr: false })
-const { TypewriterHeadline, SlotCounter, CurtainReveal, StaggerCards, DrawLine } = 
-  typeof window !== 'undefined' 
-    ? require('../components/CinematicScroll') 
-    : { TypewriterHeadline: null, SlotCounter: null, CurtainReveal: ({children})=>children, StaggerCards: ({children})=>children, DrawLine: ()=>null }
+// CinematicScroll components imported below as dynamic
 const ParallaxLayers = dynamic(() => import('../components/ParallaxLayers'), { ssr: false })
 
 // ── SMOOTH SPRING HOOK ────────────────────────────────────────────────────────
@@ -276,6 +273,121 @@ const insightItems = [
   { tag:'Trending',    title:'Kitchen appliances: consistent performers for resellers', date:'Jul 2026' },
 ]
 
+// ── INLINE CINEMATIC COMPONENTS ──────────────────────────────────────────────
+
+function TypewriterText({ phase }) {
+  const lines  = ['Premium brands.', 'Wholesale pricing.', 'Built for resellers.']
+  const styles = [
+    { color: '#fff' },
+    { color:'transparent', backgroundImage:'linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC,#60A5FA,#0EA5E9)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 3s linear infinite' },
+    { color:'rgba(255,255,255,0.28)', fontStyle:'italic' },
+  ]
+  const [lineIdx, setLineIdx] = useState(0)
+  const [chars,   setChars]   = useState(0)
+  const [done,    setDone]    = useState(false)
+  const timer = useRef(null)
+
+  useEffect(() => {
+    if (done) return
+    const text = lines[lineIdx] || ''
+    const startDelay = lineIdx === 0 ? 100 : 150
+    timer.current = setTimeout(() => {
+      const iv = setInterval(() => {
+        setChars(c => {
+          if (c >= text.length) {
+            clearInterval(iv)
+            if (lineIdx < lines.length - 1) {
+              setTimeout(() => { setLineIdx(l => l + 1); setChars(0) }, 200)
+            } else setDone(true)
+            return c
+          }
+          return c + 1
+        })
+      }, 36)
+    }, startDelay)
+    return () => { clearTimeout(timer.current) }
+  }, [lineIdx, done])
+
+  return (
+    <>
+      {lines.map((line, i) => (
+        <span key={i} style={{ display:'block', ...styles[i] }}>
+          {i < lineIdx ? line : i === lineIdx ? line.slice(0, chars) : null}
+          {i === lineIdx && !done && (
+            <span style={{ display:'inline-block', width:2, height:'0.8em', background:'#0EA5E9', marginLeft:2, verticalAlign:'middle', animation:'blink 0.7s step-end infinite' }}/>
+          )}
+        </span>
+      ))}
+    </>
+  )
+}
+
+function SlotCounter({ to, suffix = '' }) {
+  const [val,     setVal]     = useState(0)
+  const [flicker, setFlicker] = useState(false)
+  const [slot,    setSlot]    = useState(0)
+  const ref     = useRef(null)
+  const started = useRef(false)
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting || started.current) return
+      started.current = true
+      let ticks = 0
+      const iv = setInterval(() => {
+        setSlot(Math.floor(Math.random() * to))
+        setFlicker(true)
+        if (++ticks >= 10) {
+          clearInterval(iv)
+          setFlicker(false)
+          const start = performance.now()
+          const tick  = now => {
+            const p = Math.min((now - start) / 1600, 1)
+            setVal(Math.round((1 - Math.pow(1 - p, 4)) * to))
+            if (p < 1) requestAnimationFrame(tick)
+          }
+          requestAnimationFrame(tick)
+        }
+      }, 60)
+    }, { threshold: 0.4 })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [to])
+
+  return (
+    <span ref={ref} style={{ filter: flicker ? 'blur(1px) brightness(1.6)' : 'none', transition: 'filter 0.2s' }}>
+      {(flicker ? slot : val).toLocaleString()}{suffix}
+    </span>
+  )
+}
+
+function DrawLine({ height = 120, color = '#0EA5E9', delay = 0 }) {
+  const ref = useRef(null)
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      setTimeout(() => {
+        const start = performance.now()
+        const tick  = now => {
+          const p = Math.min((now - start) / 1000, 1)
+          setProgress(1 - Math.pow(1 - p, 3))
+          if (p < 1) requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }, delay * 1000)
+    }, { threshold: 0.3 })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [delay])
+  return (
+    <div ref={ref} style={{ position:'absolute', left:20, top:44, width:1, height }}>
+      <div style={{ position:'absolute', top:0, left:0, width:1, height:`${progress*100}%`, background:`linear-gradient(180deg,${color},${color}00)` }}/>
+      <div style={{ position:'absolute', left:-3, top:`calc(${progress*100}% - 4px)`, width:7, height:7, borderRadius:'50%', background:color, boxShadow:`0 0 10px ${color}`, opacity: progress > 0 && progress < 1 ? 1 : 0 }}/>
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -441,19 +553,8 @@ export default function Home() {
           {/* Headline — typewriter entrance */}
           <h1 className="hero-h" style={{ fontSize:'clamp(44px,6.5vw,88px)', fontWeight:900, lineHeight:1.0, letterSpacing:'-0.03em', margin:'0 0 1.5rem',
             opacity: heroPhase >= 2 ? 1 : 0, transform: heroPhase >= 2 ? 'translateY(0)' : 'translateY(20px)',
-            transition:'opacity 0.7s ease, transform 0.7s ease', minHeight:'3em' }}>
-            {heroPhase >= 2 && loaded && typeof window !== 'undefined' ? (
-              (() => {
-                const { TypewriterHeadline: TW } = require('../components/CinematicScroll')
-                return TW ? <TW lines={['Premium brands.', 'Wholesale pricing.', 'Built for resellers.']} delay={0.1}/> : (
-                  <>
-                    Premium brands.<br/>
-                    <span style={{ color:'transparent', backgroundImage:'linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC,#60A5FA,#0EA5E9)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 3s linear infinite' }}>Wholesale pricing.</span><br/>
-                    <span style={{ color:'rgba(255,255,255,0.28)', fontStyle:'italic' }}>Built for resellers.</span>
-                  </>
-                )
-              })()
-            ) : null}
+            transition:'opacity 0.7s ease, transform 0.7s ease' }}>
+            {heroPhase >= 2 && <TypewriterText phase={heroPhase}/>}
           </h1>
 
           <p style={{ fontSize:16, color:'rgba(255,255,255,0.42)', lineHeight:1.85, maxWidth:500, marginBottom:'2.5rem', animation:'fadeUp 0.7s 0.2s ease both' }}>
@@ -549,12 +650,7 @@ export default function Home() {
               <Reveal key={stat.label} delay={i*0.12}>
                 <div style={{ padding:'2rem 1rem' }}>
                   <div style={{ fontSize:'clamp(48px,6vw,80px)', fontWeight:900, letterSpacing:'-0.03em', color:'#fff', lineHeight:1, textShadow:'0 0 40px rgba(14,165,233,0.35)' }}>
-                    {loaded && typeof window !== 'undefined' ? (
-                      (() => {
-                        const { SlotCounter: SC } = require('../components/CinematicScroll')
-                        return SC ? <SC to={stat.to} suffix={stat.s}/> : <Counter to={stat.to} suffix={stat.s}/>
-                      })()
-                    ) : <Counter to={stat.to} suffix={stat.s}/>}
+                    <SlotCounter to={stat.to} suffix={stat.s}/>
                   </div>
                   <div style={{ fontSize:12, fontWeight:700, color:'#0EA5E9', marginTop:10, letterSpacing:'0.06em' }}>{stat.label}</div>
                   <div style={{ fontSize:11, color:'rgba(255,255,255,0.22)', marginTop:4 }}>{stat.sub}</div>
@@ -592,12 +688,7 @@ export default function Home() {
               ].map((step, i) => (
                 <Reveal key={step.n} delay={i*0.1}>
                   <div style={{ display:'flex', gap:'1.25rem', padding:'1.75rem 0', borderBottom:i<3?'1px solid rgba(255,255,255,0.04)':'none', position:'relative' }}>
-                    {i < 3 && loaded && typeof window !== 'undefined' ? (
-                      (() => {
-                        const { DrawLine: DL } = require('../components/CinematicScroll')
-                        return DL ? <DL height={110} delay={i * 0.15}/> : <div className="step-line"/>
-                      })()
-                    ) : i < 3 ? <div className="step-line"/> : null}
+                    {i < 3 && <DrawLine height={110} delay={i * 0.15}/>}
                     <div style={{ width:40, height:40, borderRadius:'50%', border:'1px solid rgba(14,165,233,0.3)', background:'rgba(14,165,233,0.06)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative', zIndex:1 }}>
                       <span style={{ fontSize:9, fontWeight:900, color:'#0EA5E9', letterSpacing:'0.05em' }}>{step.n}</span>
                     </div>
@@ -625,45 +716,26 @@ export default function Home() {
               <h2 style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1 }}>Built for serious business.</h2>
             </div>
           </Reveal>
-          {loaded && typeof window !== 'undefined' ? (
-            (() => {
-              const { StaggerCards: SC } = require('../components/CinematicScroll')
-              const featData = [
-                { icon:IC.dollar, title:'Wholesale pricing',       desc:'Direct access to competitive wholesale rates — not inflated reseller prices.',  color:'#22c55e' },
-                { icon:IC.shield, title:'Verified partners only',  desc:'Every partner is vetted personally. This protects your margins.',                color:'#0EA5E9' },
-                { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                   color:'#f59e0b' },
-                { icon:IC.box,    title:'Live catalog access',     desc:'Your private portal shows real-time pricing and stock. No guessing.',            color:'#6366F1' },
-                { icon:IC.globe,  title:'U.S. based operation',    desc:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',               color:'#0EA5E9' },
-                { icon:IC.users,  title:'Dedicated support',       desc:'Mon–Fri 9AM–5PM ET. We speak English and Spanish. You talk to us directly.',    color:'#22c55e' },
-              ]
-              const cards = featData.map((f, i) => (
-                <TiltCard key={f.title} glow={f.color} style={{ height:'100%' }}>
+          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+            {[
+              { icon:IC.dollar, title:'Wholesale pricing',       desc:'Direct access to competitive wholesale rates — not inflated reseller prices.',  color:'#22c55e' },
+              { icon:IC.shield, title:'Verified partners only',  desc:'Every partner is vetted personally. This protects your margins.',                color:'#0EA5E9' },
+              { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                   color:'#f59e0b' },
+              { icon:IC.box,    title:'Live catalog access',     desc:'Your private portal shows real-time pricing and stock. No guessing.',            color:'#6366F1' },
+              { icon:IC.globe,  title:'U.S. based operation',    desc:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',               color:'#0EA5E9' },
+              { icon:IC.users,  title:'Dedicated support',       desc:'Mon–Fri 9AM–5PM ET. We speak English and Spanish. You talk to us directly.',    color:'#22c55e' },
+            ].map((f, i) => (
+              <Reveal key={f.title} delay={i*0.07}>
+                <TiltCard glow={f.color} style={{ height:'100%' }}>
                   <Card style={{ height:'100%' }} accent={f.color}>
                     <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
                     <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
                     <div style={{ fontSize:12, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{f.desc}</div>
                   </Card>
                 </TiltCard>
-              ))
-              return SC ? (
-                <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-                  <SC staggerMs={100}>{cards}</SC>
-                </div>
-              ) : (
-                <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-                  {featData.map((f, i) => (
-                    <TiltCard key={f.title} glow={f.color} style={{ height:'100%' }}>
-                      <Card style={{ height:'100%' }} accent={f.color}>
-                        <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
-                        <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
-                        <div style={{ fontSize:12, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{f.desc}</div>
-                      </Card>
-                    </TiltCard>
-                  ))}
-                </div>
-              )
-            })()
-          )}
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
