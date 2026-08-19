@@ -273,6 +273,67 @@ const insightItems = [
   { tag:'Trending',    title:'Kitchen appliances: consistent performers for resellers', date:'Jul 2026' },
 ]
 
+
+// ── HERO VIDEO BACKGROUND ─────────────────────────────────────────────────────
+// Replace VIDEO_URL with your Supabase Storage URL or any public video URL
+// Recommended: MP4, H.264, 720p or 1080p, under 10MB
+
+const VIDEO_URL = 'https://videos.pexels.com/video-files/28483048/28483048-hd_1920_1080_24fps.mp4'
+
+function HeroVideo() {
+  if (!VIDEO_URL) return null
+  return (
+    <div style={{
+      position:   'absolute',
+      inset:      0,
+      zIndex:     1,
+      overflow:   'hidden',
+      pointerEvents: 'none',
+    }}>
+      {/* Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position:   'absolute',
+          inset:      0,
+          width:      '100%',
+          height:     '100%',
+          objectFit:  'cover',
+          opacity:    0.18,         // keep it subtle — text must stay readable
+          filter:     'saturate(0.6) brightness(0.5)',
+        }}
+      >
+        <source src={VIDEO_URL} type="video/mp4"/>
+      </video>
+
+      {/* Dark gradient overlay — heavier at bottom so text pops */}
+      <div style={{
+        position:   'absolute',
+        inset:      0,
+        background: 'linear-gradient(180deg, rgba(6,8,16,0.3) 0%, rgba(6,8,16,0.0) 40%, rgba(6,8,16,0.6) 100%)',
+      }}/>
+
+      {/* Blue tint overlay */}
+      <div style={{
+        position:   'absolute',
+        inset:      0,
+        background: 'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(14,165,233,0.08) 0%, transparent 70%)',
+        mixBlendMode: 'screen',
+      }}/>
+
+      {/* Vignette */}
+      <div style={{
+        position:   'absolute',
+        inset:      0,
+        background: 'radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(6,8,16,0.7) 100%)',
+      }}/>
+    </div>
+  )
+}
+
 // ── INLINE CINEMATIC COMPONENTS ──────────────────────────────────────────────
 
 function TypewriterText({ phase }) {
@@ -526,6 +587,9 @@ export default function Home() {
         {/* Dot grid — parallax layer */}
         <div style={{ position:'absolute', inset:'-6%', backgroundImage:'radial-gradient(rgba(14,165,233,0.14) 1px, transparent 1px)', backgroundSize:'28px 28px',
           transform:`translate(${mx*8}px,${my*6}px)`, transition:'transform 0.1s linear', pointerEvents:'none' }}/>
+
+        {/* Hero video background */}
+        <HeroVideo/>
 
         {/* Layered parallax depth scene */}
         {loaded && <ParallaxLayers scrollY={scrollY}/>}
