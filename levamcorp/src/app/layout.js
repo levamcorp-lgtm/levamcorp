@@ -1,8 +1,6 @@
 import './globals.css'
 import FloatingButtons from './FloatingButtons'
-import dynamic from 'next/dynamic'
-const LightingProvider = dynamic(() => import('../components/LightingProvider'), { ssr: false })
-const ScrollAnimations  = dynamic(() => import('../components/ScrollAnimations'),  { ssr: false })
+import ClientProviders from '../components/ClientProviders'
 
 export const metadata = {
   title: 'Levam Corp Distributors',
@@ -18,7 +16,8 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <LightingProvider/><ScrollAnimations/>{children}
+        <ClientProviders/>
+        {children}
         <FloatingButtons />
       </body>
     </html>
