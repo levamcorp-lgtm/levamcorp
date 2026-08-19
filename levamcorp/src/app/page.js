@@ -667,7 +667,7 @@ export default function Home() {
           <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             {[
               { icon:IC.tv,     label:'Televisions',       desc:'Smart TVs, 4K UHD, QLED & Mini-LED from Hisense and Samsung. 32" to 100".', color:'#0EA5E9' },
-              { icon:IC.fridge, label:'Refrigerators',     desc:'Compact and countertop refrigerators from Avanti for retail and hospitality.', color:'#6366F1' },
+              { icon:IC.fridge, label:'Electronics',       desc:'Consumer electronics from top brands — Sony, Samsung, Logitech, Anker and more. Headphones, speakers, chargers, accessories.', color:'#6366F1' },
               { icon:IC.coffee, label:'Small Appliances',  desc:'Coffee makers, blenders, rice cookers, irons from Brentwood, Hamilton Beach, Proctor Silex.', color:'#22c55e' },
               { icon:IC.home2,  label:'Kitchen & Cooking', desc:'Air fryers, deep fryers, griddles, pressure cookers and complete kitchen lineups.', color:'#f59e0b' },
             ].map((c, i) => (
