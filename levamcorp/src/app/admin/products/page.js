@@ -168,7 +168,7 @@ export default function AdminProducts() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit']].map(([label, href]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Products' ? '#2d7dd2' : '#777', textDecoration: 'none', padding: '4px 14px', borderBottom: label === 'Products' ? '2px solid #2d7dd2' : '2px solid transparent' }}>{label}</Link>
             ))}
           </div>
@@ -286,14 +286,14 @@ export default function AdminProducts() {
 
               {/* SECTION: Pricing & Stock */}
               <div style={{ fontSize: 10, color: '#2a7d4f', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem', paddingBottom: 6, borderBottom: '0.5px solid rgba(42,125,79,0.2)' }}>Pricing & inventory</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: '1rem' }}>
+                <div>
+                  <label style={lbl}>Cost price ($) *</label>
+                  <input style={inp} type="number" value={form.cost_price} onChange={e => setField('cost_price', e.target.value)} placeholder="0.00" />
+                </div>
                 <div>
                   <label style={lbl}>Sale price ($) *</label>
                   <input style={inp} type="number" value={form.price} onChange={e => setField('price', e.target.value)} placeholder="0.00" />
-                </div>
-                <div>
-                  <label style={lbl}>Cost price ($)</label>
-                  <input style={inp} type="number" value={form.cost_price} onChange={e => setField('cost_price', e.target.value)} placeholder="0.00" />
                 </div>
                 <div>
                   <label style={lbl}>Stock (units)</label>
@@ -315,7 +315,41 @@ export default function AdminProducts() {
                     {['WH: FL','WH: TX','WH: CA','WH: NY','WH: NJ'].map(w => <option key={w} value={w}>{w}</option>)}
                   </select>
                 </div>
-                {form.price && form.cost_price && (
+                {/* MARGIN BUTTONS */}
+              {form.cost_price && parseFloat(form.cost_price) > 0 && (
+                <div style={{ marginBottom: '1rem', padding: '12px 14px', background: 'rgba(42,125,79,0.04)', border: '1px solid rgba(42,125,79,0.15)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 9, color: '#2a7d4f', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Auto-calculate sale price from cost</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[4, 5, 6, 7, 8, 10, 12, 15, 20].map(pct => {
+                      const cost = parseFloat(form.cost_price) || 0
+                      const salePrice = (cost * (1 + pct/100)).toFixed(2)
+                      const isActive = parseFloat(form.price) === parseFloat(salePrice)
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setField('price', salePrice)}
+                          style={{
+                            padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: 11, fontWeight: 700, transition: 'all 0.15s',
+                            background: isActive ? '#2a7d4f' : '#fff',
+                            color: isActive ? '#fff' : '#2a7d4f',
+                            border: `1.5px solid ${isActive ? '#2a7d4f' : 'rgba(42,125,79,0.3)'}`,
+                          }}
+                        >
+                          +{pct}% → ${salePrice}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {form.price && form.cost_price && (
+                    <div style={{ fontSize: 11, color: '#2a7d4f', marginTop: 8, fontWeight: 600 }}>
+                      Margin: {(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}% · Profit: +${(parseFloat(form.price) - parseFloat(form.cost_price)).toFixed(2)}/unit
+                    </div>
+                  )}
+                </div>
+              )}
+              {form.price && form.cost_price && (
                   <div style={{ gridColumn: 'span 2', padding: '10px 14px', background: 'rgba(42,125,79,0.08)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 11, color: '#666' }}>Profit margin</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#2a7d4f' }}>{(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}% · +${(parseFloat(form.price) - parseFloat(form.cost_price)).toFixed(2)}/unit</span>
