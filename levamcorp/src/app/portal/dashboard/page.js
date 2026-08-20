@@ -2,365 +2,321 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
+import { trackPageView } from '../../../lib/analytics'
 
-const ADMIN_EMAIL = 'levamcorp@gmail.com'
-const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+const IC = {
+  orders:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M16 2v4H8V2"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>,
+  pending:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+  value:    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+  done:     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>,
+  catalog:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  invoice:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>,
+  payment:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>,
+  mail:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>,
+  phone:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  check:    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>,
+  arrow:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>,
+  truck:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
+  pin:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+}
 
-export default function AdminDashboard() {
-  const [data, setData] = useState({
-    orders: [], clients: [], applications: [], products: [],
-    payments: [], messages: [], investments: []
-  })
+const STATUS = {
+  new:        { label:'Received',   color:'#2d7dd2', bg:'rgba(45,125,210,0.08)',  border:'rgba(45,125,210,0.2)'  },
+  review:     { label:'In review',  color:'#c49a00', bg:'rgba(196,154,0,0.08)',   border:'rgba(196,154,0,0.2)'   },
+  confirmed:  { label:'Confirmed',  color:'#534ab7', bg:'rgba(83,74,183,0.08)',   border:'rgba(83,74,183,0.2)'   },
+  dispatched: { label:'Dispatched', color:'#2a7d4f', bg:'rgba(42,125,79,0.08)',   border:'rgba(42,125,79,0.2)'   },
+  completed:  { label:'Completed',  color:'#2a7d4f', bg:'rgba(42,125,79,0.08)',   border:'rgba(42,125,79,0.2)'   },
+  cancelled:  { label:'Cancelled',  color:'#e74c3c', bg:'rgba(231,76,60,0.08)',   border:'rgba(231,76,60,0.2)'   },
+}
+
+export default function Dashboard() {
+  const [user,    setUser]    = useState(null)
+  const [orders,  setOrders]  = useState([])
+  const [client,  setClient]  = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const now = new Date()
-  const currentMonth = now.toLocaleString('en-US', { month: 'long' })
-  const currentYear = now.getFullYear()
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
-
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: authData }) => {
-      if (!authData.user || authData.user.email !== ADMIN_EMAIL) { window.location.href = '/admin'; return }
-      const [
-        { data: orders }, { data: clients }, { data: applications },
-        { data: products }, { data: payments }, { data: messages },
-        { data: investments }
-      ] = await Promise.all([
-        supabase.from('orders').select('*, order_items(*, products(cost_price))').order('submitted_at', { ascending: false }),
-        supabase.from('clients').select('*').order('created_at', { ascending: false }),
-        supabase.from('applications').select('*').order('created_at', { ascending: false }),
-        supabase.from('products').select('*').order('name'),
-        supabase.from('payments').select('*').order('created_at', { ascending: false }),
-        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
-        supabase.from('partner_investments').select('*'),
+    const sb = createClient()
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { window.location.href = '/portal'; return }
+      // Make sure this is a client, not an admin
+      const adminEmails = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+      if (adminEmails.includes(data.user.email)) { window.location.href = '/admin/dashboard'; return }
+      setUser(data.user)
+      trackPageView('/portal/dashboard')
+      const [{ data: o }, { data: cl }] = await Promise.all([
+        sb.from('orders').select('*, order_items(*)').order('submitted_at', { ascending: false }).limit(10),
+        sb.from('clients').select('*').eq('email', data.user.email).single(),
       ])
-      setData({ orders: orders||[], clients: clients||[], applications: applications||[], products: products||[], payments: payments||[], messages: messages||[], investments: investments||[] })
+      setOrders(o || [])
+      setClient(cl || null)
       setLoading(false)
     })
   }, [])
 
-  const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
+  const logout = async () => { await createClient().auth.signOut(); window.location.href = '/portal' }
 
-  // Calculations
-  const completedOrders = data.orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
-  const newOrders = data.orders.filter(o => o.status === 'new')
-  const activeOrders = data.orders.filter(o => ['review','confirmed','dispatched'].includes(o.status))
-  const pendingApps = data.applications.filter(a => a.status === 'pending' || !a.status)
-  const unreadMessages = data.messages.filter(m => m.status === 'new')
-  const pendingPayments = data.payments.filter(p => p.status === 'requested')
-  const proofSubmitted = data.payments.filter(p => p.status === 'processing')
-  const outOfStock = data.products.filter(p => p.stock === 0)
-  const lowStock = data.products.filter(p => p.stock > 0 && p.stock <= 5)
+  const totalOrders   = orders.length
+  const totalSpent    = orders.reduce((s, o) => s + (o.total || 0), 0)
+  const pendingOrders = orders.filter(o => !['completed','cancelled'].includes(o.status))
+  const pendingValue  = pendingOrders.reduce((s, o) => s + (o.total || 0), 0)
+  const completedOrders = orders.filter(o => o.status === 'completed')
+  const displayName   = client?.contact_name || user?.email?.split('@')[0] || 'Partner'
+  const businessName  = client?.business_name || ''
+  const lastOrder     = orders[0]
 
-  const totalRevenue = completedOrders.reduce((s, o) => s + (o.total || 0), 0)
-  const calcCost = (order) => (order.order_items || []).reduce((s, i) => s + ((i.products?.cost_price || 0) * i.quantity), 0)
-  const totalCost = completedOrders.reduce((s, o) => s + calcCost(o), 0)
-  const totalProfit = totalRevenue - totalCost
-
-  // Revenue includes confirmed, dispatched and completed orders
-  const monthOrders = completedOrders.filter(o => {
-    const d = new Date(o.submitted_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
-  })
-  const monthRevenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0)
-  const monthCost = monthOrders.reduce((s, o) => s + calcCost(o), 0)
-  const monthProfit = monthRevenue - monthCost
-
-  const currentInvestments = data.investments.filter(i => i.month === currentMonth && i.year === currentYear)
-  const victorInvested = currentInvestments.filter(i => i.partner_name === 'Victor').reduce((s, i) => s + i.amount, 0)
-  const leopoldoInvested = currentInvestments.filter(i => i.partner_name === 'Leopoldo').reduce((s, i) => s + i.amount, 0)
-  const totalInvested = victorInvested + leopoldoInvested
-  const victorShare = totalInvested > 0 ? victorInvested / totalInvested : 0.5
-  const leopoldoShare = totalInvested > 0 ? leopoldoInvested / totalInvested : 0.5
+  const money = (n) => '$' + (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ position: 'relative', width: 48, height: 48, margin: '0 auto 16px' }}>
-          <div style={{ position: 'absolute', left: 10, top: 0, width: 3, height: 38, background: '#ddd' }} />
-          <div style={{ position: 'absolute', left: 10, bottom: 0, width: 26, height: 3, background: '#ddd' }} />
-          <div style={{ position: 'absolute', left: 16, bottom: 10, width: 16, height: 3, background: '#2d7dd2' }} />
-        </div>
-        <div style={{ fontSize: 12, color: '#666', letterSpacing: '0.1em' }}>Loading dashboard...</div>
+    <div style={{ minHeight:'100vh', background:'#f7f8fa', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ width:32, height:32, border:'2.5px solid #e5e7eb', borderTop:'2.5px solid #2d7dd2', borderRadius:'50%', margin:'0 auto 14px', animation:'spin 0.7s linear infinite' }}/>
+        <div style={{ fontSize:12, color:'#aaa', letterSpacing:'0.08em' }}>Loading your portal...</div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>
   )
 
   return (
-    <div style={{ background: '#f4f5f7', minHeight: '100vh' }}>
+    <div style={{ background:'#f4f5f7', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif' }}>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* NAV */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ position: 'relative', width: 28, height: 28 }}>
-              <div style={{ position: 'absolute', left: 6, top: 0, width: 2, height: 22, background: '#ddd' }} />
-              <div style={{ position: 'absolute', left: 6, bottom: 0, width: 16, height: 2, background: '#ddd' }} />
-              <div style={{ position: 'absolute', left: 10, bottom: 6, width: 10, height: 2.5, background: '#2d7dd2' }} />
+      <nav style={{ background:'#111', borderBottom:'0.5px solid rgba(255,255,255,0.06)', position:'sticky', top:0, zIndex:40 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2rem', height:58 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:24 }}>
+            {/* Logo */}
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ position:'relative', width:28, height:28 }}>
+                <div style={{ position:'absolute', left:6, top:0, width:2, height:22, background:'#444' }}/>
+                <div style={{ position:'absolute', left:6, bottom:0, width:16, height:2, background:'#444' }}/>
+                <div style={{ position:'absolute', left:9, bottom:7, width:10, height:2.5, background:'#2d7dd2' }}/>
+              </div>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, letterSpacing:'0.18em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>Levam<span style={{ color:'#2d7dd2' }}>Corp</span></div>
+                <div style={{ fontSize:7.5, letterSpacing:'0.25em', color:'#555', textTransform:'uppercase', marginTop:2 }}>Partner Portal</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.15em', color: '#111', textTransform: 'uppercase' }}>Levam Admin</div>
-              <div style={{ fontSize: 7, color: '#666', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Staff only</div>
+            {/* Nav links */}
+            <div style={{ display:'flex', height:58 }}>
+              {[['Dashboard','/portal/dashboard'],['Catalog','/portal/catalog'],['Orders','/portal/orders'],['Invoices','/portal/invoices'],['Payments','/portal/payments']].map(([l,h]) => (
+                <Link key={l} href={h} style={{ display:'flex', alignItems:'center', fontSize:12, fontWeight:l==='Dashboard'?700:500, color:l==='Dashboard'?'#fff':'rgba(255,255,255,0.45)', textDecoration:'none', padding:'0 16px', borderBottom:l==='Dashboard'?'2px solid #2d7dd2':'2px solid transparent' }}>{l}</Link>
+              ))}
             </div>
           </div>
-          <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit']].map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 12px', borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
-                {label}
-                {label === 'Orders' && newOrders.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
-                {label === 'Messages' && unreadMessages.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
-                {label === 'Applications' && pendingApps.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
-              </Link>
-            ))}
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:30, height:30, borderRadius:'50%', background:'rgba(45,125,210,0.15)', border:'1px solid rgba(45,125,210,0.35)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#2d7dd2' }}>
+              {user?.email?.[0]?.toUpperCase()}
+            </div>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>{user?.email}</span>
+            <button onClick={logout} style={{ fontSize:11, color:'rgba(255,255,255,0.45)', border:'0.5px solid rgba(255,255,255,0.12)', padding:'6px 14px', borderRadius:3, background:'transparent', cursor:'pointer' }}>Sign out</button>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 11, color: '#666' }}>{now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-          <button onClick={handleLogout} style={{ fontSize: 11, color: '#888', border: '0.5px solid rgba(0,0,0,0.08)', padding: '6px 14px', borderRadius: 2, background: 'transparent', cursor: 'pointer' }}>Sign out</button>
         </div>
       </nav>
 
-      {/* HERO HEADER */}
-      <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #fff 50%, #f0faf4 100%)', padding: '2rem 2rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2d7dd2', fontWeight: 600, marginBottom: 6 }}>Command center</div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111', marginBottom: 4, letterSpacing: '-0.01em' }}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, Levam Corp 👋</h1>
-          <p style={{ fontSize: 12, color: '#666' }}>{currentMonth} {currentYear} · Here is everything happening right now</p>
+      <div style={{ padding:'1.75rem 2rem', maxWidth:1200, margin:'0 auto', animation:'fadeIn 0.35s ease' }}>
+
+        {/* HEADER */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1.5rem' }}>
+          <div>
+            <div style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#2d7dd2', fontWeight:700, marginBottom:5 }}>Partner portal</div>
+            <div style={{ fontSize:24, fontWeight:800, color:'#111', marginBottom:3 }}>Welcome back, {displayName}</div>
+            {businessName && <div style={{ fontSize:13, color:'#888', fontWeight:500 }}>{businessName}</div>}
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6, fontSize:11, color:'#2a7d4f', background:'rgba(42,125,79,0.07)', border:'0.5px solid rgba(42,125,79,0.2)', padding:'4px 10px', borderRadius:20, display:'inline-flex' }}>
+              <span style={{ color:'#2a7d4f' }}>{IC.check}</span> Approved distributor
+            </div>
+          </div>
+          <Link href="/portal/catalog" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 22px', background:'#2d7dd2', color:'#fff', fontSize:12, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', boxShadow:'0 4px 14px rgba(45,125,210,0.3)' }}>
+            Browse catalog {IC.arrow}
+          </Link>
         </div>
 
-        {/* TOP STATS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8 }}>
+        {/* KPI CARDS */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:'1.5rem' }}>
           {[
-            { label: 'New orders', value: newOrders.length, color: newOrders.length > 0 ? '#e74c3c' : '#555', bg: newOrders.length > 0 ? 'rgba(231,76,60,0.1)' : '#f8f9fa', icon: '📥', href: '/admin/orders', alert: newOrders.length > 0 },
-            { label: 'Active orders', value: activeOrders.length, color: '#854f0b', bg: '#f8f9fa', icon: '⏳', href: '/admin/orders' },
-            { label: 'Pending apps', value: pendingApps.length, color: pendingApps.length > 0 ? '#e74c3c' : '#555', bg: pendingApps.length > 0 ? 'rgba(231,76,60,0.08)' : '#f8f9fa', icon: '📋', href: '/admin/applications', alert: pendingApps.length > 0 },
-            { label: 'Unread messages', value: unreadMessages.length, color: unreadMessages.length > 0 ? '#2d7dd2' : '#555', bg: unreadMessages.length > 0 ? 'rgba(45,125,210,0.08)' : '#f8f9fa', icon: '📩', href: '/admin/messages', alert: unreadMessages.length > 0 },
-            { label: 'Payment proofs', value: proofSubmitted.length, color: proofSubmitted.length > 0 ? '#2a7d4f' : '#555', bg: proofSubmitted.length > 0 ? 'rgba(42,125,79,0.08)' : '#f8f9fa', icon: '💳', href: '/admin/payments', alert: proofSubmitted.length > 0 },
-            { label: 'Approved clients', value: data.clients.length, color: '#2d7dd2', bg: '#f8f9fa', icon: '🤝', href: '/admin/clients' },
-            { label: 'Analytics', value: 'View →', color: '#6366F1', bg: 'rgba(99,102,241,0.06)', icon: '📊', href: '/admin/insights' },
-          ].map(s => (
-            <Link key={s.label} href={s.href} style={{ textDecoration: 'none' }}>
-              <div style={{ background: s.bg, border: `0.5px solid ${s.alert ? s.color + '40' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, padding: '1rem', cursor: 'pointer', position: 'relative' }}>
-                {s.alert && <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, background: '#e74c3c', borderRadius: '50%' }} />}
-                <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: s.color, marginBottom: 3 }}>{s.value}</div>
-                <div style={{ fontSize: 9, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.label}</div>
+            { icon:IC.orders,  label:'Total orders',    value:totalOrders,                    color:'#2d7dd2', sub:'all time' },
+            { icon:IC.pending, label:'Active orders',   value:pendingOrders.length,            color:'#c49a00', sub:`${money(pendingValue)} in progress` },
+            { icon:IC.value,   label:'Total purchased', value:money(totalSpent),               color:'#111',    sub:'lifetime value' },
+            { icon:IC.done,    label:'Completed',       value:completedOrders.length,          color:'#2a7d4f', sub:'orders fulfilled' },
+          ].map(k => (
+            <div key={k.label} style={{ background:'#fff', border:'0.5px solid rgba(0,0,0,0.07)', borderRadius:8, padding:'1.25rem 1.5rem', position:'relative', overflow:'hidden' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                <div style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa', fontWeight:600 }}>{k.label}</div>
+                <div style={{ color:'#ddd' }}>{k.icon}</div>
+              </div>
+              <div style={{ fontSize:26, fontWeight:900, color:k.color, marginBottom:4 }}>{k.value}</div>
+              <div style={{ fontSize:11, color:'#bbb' }}>{k.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* QUICK ACTIONS */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:'1.5rem' }}>
+          {[
+            { icon:IC.catalog, label:'Catalog',  desc:'Browse products & pricing',  href:'/portal/catalog',  color:'#2d7dd2' },
+            { icon:IC.orders,  label:'Orders',   desc:'Track your order status',    href:'/portal/orders',   color:'#534ab7' },
+            { icon:IC.invoice, label:'Invoices', desc:'Download & print invoices',  href:'/portal/invoices', color:'#c49a00' },
+            { icon:IC.payment, label:'Payments', desc:'View balance & history',     href:'/portal/payments', color:'#2a7d4f' },
+          ].map(item => (
+            <Link key={item.label} href={item.href} style={{ textDecoration:'none' }}>
+              <div style={{ background:'#fff', border:`1px solid rgba(0,0,0,0.06)`, borderTop:`3px solid ${item.color}`, borderRadius:8, padding:'1.25rem', cursor:'pointer', display:'flex', alignItems:'center', gap:14, transition:'box-shadow 0.15s' }}>
+                <div style={{ width:40, height:40, background:`${item.color}10`, border:`0.5px solid ${item.color}20`, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', color:item.color, flexShrink:0 }}>{item.icon}</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#222', marginBottom:2 }}>{item.label}</div>
+                  <div style={{ fontSize:11, color:'#aaa' }}>{item.desc}</div>
+                </div>
               </div>
             </Link>
           ))}
         </div>
-      </div>
 
-      <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:'1.25rem' }}>
 
-        {/* COLUMN 1 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-          {/* FINANCIALS */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: 'rgba(42,125,79,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#2a7d4f' }}>💰 Financials</div>
-              <Link href="/admin/profit" style={{ fontSize: 10, color: '#2a7d4f', textDecoration: 'none' }}>View profit →</Link>
+          {/* ORDERS TABLE */}
+          <div style={{ background:'#fff', border:'0.5px solid rgba(0,0,0,0.07)', borderRadius:8, overflow:'hidden' }}>
+            <div style={{ padding:'1rem 1.5rem', borderBottom:'0.5px solid rgba(0,0,0,0.07)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>Recent orders</div>
+              <Link href="/portal/orders" style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'#2d7dd2', textDecoration:'none', fontWeight:600 }}>View all {IC.arrow}</Link>
             </div>
-            <div style={{ padding: '1rem 1.25rem' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: 9, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>All-time revenue</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#2d7dd2' }}>{fmtMoney(totalRevenue)}</div>
+
+            {orders.length === 0 ? (
+              <div style={{ padding:'3.5rem', textAlign:'center' }}>
+                <div style={{ width:48, height:48, background:'rgba(45,125,210,0.07)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px', color:'#2d7dd2' }}>{IC.orders}</div>
+                <div style={{ fontSize:14, fontWeight:600, color:'#333', marginBottom:6 }}>No orders yet</div>
+                <div style={{ fontSize:12, color:'#bbb', marginBottom:'1.5rem' }}>Start by browsing our wholesale catalog</div>
+                <Link href="/portal/catalog" style={{ padding:'9px 22px', background:'#2d7dd2', color:'#fff', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', borderRadius:4, textDecoration:'none' }}>Browse catalog</Link>
+              </div>
+            ) : (
+              <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                <thead>
+                  <tr style={{ background:'#fafafa' }}>
+                    {['Order','Date','Products','Total','Status','ETA'].map(h => (
+                      <th key={h} style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', padding:'9px 16px', textAlign:'left', fontWeight:600, borderBottom:'0.5px solid rgba(0,0,0,0.06)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order, i) => {
+                    const st = STATUS[order.status] || STATUS.new
+                    const etaDate = order.eta ? new Date(order.eta + 'T00:00:00') : null
+                    const etaStr = etaDate ? etaDate.toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '—'
+                    const isPast = etaDate && etaDate < new Date()
+                    return (
+                      <tr key={order.id} style={{ borderTop: i > 0 ? '0.5px solid rgba(0,0,0,0.05)' : 'none' }}>
+                        <td style={{ padding:'12px 16px', fontSize:12, fontWeight:700, color:'#333' }}>#{order.order_number}</td>
+                        <td style={{ padding:'12px 16px', fontSize:11, color:'#aaa' }}>{fmtDate(order.submitted_at)}</td>
+                        <td style={{ padding:'12px 16px', fontSize:11, color:'#888' }}>{order.order_items?.length || 0} item{order.order_items?.length !== 1 ? 's' : ''}</td>
+                        <td style={{ padding:'12px 16px', fontSize:13, fontWeight:700, color:'#111' }}>{money(order.total)}</td>
+                        <td style={{ padding:'12px 16px' }}>
+                          <span style={{ fontSize:10, padding:'3px 9px', borderRadius:20, background:st.bg, color:st.color, border:`0.5px solid ${st.border}`, fontWeight:600 }}>{st.label}</span>
+                        </td>
+                        <td style={{ padding:'12px 16px', fontSize:11, color: order.eta ? (isPast && order.status !== 'completed' ? '#e74c3c' : '#2a7d4f') : '#ccc', fontWeight: order.eta ? 600 : 400 }}>
+                          {order.eta ? (
+                            <span style={{ display:'flex', alignItems:'center', gap:4 }}>{IC.truck} {etaStr}</span>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
+
+            {/* ACCOUNT CARD */}
+            <div style={{ background:'#111', borderRadius:8, padding:'1.5rem', color:'#fff' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:'1.25rem' }}>
+                <div style={{ width:46, height:46, borderRadius:'50%', background:'rgba(45,125,210,0.15)', border:'1.5px solid rgba(45,125,210,0.35)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:800, color:'#2d7dd2', flexShrink:0 }}>
+                  {user?.email?.[0]?.toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:1 }}>{displayName}</div>
+                  {businessName && <div style={{ fontSize:11, color:'#555', marginBottom:2 }}>{businessName}</div>}
+                  <div style={{ fontSize:10, color:'#444' }}>{user?.email}</div>
+                </div>
+              </div>
+              {/* Account stats */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:'1rem' }}>
+                {[
+                  ['Orders',totalOrders,'#60a5fa'],
+                  ['Completed',completedOrders.length,'#4ade80'],
+                  ['Pending',pendingOrders.length,'#fbbf24'],
+                  ['Total spent',money(totalSpent),'#a78bfa'],
+                ].map(([l,v,c]) => (
+                  <div key={l} style={{ padding:'8px 10px', background:'rgba(255,255,255,0.04)', borderRadius:5 }}>
+                    <div style={{ fontSize:8, color:'#444', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>{l}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:c }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#2a7d4f', background:'rgba(42,125,79,0.1)', border:'0.5px solid rgba(42,125,79,0.2)', padding:'7px 12px', borderRadius:4 }}>
+                <span style={{ color:'#2a7d4f' }}>{IC.check}</span> Approved distributor
+              </div>
+            </div>
+
+            {/* LAST ORDER */}
+            {lastOrder && (
+              <div style={{ background:'#fff', border:'0.5px solid rgba(0,0,0,0.07)', borderRadius:8, padding:'1.25rem' }}>
+                <div style={{ fontSize:10, color:'#bbb', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8, fontWeight:600 }}>Latest order</div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, color:'#111', marginBottom:2 }}>#{lastOrder.order_number}</div>
+                    <div style={{ fontSize:11, color:'#aaa' }}>{fmtDate(lastOrder.submitted_at)}</div>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:16, fontWeight:800, color:'#111' }}>{money(lastOrder.total)}</div>
+                    <span style={{ fontSize:9, padding:'2px 8px', borderRadius:10, background:STATUS[lastOrder.status]?.bg, color:STATUS[lastOrder.status]?.color, fontWeight:600 }}>{STATUS[lastOrder.status]?.label}</span>
+                  </div>
+                </div>
+                {lastOrder.eta && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#2a7d4f', padding:'6px 10px', background:'rgba(42,125,79,0.06)', borderRadius:4, fontWeight:600 }}>
+                    {IC.truck} ETA: {new Date(lastOrder.eta + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric' })}
+                  </div>
+                )}
+                <Link href="/portal/orders" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:10, padding:'8px', background:'rgba(45,125,210,0.06)', border:'0.5px solid rgba(45,125,210,0.15)', borderRadius:4, fontSize:11, color:'#2d7dd2', textDecoration:'none', fontWeight:600 }}>
+                  View all orders {IC.arrow}
+                </Link>
+              </div>
+            )}
+
+            {/* CONTACT */}
+            <div style={{ background:'#fff', border:'0.5px solid rgba(0,0,0,0.07)', borderRadius:8, padding:'1.25rem' }}>
+              <div style={{ fontSize:10, color:'#bbb', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12, fontWeight:600 }}>Your account team</div>
+              <div style={{ fontSize:12, color:'#888', lineHeight:1.7, marginBottom:'0.875rem' }}>
+                We're here Monday–Friday, 9:00 AM – 5:00 PM ET. Reach us anytime:
               </div>
               {[
-                ['Total cost', fmtMoney(totalCost), '#854f0b'],
-                ['Total profit', fmtMoney(totalProfit), totalProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
-                ['This month revenue', fmtMoney(monthRevenue), '#2d7dd2'],
-                ['This month profit', fmtMoney(monthProfit), monthProfit >= 0 ? '#2a7d4f' : '#e74c3c'],
-              ].map(([label, val, color]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color }}>{val}</span>
-                </div>
+                [IC.mail, 'partners@levamcorp.com', 'mailto:partners@levamcorp.com'],
+                [IC.phone, '(786) 878-4122', 'tel:+17868784122'],
+              ].map(([icon, label, href]) => (
+                <a key={label} href={href} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'#2d7dd2', textDecoration:'none', fontWeight:500, padding:'8px 12px', background:'rgba(45,125,210,0.05)', borderRadius:4, border:'0.5px solid rgba(45,125,210,0.12)', marginBottom:6 }}>
+                  <span style={{ color:'#2d7dd2' }}>{icon}</span> {label}
+                </a>
               ))}
             </div>
-          </div>
 
-          {/* PARTNER SPLIT */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>👥 Partner split — {currentMonth}</div>
-              <Link href="/admin/profit" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
-            </div>
-            <div style={{ padding: '1rem 1.25rem' }}>
-              {[
-                { name: 'Victor', invested: victorInvested, profit: monthProfit * victorShare, share: victorShare, color: '#2d7dd2' },
-                { name: 'Leopoldo', invested: leopoldoInvested, profit: monthProfit * leopoldoShare, share: leopoldoShare, color: '#534ab7' },
-              ].map(p => (
-                <div key={p.name} style={{ marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: p.color }}>{p.name}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#2a7d4f' }}>{fmtMoney(p.profit)}</div>
-                      <div style={{ fontSize: 9, color: '#666' }}>Invested: {fmtMoney(p.invested)}</div>
-                    </div>
-                  </div>
-                  <div style={{ height: 4, background: 'rgba(0,0,0,0.06)', borderRadius: 2 }}>
-                    <div style={{ height: '100%', width: `${p.share * 100}%`, background: p.color, borderRadius: 2 }} />
-                  </div>
-                </div>
-              ))}
-              {totalInvested === 0 && <div style={{ fontSize: 11, color: '#666', textAlign: 'center', padding: '0.5rem' }}>No investments recorded this month</div>}
-            </div>
-          </div>
-
-          {/* INVENTORY */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>📦 Inventory</div>
-              <Link href="/admin/products" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
-            </div>
-            <div style={{ padding: '1rem 1.25rem' }}>
-              {[
-                ['Total products', data.products.length, '#ccc'],
-                ['In stock', data.products.filter(p => p.stock > 5).length, '#2a7d4f'],
-                ['Low stock (≤5)', lowStock.length, lowStock.length > 0 ? '#854f0b' : '#555'],
-                ['Out of stock', outOfStock.length, outOfStock.length > 0 ? '#e74c3c' : '#555'],
-              ].map(([label, val, color]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
-                </div>
-              ))}
-              {outOfStock.length > 0 && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(231,76,60,0.06)', border: '0.5px solid rgba(231,76,60,0.2)', borderRadius: 3 }}>
-                  <div style={{ fontSize: 9, color: '#e74c3c', fontWeight: 700, marginBottom: 4 }}>OUT OF STOCK</div>
-                  {outOfStock.slice(0,3).map(p => <div key={p.id} style={{ fontSize: 10, color: '#666' }}>{p.name}</div>)}
-                  {outOfStock.length > 3 && <div style={{ fontSize: 10, color: '#888' }}>+{outOfStock.length - 3} more</div>}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* COLUMN 2 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-          {/* RECENT ORDERS */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>📋 Recent orders</div>
-              <Link href="/admin/orders" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
-            </div>
-            <div>
-              {data.orders.slice(0, 6).map(order => {
-                const statusConfig = { new: { color: '#2d7dd2', label: 'New' }, review: { color: '#854f0b', label: 'Review' }, confirmed: { color: '#534ab7', label: 'Confirmed' }, dispatched: { color: '#2a7d4f', label: 'Dispatched' }, completed: { color: '#2a7d4f', label: 'Done' }, cancelled: { color: '#e74c3c', label: 'Cancelled' } }
-                const s = statusConfig[order.status] || statusConfig.new
-                return (
-                  <Link key={order.id} href="/admin/orders" style={{ textDecoration: 'none' }}>
-                    <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 2 }}>#{order.order_number}</div>
-                        <div style={{ fontSize: 10, color: '#666' }}>{fmtDate(order.submitted_at)} at {fmtTime(order.submitted_at)}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{fmtMoney(order.total)}</div>
-                        <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 10, background: s.color + '20', color: s.color, fontWeight: 600 }}>{s.label}</span>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* PAYMENTS */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>💳 Payments</div>
-              <Link href="/admin/payments" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Manage →</Link>
-            </div>
-            <div style={{ padding: '1rem 1.25rem' }}>
-              {[
-                ['Pending requests', pendingPayments.length, pendingPayments.length > 0 ? '#854f0b' : '#555'],
-                ['Proof submitted', proofSubmitted.length, proofSubmitted.length > 0 ? '#2d7dd2' : '#555'],
-                ['Paid', data.payments.filter(p => p.status === 'paid').length, '#2a7d4f'],
-              ].map(([label, val, color]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color }}>{val}</span>
+            {/* PERKS */}
+            <div style={{ background:'linear-gradient(135deg,#0d0d0d,#1a1a2e)', borderRadius:8, padding:'1.25rem', border:'0.5px solid rgba(45,125,210,0.15)' }}>
+              <div style={{ fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'#2d7dd2', marginBottom:12, fontWeight:700 }}>Partner benefits</div>
+              {['Wholesale pricing on all products','Dedicated account support','Auto-generated invoices & quotes','Priority dispatch — 48h average'].map(p => (
+                <div key={p} style={{ display:'flex', alignItems:'flex-start', gap:8, fontSize:11, color:'rgba(255,255,255,0.55)', marginBottom:8, lineHeight:1.5 }}>
+                  <span style={{ color:'#2d7dd2', marginTop:1, flexShrink:0 }}>{IC.check}</span>{p}
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* COLUMN 3 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-          {/* PENDING APPLICATIONS */}
-          <div style={{ background: '#fff', border: `0.5px solid ${pendingApps.length > 0 ? 'rgba(231,76,60,0.25)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: pendingApps.length > 0 ? 'rgba(231,76,60,0.06)' : '#0d0d0d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: pendingApps.length > 0 ? '#e74c3c' : '#ccc' }}>📋 Applications {pendingApps.length > 0 && `(${pendingApps.length} pending)`}</div>
-              <Link href="/admin/applications" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>Review →</Link>
-            </div>
-            {pendingApps.length === 0 ? (
-              <div style={{ padding: '1.25rem', fontSize: 11, color: '#666', textAlign: 'center' }}>No pending applications</div>
-            ) : pendingApps.slice(0,4).map(app => (
-              <Link key={app.id} href="/admin/applications" style={{ textDecoration: 'none' }}>
-                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 1 }}>{app.business_name}</div>
-                    <div style={{ fontSize: 10, color: '#666' }}>{app.contact_name} · {fmtDate(app.created_at)}</div>
-                  </div>
-                  <span style={{ fontSize: 9, padding: '3px 8px', borderRadius: 10, background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontWeight: 700 }}>Review</span>
-                </div>
-              </Link>
-            ))}
+        {/* FOOTER */}
+        <div style={{ marginTop:'1.5rem', padding:'0.875rem 1.25rem', background:'rgba(0,0,0,0.03)', border:'0.5px solid rgba(0,0,0,0.06)', borderRadius:6, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#bbb' }}>
+            <span style={{ color:'#ccc' }}>{IC.pin}</span> Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178
           </div>
-
-          {/* RECENT CLIENTS */}
-          <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>🤝 Recent clients</div>
-              <Link href="/admin/clients" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
-            </div>
-            {data.clients.slice(0,4).map(client => (
-              <Link key={client.id} href="/admin/clients" style={{ textDecoration: 'none' }}>
-                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(45,125,210,0.15)', border: '1px solid rgba(45,125,210,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2d7dd2' }}>{client.business_name?.[0]}</div>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>{client.business_name}</div>
-                      <div style={{ fontSize: 10, color: '#666' }}>{client.contact_name}</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: 'rgba(42,125,79,0.1)', color: '#2a7d4f', fontWeight: 600 }}>Active</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* MESSAGES */}
-          <div style={{ background: '#fff', border: `0.5px solid ${unreadMessages.length > 0 ? 'rgba(45,125,210,0.25)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ padding: '0.875rem 1.25rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: unreadMessages.length > 0 ? '#2d7dd2' : '#ccc' }}>📩 Messages {unreadMessages.length > 0 && `(${unreadMessages.length} new)`}</div>
-              <Link href="/admin/messages" style={{ fontSize: 10, color: '#888', textDecoration: 'none' }}>View all →</Link>
-            </div>
-            {data.messages.slice(0,4).map(msg => (
-              <Link key={msg.id} href="/admin/messages" style={{ textDecoration: 'none' }}>
-                <div style={{ padding: '0.75rem 1.25rem', borderTop: '0.5px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, marginRight: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>{msg.name}</div>
-                      {msg.status === 'new' && <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 8, background: 'rgba(45,125,210,0.2)', color: '#2d7dd2', fontWeight: 700 }}>NEW</span>}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#666', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: 160 }}>{msg.message}</div>
-                  </div>
-                  <div style={{ fontSize: 9, color: '#555', flexShrink: 0 }}>{fmtDate(msg.created_at)}</div>
-                </div>
-              </Link>
-            ))}
-            {data.messages.length === 0 && <div style={{ padding: '1.25rem', fontSize: 11, color: '#666', textAlign: 'center' }}>No messages yet</div>}
-          </div>
+          <a href="mailto:partners@levamcorp.com" style={{ fontSize:11, color:'#2d7dd2', textDecoration:'none', fontWeight:500 }}>partners@levamcorp.com</a>
         </div>
       </div>
     </div>
