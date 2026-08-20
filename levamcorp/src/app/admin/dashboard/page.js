@@ -107,7 +107,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', borderLeft: '0.5px solid rgba(0,0,0,0.06)', paddingLeft: 16 }}>
-            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers']].map(([label, href]) => (
+            {[['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 12, color: label === 'Dashboard' ? '#2d7dd2' : '#555', textDecoration: 'none', padding: '4px 12px', borderBottom: label === 'Dashboard' ? '2px solid #2d7dd2' : '2px solid transparent', position: 'relative' }}>
                 {label}
                 {label === 'Orders' && newOrders.length > 0 && <span style={{ position: 'absolute', top: 0, right: 2, width: 7, height: 7, background: '#e74c3c', borderRadius: '50%' }} />}
@@ -140,6 +140,7 @@ export default function AdminDashboard() {
             { label: 'Unread messages', value: unreadMessages.length, color: unreadMessages.length > 0 ? '#2d7dd2' : '#555', bg: unreadMessages.length > 0 ? 'rgba(45,125,210,0.08)' : '#f8f9fa', icon: '📩', href: '/admin/messages', alert: unreadMessages.length > 0 },
             { label: 'Payment proofs', value: proofSubmitted.length, color: proofSubmitted.length > 0 ? '#2a7d4f' : '#555', bg: proofSubmitted.length > 0 ? 'rgba(42,125,79,0.08)' : '#f8f9fa', icon: '💳', href: '/admin/payments', alert: proofSubmitted.length > 0 },
             { label: 'Approved clients', value: data.clients.length, color: '#2d7dd2', bg: '#f8f9fa', icon: '🤝', href: '/admin/clients' },
+            { label: 'Analytics', value: 'View →', color: '#6366F1', bg: 'rgba(99,102,241,0.06)', icon: '📊', href: '/admin/insights' },
           ].map(s => (
             <Link key={s.label} href={s.href} style={{ textDecoration: 'none' }}>
               <div style={{ background: s.bg, border: `0.5px solid ${s.alert ? s.color + '40' : 'rgba(0,0,0,0.06)'}`, borderRadius: 6, padding: '1rem', cursor: 'pointer', position: 'relative' }}>
