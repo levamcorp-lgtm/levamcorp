@@ -28,6 +28,8 @@ export default function CatalogPage() {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
+      const adminEmails = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+      if (adminEmails.includes(data.user.email)) { window.location.href = '/admin/dashboard'; return }
       setUser(data.user)
       const { data: prods } = await supabase.from('products').select('*').eq('active', true).order('name')
       setProducts(prods || [])
