@@ -569,7 +569,10 @@ export default function Home() {
               <span style={{ width:6, height:6, background:'#22c55e', borderRadius:'50%', boxShadow:'0 0 6px #22c55e', flexShrink:0 }}/>
               Market Insights
             </a>
-            <Link href="/apply" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'linear-gradient(135deg,#0EA5E9,#0284C7)', color:'#fff', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', marginLeft:8 }}>
+            <Link href="/portal" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)' }}>
+              Client login
+            </Link>
+            <Link href="/apply" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'linear-gradient(135deg,#0EA5E9,#0284C7)', color:'#fff', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', marginLeft:4 }}>
               Apply {IC.arrow}
             </Link>
           </div>
