@@ -587,10 +587,10 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
       <div style={{ padding: '0 14px 14px' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#f7f8fa', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 6, overflow: 'hidden' }}>
-            <button onClick={() => setQty(q => Math.max(moq, q - moq))} disabled={outOfStock}
+            <button onClick={() => setQty(q => Math.max(moq, q - 1))} disabled={outOfStock}
               style={{ width: 32, height: 36, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 16, color: '#888', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
             <span style={{ width: 38, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#111' }}>{qty}</span>
-            <button onClick={() => setQty(q => Math.min(displayStock || 9999, q + moq))} disabled={outOfStock}
+            <button onClick={() => setQty(q => Math.min(displayStock || 9999, q + 1))} disabled={outOfStock}
               style={{ width: 32, height: 36, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 16, color: '#888', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
           </div>
           <button onClick={handleAdd} disabled={outOfStock}
