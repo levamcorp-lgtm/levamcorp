@@ -31,7 +31,7 @@ export default function PortalPage() {
     setLoading(true); setError('')
     try {
       const sb = createClient()
-      const { error: err } = await sb.auth.signInWithPassword({ email, password })
+      const { data, error: err } = await sb.auth.signInWithPassword({ email, password })
       if (err) throw err
       const adminEmails = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
       if (adminEmails.includes(data.user.email)) {
