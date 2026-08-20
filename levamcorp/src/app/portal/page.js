@@ -33,7 +33,12 @@ export default function PortalPage() {
       const sb = createClient()
       const { error: err } = await sb.auth.signInWithPassword({ email, password })
       if (err) throw err
-      window.location.href = '/portal/dashboard'
+      const adminEmails = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+      if (adminEmails.includes(data.user.email)) {
+        window.location.href = '/admin/dashboard'
+      } else {
+        window.location.href = '/portal/dashboard'
+      }
     } catch { setError('Invalid credentials. Please try again.') }
     finally { setLoading(false) }
   }
