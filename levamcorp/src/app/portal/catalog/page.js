@@ -144,6 +144,7 @@ const addToCart = (product, qty) => {
 
   return (
     <div style={{ background: '#f7f8fa', minHeight: '100vh' }}>
+      <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`}</style>
 
       {/* NAV */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: '#111', borderBottom: '0.5px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 40 }}>
@@ -280,7 +281,23 @@ const addToCart = (product, qty) => {
                   )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 2 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: '#aaa' }}>Qty: {item.qty} × ${item.price?.toLocaleString()}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <button onClick={() => setCart(c => ({ ...c, [item.id]: { ...item, qty: Math.max(item.moq||1, item.qty - 1) } }))}
+                      style={{ width: 22, height: 22, border: '1px solid #ddd', borderRadius: 4, background: '#f7f8fa', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      min={item.moq || 1}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || item.moq || 1
+                        setCart(c => ({ ...c, [item.id]: { ...item, qty: Math.max(item.moq||1, val) } }))
+                      }}
+                      style={{ width: 44, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#111', border: '1px solid #ddd', borderRadius: 4, padding: '2px 0', fontFamily: 'inherit', MozAppearance: 'textfield' }}
+                    />
+                    <button onClick={() => setCart(c => ({ ...c, [item.id]: { ...item, qty: item.qty + 1 } }))}
+                      style={{ width: 22, height: 22, border: '1px solid #ddd', borderRadius: 4, background: '#f7f8fa', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    <span style={{ fontSize: 11, color: '#aaa' }}>× ${item.price?.toLocaleString()}</span>
+                  </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>${(item.price * item.qty).toLocaleString()}</div>
@@ -589,7 +606,22 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
           <div style={{ display: 'flex', alignItems: 'center', background: '#f7f8fa', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 6, overflow: 'hidden' }}>
             <button onClick={() => setQty(q => Math.max(moq, q - 1))} disabled={outOfStock}
               style={{ width: 32, height: 36, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 16, color: '#888', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-            <span style={{ width: 38, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#111' }}>{qty}</span>
+            <input
+              type="number"
+              value={qty}
+              min={moq}
+              max={displayStock || 9999}
+              onChange={e => {
+                const val = parseInt(e.target.value) || moq
+                setQty(Math.max(moq, Math.min(displayStock || 9999, val)))
+              }}
+              onBlur={e => {
+                const val = parseInt(e.target.value) || moq
+                setQty(Math.max(moq, val))
+              }}
+              disabled={outOfStock}
+              style={{ width: 48, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#111', border: 'none', background: 'transparent', outline: 'none', fontFamily: 'inherit', MozAppearance: 'textfield' }}
+            />
             <button onClick={() => setQty(q => Math.min(displayStock || 9999, q + 1))} disabled={outOfStock}
               style={{ width: 32, height: 36, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 16, color: '#888', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
           </div>
