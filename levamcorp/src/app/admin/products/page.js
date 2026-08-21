@@ -6,7 +6,7 @@ import { createClient } from '../../../lib/supabase'
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
-const CATEGORIES = ['electronics', 'home', 'kitchen', 'beauty', 'sports', 'toys', 'office', 'automotive', 'garden', 'health', 'fashion', 'other']
+const CATEGORIES = ['tvs', 'electronics', 'small appliances', 'kitchen appliances', 'gaming', 'audio & speakers', 'computers & laptops', 'phones & accessories', 'cameras', 'smart home', 'appliances', 'other']
 const CONDITIONS = ['New', 'Open Box', 'Refurbished', 'Used - Like New', 'Used - Good']
 
 const emptyProduct = {
@@ -315,47 +315,40 @@ export default function AdminProducts() {
                     {['WH: FL','WH: TX','WH: CA','WH: NY','WH: NJ'].map(w => <option key={w} value={w}>{w}</option>)}
                   </select>
                 </div>
-                {/* MARGIN BUTTONS */}
+              </div>
+
+              {/* MARGIN BUTTONS — outside grid */}
               {form.cost_price && parseFloat(form.cost_price) > 0 && (
-                <div style={{ marginBottom: '1rem', padding: '12px 14px', background: 'rgba(42,125,79,0.04)', border: '1px solid rgba(42,125,79,0.15)', borderRadius: 6 }}>
-                  <div style={{ fontSize: 9, color: '#2a7d4f', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Auto-calculate sale price from cost</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '1rem', padding: '14px 16px', background: 'rgba(42,125,79,0.04)', border: '1.5px solid rgba(42,125,79,0.2)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 9, color: '#2a7d4f', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
+                    Auto-calculate sale price — cost: ${form.cost_price}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                     {[4, 5, 6, 7, 8, 10, 12, 15, 20].map(pct => {
                       const cost = parseFloat(form.cost_price) || 0
                       const salePrice = (cost * (1 + pct/100)).toFixed(2)
                       const isActive = parseFloat(form.price) === parseFloat(salePrice)
                       return (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => setField('price', salePrice)}
-                          style={{
-                            padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
-                            fontSize: 11, fontWeight: 700, transition: 'all 0.15s',
+                        <button key={pct} type="button" onClick={() => setField('price', salePrice)}
+                          style={{ padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: 12, fontWeight: 700, transition: 'all 0.15s',
                             background: isActive ? '#2a7d4f' : '#fff',
                             color: isActive ? '#fff' : '#2a7d4f',
-                            border: `1.5px solid ${isActive ? '#2a7d4f' : 'rgba(42,125,79,0.3)'}`,
-                          }}
-                        >
-                          +{pct}% → ${salePrice}
+                            border: `2px solid ${isActive ? '#2a7d4f' : 'rgba(42,125,79,0.3)'}`,
+                            boxShadow: isActive ? '0 2px 8px rgba(42,125,79,0.3)' : 'none',
+                          }}>
+                          +{pct}% → <strong>${salePrice}</strong>
                         </button>
                       )
                     })}
                   </div>
-                  {form.price && form.cost_price && (
-                    <div style={{ fontSize: 11, color: '#2a7d4f', marginTop: 8, fontWeight: 600 }}>
+                  {form.price && form.cost_price && parseFloat(form.price) > 0 && (
+                    <div style={{ fontSize: 12, color: '#2a7d4f', fontWeight: 700, padding: '6px 10px', background: 'rgba(42,125,79,0.08)', borderRadius: 6, display: 'inline-block' }}>
                       Margin: {(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}% · Profit: +${(parseFloat(form.price) - parseFloat(form.cost_price)).toFixed(2)}/unit
                     </div>
                   )}
                 </div>
               )}
-              {form.price && form.cost_price && (
-                  <div style={{ gridColumn: 'span 2', padding: '10px 14px', background: 'rgba(42,125,79,0.08)', border: '0.5px solid rgba(42,125,79,0.2)', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: '#666' }}>Profit margin</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#2a7d4f' }}>{(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}% · +${(parseFloat(form.price) - parseFloat(form.cost_price)).toFixed(2)}/unit</span>
-                  </div>
-                )}
-              </div>
 
               {/* SECTION: Physical */}
               <div style={{ fontSize: 10, color: '#854f0b', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem', paddingBottom: 6, borderBottom: '0.5px solid rgba(133,79,11,0.2)' }}>Physical details</div>
