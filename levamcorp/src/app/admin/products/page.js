@@ -67,6 +67,39 @@ export default function AdminProducts() {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  const importFromUrl = async () => {
+    if (!importUrl.trim()) return
+    setImporting(true)
+    setImportMsg('')
+    try {
+      const res  = await fetch('/api/scrape-product', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: importUrl.trim() }),
+      })
+      const data = await res.json()
+      if (!data.success) { setImportMsg('❌ ' + (data.error || 'Failed')); setImporting(false); return }
+      const p = data.product
+      setForm(prev => ({
+        ...prev,
+        name:        p.name        || prev.name,
+        brand:       p.brand       || prev.brand,
+        sku:         p.sku         || p.model_number || prev.sku,
+        category:    p.category    || prev.category,
+        description: p.description || prev.description,
+        weight:      p.weight      || prev.weight,
+        dimensions:  p.dimensions  || prev.dimensions,
+        amazon_url:  p.amazon_url  || prev.amazon_url,
+        walmart_url: p.walmart_url || prev.walmart_url,
+      }))
+      setImportMsg('✓ Imported: ' + p.name)
+      setImportUrl('')
+    } catch(e) {
+      setImportMsg('❌ Error: ' + e.message)
+    }
+    setImporting(false)
+  }
+
   const toggleCategory = useCallback((cat) => {
     setForm(prev => ({
       ...prev,
