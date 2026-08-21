@@ -37,7 +37,10 @@ export default function AdminProducts() {
   const [expanded, setExpanded] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(emptyProduct)
+  const [form,       setForm]       = useState(emptyProduct)
+  const [importUrl,  setImportUrl]  = useState('')
+  const [importing,  setImporting]  = useState(false)
+  const [importMsg,  setImportMsg]  = useState('')
   const [saving, setSaving] = useState(false)
   const [imageFile, setImageFile] = useState(null)
   const [showVariations, setShowVariations] = useState(false)
@@ -208,6 +211,37 @@ export default function AdminProducts() {
             <div style={{ padding: '1.5rem' }}>
 
               {/* SECTION: Basic info */}
+              {/* ── IMPORT FROM URL ── */}
+              <div style={{ marginBottom: '1.5rem', padding: '16px', background: 'linear-gradient(135deg,rgba(45,125,210,0.06),rgba(83,74,183,0.04))', border: '1.5px solid rgba(45,125,210,0.2)', borderRadius: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#2d7dd2', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  ⚡ Auto-import from Amazon or Walmart
+                </div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 12, lineHeight: 1.6 }}>
+                  Paste a product URL and all fields will fill automatically. You only need to add the price and images.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    value={importUrl}
+                    onChange={e => setImportUrl(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && importFromUrl()}
+                    placeholder="https://www.amazon.com/dp/... or https://www.walmart.com/ip/..."
+                    style={{ ...inp, flex: 1, fontSize: 12 }}
+                  />
+                  <button
+                    onClick={importFromUrl}
+                    disabled={importing || !importUrl.trim()}
+                    style={{ padding: '0 20px', background: importing ? '#aaa' : '#2d7dd2', color: '#fff', border: 'none', borderRadius: 4, cursor: importing ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap', minWidth: 120 }}
+                  >
+                    {importing ? '⏳ Importing...' : '⚡ Import'}
+                  </button>
+                </div>
+                {importMsg && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: importMsg.startsWith('✓') ? '#2a7d4f' : '#e74c3c', fontWeight: 600 }}>
+                    {importMsg}
+                  </div>
+                )}
+              </div>
+
               <div style={{ fontSize: 10, color: '#2d7dd2', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem', paddingBottom: 6, borderBottom: '0.5px solid rgba(45,125,210,0.2)' }}>Basic information</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: '1.25rem' }}>
                 <div style={{ gridColumn: 'span 2' }}>
