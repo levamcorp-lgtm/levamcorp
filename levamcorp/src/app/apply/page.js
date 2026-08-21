@@ -108,6 +108,7 @@ export default function Apply() {
     setError('')
     if (step === 1) {
       if (!form.business_name||!form.contact_name||!form.email||!form.phone) { setError('Please fill in all required fields.'); return false }
+      if (!form.heard_about) { setError('Please tell us where you heard about us.'); return false }
     }
     if (step === 2) {
       if (!form.business_type||!form.monthly_volume||!form.ein_number||!form.resale_tax_number) { setError('Please fill in all required fields.'); return false }
@@ -134,7 +135,7 @@ export default function Apply() {
         const { data } = await sb.storage.from('Documents').upload(`resale/${Date.now()}-${resaleFile.name}`, resaleFile, { contentType:'application/pdf' })
         if (data) resaleUrl = data.path
       }
-      const { error: err } = await sb.from('applications').insert([{ ...form, ein:form.ein_number, ein_document_url:einUrl, resale_tax_document_url:resaleUrl }])
+      const { error: err } = await sb.from('applications').insert([{ ...form, ein:form.ein_number, ein_document_url:einUrl, resale_tax_document_url:resaleUrl, heard_about: form.heard_about, heard_about_detail: form.heard_about_detail }])
       if (err) throw err
       await fetch('/api/send-application-email', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email:form.email, businessName:form.business_name, contactName:form.contact_name }) })
       setSubmitted(true)
@@ -262,6 +263,34 @@ export default function Apply() {
                 </div>
               </div>
               <div>
+                <Lbl text="Where did you hear about us?" req/>
+                <select value={form.heard_about} onChange={upd('heard_about')} style={sel}>
+                  <option value="">Select an option...</option>
+                  <option value="google">Found you on Google</option>
+                  <option value="instagram">Found you on Instagram (@levamdistributors)</option>
+                  <option value="facebook">Found you on Facebook</option>
+                  <option value="friend">A friend recommended me</option>
+                  <option value="broker">A broker referred me</option>
+                  <option value="existing_client">An existing Levam client referred me</option>
+                  <option value="trade_show">Met you at a trade show or event</option>
+                  <option value="whatsapp">Found you on WhatsApp</option>
+                  <option value="youtube">Found you on YouTube</option>
+                  <option value="tiktok">Found you on TikTok</option>
+                  <option value="amazon_seller">Amazon seller community / forum</option>
+                  <option value="walmart_seller">Walmart seller community / forum</option>
+                  <option value="other">Other</option>
+                </select>
+                {form.heard_about === 'friend' || form.heard_about === 'broker' || form.heard_about === 'existing_client' ? (
+                  <input value={form.heard_about_detail} onChange={upd('heard_about_detail')}
+                    placeholder={form.heard_about === 'broker' ? "Broker name or company..." : "Their name (optional)..."}
+                    style={{ ...inp, marginTop:8 }}/>
+                ) : form.heard_about === 'other' ? (
+                  <input value={form.heard_about_detail} onChange={upd('heard_about_detail')}
+                    placeholder="Please tell us how you found us..."
+                    style={{ ...inp, marginTop:8 }}/>
+                ) : null}
+              </div>
+              <div>
                 <Lbl text="Additional notes"/>
                 <textarea value={form.notes} onChange={upd('notes')} rows={3} placeholder="Tell us about your business, where you sell, who your customers are..."
                   style={{ ...inp, resize:'none' }}/>
@@ -322,6 +351,7 @@ export default function Apply() {
                   ['Contact',       form.contact_name],
                   ['Email',         form.email],
                   ['Phone',         form.phone],
+                  ['How they found us', form.heard_about ? form.heard_about.replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase()) + (form.heard_about_detail ? ` — ${form.heard_about_detail}` : '') : ''],
                   ['Business type', form.business_type],
                   ['Monthly volume',form.monthly_volume],
                   ['EIN',           form.ein_number],
