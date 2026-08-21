@@ -250,7 +250,7 @@ export default function Apply() {
               <div style={{ marginBottom:14 }}>
                 <Lbl text="Product categories you resell"/>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:4 }}>
-                  {['Televisions','Small Appliances','Kitchen','Electronics','E-commerce (Amazon/Walmart)','Brick & Mortar','Export/International'].map(c => (
+                  {['TVs','Electronics','Small Appliances','Kitchen Appliances','Gaming','Audio & Speakers','Computers & Laptops','Phones & Accessories','E-commerce (Amazon/Walmart)','Brick & Mortar Retail','Export / International'].map(c => (
                     <button key={c} onClick={()=>toggleCat(c)} type="button"
                       style={{ fontSize:11, padding:'6px 12px', borderRadius:20, cursor:'pointer', fontFamily:'inherit', fontWeight:600,
                         background: form.categories.includes(c)?'rgba(14,165,233,0.15)':'rgba(255,255,255,0.04)',
