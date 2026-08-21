@@ -69,10 +69,12 @@ Return ONLY valid JSON (no markdown):
       tools: [{
         type: 'web_search_20250305',
         name: 'web_search',
+        max_uses: 1,
       }],
+      tool_choice: { type: 'auto' },
       messages: [{
         role:    'user',
-        content: `Fetch and extract data from this EXACT URL: ${cleanUrl}\n\n${prompt}`
+        content: `Search ONCE for: ${isAmazon ? 'amazon' : 'walmart'} ${productId} product specs UPC\n\n${prompt}`
       }],
     })
 
