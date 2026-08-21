@@ -7,8 +7,18 @@ export async function POST(request) {
     const { url } = await request.json()
     if (!url) return Response.json({ error: 'No URL provided' }, { status: 400 })
 
-    const isAmazon  = url.includes('amazon.com')
-    const isWalmart = url.includes('walmart.com')
+    // Clean URL — remove tracking parameters, keep only the product ID
+    let cleanUrl = url
+    if (url.includes('amazon.com')) {
+      const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})/) || url.match(/\/gp\/product\/([A-Z0-9]{10})/)
+      if (asinMatch) cleanUrl = `https://www.amazon.com/dp/${asinMatch[1]}`
+    } else if (url.includes('walmart.com')) {
+      const idMatch = url.match(/\/ip\/[^/]+\/(\d+)/)
+      if (idMatch) cleanUrl = `https://www.walmart.com/ip/${idMatch[1]}`
+    }
+
+    const isAmazon  = cleanUrl.includes('amazon.com')
+    const isWalmart = cleanUrl.includes('walmart.com')
 
     if (!isAmazon && !isWalmart) {
       return Response.json({ error: 'Only Amazon and Walmart URLs are supported' }, { status: 400 })
@@ -17,16 +27,16 @@ export async function POST(request) {
     // Extract ASIN or Walmart ID from URL
     let productId = ''
     if (isAmazon) {
-      const m = url.match(/\/dp\/([A-Z0-9]{10})/) || url.match(/\/gp\/product\/([A-Z0-9]{10})/)
+      const m = cleanUrl.match(/\/dp\/([A-Z0-9]{10})/) || cleanUrl.match(/\/gp\/product\/([A-Z0-9]{10})/)
       if (m) productId = m[1]
     } else {
-      const m = url.match(/\/ip\/[^/]+\/(\d+)/)
+      const m = cleanUrl.match(/\/ip\/[^/]+\/(\d+)/)
       if (m) productId = m[1]
     }
 
     const prompt = `Visit this EXACT product page URL and extract the product information:
 
-URL: ${url}
+URL: ${cleanUrl}
 
 IMPORTANT: 
 - You MUST fetch this specific URL directly, do not search for similar products
@@ -46,8 +56,8 @@ Return ONLY valid JSON (no markdown):
   "description": "2-3 sentence description of THIS specific product",
   "weight": "weight in lbs, number only",
   "dimensions": "LxWxH inches",
-  "amazon_url": "${isAmazon ? url : ''}",
-  "walmart_url": "${isWalmart ? url : ''}",
+  "amazon_url": "${isAmazon ? cleanUrl : ''}",
+  "walmart_url": "${isWalmart ? cleanUrl : ''}",
   "model_number": "manufacturer model number",
   "color": "exact color of THIS product variant",
   "features": ["feature 1", "feature 2", "feature 3"]
@@ -62,7 +72,7 @@ Return ONLY valid JSON (no markdown):
       }],
       messages: [{
         role:    'user',
-        content: `Fetch and extract data from this EXACT URL: ${url}\n\n${prompt}`
+        content: `Fetch and extract data from this EXACT URL: ${cleanUrl}\n\n${prompt}`
       }],
     })
 
