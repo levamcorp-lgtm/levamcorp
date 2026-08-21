@@ -67,6 +67,25 @@ export default function AdminProducts() {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  // Fetch image from URL and upload to Supabase from the browser
+  const fetchAndUploadImage = async (imageUrl) => {
+    try {
+      const supabase = createClient()
+      const res = await fetch(imageUrl)
+      if (!res.ok) throw new Error('Could not download image')
+      const blob = await res.blob()
+      const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
+      const path = `imported/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('product-images').upload(path, blob, { contentType: blob.type, upsert: false })
+      if (error) throw new Error(error.message)
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+      return publicUrl
+    } catch(e) {
+      console.warn('fetchAndUploadImage failed:', e.message)
+      return null
+    }
+  }
+
   const importFromUrl = async () => {
     if (!importUrl.trim()) return
     setImporting(true)
@@ -95,8 +114,20 @@ export default function AdminProducts() {
         asin:        p.asin         || (p.sku?.startsWith('B0') ? p.sku : prev.asin),
         image_url:   p.image_url    || prev.image_url,
       }))
-      const imgNote = p.image_url ? ' · Image ✓' : ' · No image found (add manually)'
-      setImportMsg('✓ Imported: ' + p.name + imgNote)
+      let finalImageUrl = p.image_url
+      if (p.image_url) {
+        setImportMsg('✓ Imported: ' + p.name + ' · Uploading image...')
+        const uploaded = await fetchAndUploadImage(p.image_url)
+        if (uploaded) {
+          finalImageUrl = uploaded
+          setForm(prev => ({ ...prev, image_url: uploaded }))
+          setImportMsg('✓ Imported: ' + p.name + ' · Image uploaded ✓')
+        } else {
+          setImportMsg('✓ Imported: ' + p.name + ' · Image URL saved (upload manually if needed)')
+        }
+      } else {
+        setImportMsg('✓ Imported: ' + p.name + ' · No image found')
+      }
       setImportUrl('')
     } catch(e) {
       setImportMsg('❌ Error: ' + e.message)
