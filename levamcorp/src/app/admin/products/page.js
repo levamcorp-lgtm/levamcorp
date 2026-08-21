@@ -67,27 +67,6 @@ export default function AdminProducts() {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
-  // Fetch image via proxy and upload to Supabase
-  const fetchAndUploadImage = async (imageUrl) => {
-    try {
-      const supabase = createClient()
-      // Use our proxy to bypass CORS/hotlinking restrictions
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
-      const res = await fetch(proxyUrl)
-      if (!res.ok) throw new Error('Could not download image')
-      const blob = await res.blob()
-      const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
-      const path = `imported/${Date.now()}.${ext}`
-      const { error } = await supabase.storage.from('product-images').upload(path, blob, { contentType: blob.type, upsert: false })
-      if (error) throw new Error(error.message)
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
-      return publicUrl
-    } catch(e) {
-      console.warn('fetchAndUploadImage failed:', e.message)
-      return null
-    }
-  }
-
   const importFromUrl = async () => {
     if (!importUrl.trim()) return
     setImporting(true)
@@ -116,20 +95,8 @@ export default function AdminProducts() {
         asin:        p.asin         || (p.sku?.startsWith('B0') ? p.sku : prev.asin),
         image_url:   p.image_url    || prev.image_url,
       }))
-      let finalImageUrl = p.image_url
-      if (p.image_url) {
-        setImportMsg('✓ Imported: ' + p.name + ' · Uploading image...')
-        const uploaded = await fetchAndUploadImage(p.image_url)
-        if (uploaded) {
-          finalImageUrl = uploaded
-          setForm(prev => ({ ...prev, image_url: uploaded }))
-          setImportMsg('✓ Imported: ' + p.name + ' · Image uploaded ✓')
-        } else {
-          setImportMsg('✓ Imported: ' + p.name + ' · Image URL saved (upload manually if needed)')
-        }
-      } else {
-        setImportMsg('✓ Imported: ' + p.name + ' · No image found')
-      }
+      const imgNote = p.image_url ? ' · Image preview ready — save product to upload image' : ' · No image found'
+      setImportMsg('✓ Imported: ' + p.name + imgNote)
       setImportUrl('')
     } catch(e) {
       setImportMsg('❌ Error: ' + e.message)
@@ -633,6 +600,24 @@ export default function AdminProducts() {
                 <div>
                   <label style={lbl}>Or image URL</label>
                   <input style={inp} value={form.image_url} onChange={e => setField('image_url', e.target.value)} placeholder="https://..." />
+                  {form.image_url && !form.image_url.includes('supabase') && (
+                    <div style={{ marginTop:8, padding:'10px 12px', background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:6 }}>
+                      <div style={{ fontSize:10, color:'#92400e', fontWeight:700, marginBottom:8 }}>
+                        ⚠️ External image URL — save product then re-upload image manually for permanent storage
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <img src={form.image_url} alt="preview" 
+                          style={{ width:60, height:60, objectFit:'contain', background:'#fff', borderRadius:4, border:'1px solid #eee' }}
+                          onError={e => e.target.style.display='none'}
+                        />
+                        <a href={form.image_url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize:11, color:'#2d7dd2', textDecoration:'none', fontWeight:600, padding:'6px 12px', border:'1px solid rgba(45,125,210,0.3)', borderRadius:4, background:'rgba(45,125,210,0.05)' }}>
+                          Open image in new tab →
+                        </a>
+                        <span style={{ fontSize:10, color:'#aaa' }}>Right-click → Save image, then upload above</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={lbl}>Amazon listing URL</label>
