@@ -92,9 +92,11 @@ export default function AdminProducts() {
         amazon_url:  p.amazon_url  || prev.amazon_url,
         walmart_url: p.walmart_url || prev.walmart_url,
         upc:         p.upc         || prev.upc,
-        asin:        p.sku?.startsWith('B0') ? p.sku : prev.asin,
+        asin:        p.asin         || (p.sku?.startsWith('B0') ? p.sku : prev.asin),
+        image_url:   p.image_url    || prev.image_url,
       }))
-      setImportMsg('✓ Imported: ' + p.name)
+      const imgNote = p.image_uploaded ? ' · Image uploaded ✓' : p.image_url ? ' · Image linked' : ' · No image found'
+      setImportMsg('✓ Imported: ' + p.name + imgNote)
       setImportUrl('')
     } catch(e) {
       setImportMsg('❌ Error: ' + e.message)
