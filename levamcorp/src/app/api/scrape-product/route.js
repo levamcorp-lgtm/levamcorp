@@ -11,30 +11,36 @@ const supabaseAdmin = createClient(
 
 async function downloadAndUploadImage(imageUrl, productName) {
   try {
-    // Download image
-    const res = await fetch(imageUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    })
-    if (!res.ok) return null
+    // Try multiple user agents
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://www.amazon.com/',
+    }
+
+    const res = await fetch(imageUrl, { headers })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const buffer      = await res.arrayBuffer()
     const contentType = res.headers.get('content-type') || 'image/jpeg'
     const ext         = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
-    const fileName    = `imported/${Date.now()}-${productName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().slice(0, 40)}.${ext}`
+    const safeName    = (productName || 'product').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().slice(0, 40)
+    const fileName    = `imported/${Date.now()}-${safeName}.${ext}`
 
-    const { data, error } = await supabaseAdmin.storage
+    const { error } = await supabaseAdmin.storage
       .from('product-images')
       .upload(fileName, buffer, { contentType, upsert: false })
 
-    if (error) return null
+    if (error) throw new Error(error.message)
 
-    // Get public URL
     const { data: { publicUrl } } = supabaseAdmin.storage
       .from('product-images')
       .getPublicUrl(fileName)
 
     return publicUrl
-  } catch {
+  } catch (e) {
+    console.warn('Image upload failed:', e.message)
     return null
   }
 }
@@ -53,32 +59,32 @@ export async function POST(request) {
 
     const prompt = `You are a product data extractor for a wholesale distribution company.
 
-Search for this product listing and extract ALL available information:
+Search for this product listing and extract ALL information including the image URL:
 ${url}
 
-CRITICAL: You MUST find the main product image URL. It should be a direct link to a JPG, PNG, or WEBP image.
-- For Amazon: look for the main image in the image gallery, usually from images-na.ssl-images-amazon.com or m.media-amazon.com
-- For Walmart: look for the main product image URL from i5.walmartimages.com
+For the image URL:
+- Amazon images are usually from: https://m.media-amazon.com/images/ or https://images-na.ssl-images-amazon.com/images/
+- Walmart images are usually from: https://i5.walmartimages.com/
+- Get the LARGEST version of the main product image (look for _AC_SL1500_ or similar for Amazon)
+- The URL must be a direct link to an image file
 
-Also find the UPC (12-digit barcode), EAN (13-digit), and ASIN if available.
-
-Return ONLY a valid JSON object (no markdown, no backticks):
+Return ONLY valid JSON (no markdown, no backticks):
 {
-  "name": "Full product name exactly as listed",
-  "brand": "Brand name only",
+  "name": "Full product name",
+  "brand": "Brand name",
   "sku": "Model number or SKU",
-  "asin": "ASIN if Amazon (starts with B0), empty string otherwise",
-  "upc": "12 or 13 digit barcode number, empty string if not found",
-  "image_url": "Direct URL to the main product image (must end in .jpg, .jpeg, .png, or .webp or contain these extensions), empty string if not found",
+  "asin": "ASIN if Amazon, empty string otherwise",
+  "upc": "12 or 13 digit barcode, empty string if not found",
+  "image_url": "Direct URL to main product image",
   "category": "One of: tvs, electronics, small appliances, kitchen appliances, gaming, audio & speakers, computers & laptops, phones & accessories, cameras, smart home, appliances, other",
-  "description": "Full product description 2-4 sentences",
+  "description": "Product description 2-4 sentences",
   "weight": "Weight in lbs, number only, empty string if not found",
   "dimensions": "L x W x H inches, empty string if not found",
   "amazon_url": "${isAmazon ? url : ''}",
   "walmart_url": "${isWalmart ? url : ''}",
-  "model_number": "Manufacturer model number, empty string if not found",
-  "color": "Color or empty string",
-  "features": ["key feature 1", "key feature 2", "key feature 3"],
+  "model_number": "Model number, empty string if not found",
+  "color": "Color, empty string if not applicable",
+  "features": ["feature 1", "feature 2", "feature 3"],
   "source": "${isAmazon ? 'amazon' : 'walmart'}"
 }`
 
@@ -96,7 +102,7 @@ Return ONLY a valid JSON object (no markdown, no backticks):
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      return Response.json({ error: 'Could not extract product data. Make sure the URL is a direct product page.' }, { status: 422 })
+      return Response.json({ error: 'Could not extract product data.' }, { status: 422 })
     }
 
     const product = JSON.parse(jsonMatch[0])
@@ -107,14 +113,14 @@ Return ONLY a valid JSON object (no markdown, no backticks):
       if (product.upc.length < 8) product.upc = ''
     }
 
-    // Download and upload image to Supabase Storage
+    // Try to upload image to Supabase
     if (product.image_url) {
-      const uploadedUrl = await downloadAndUploadImage(product.image_url, product.name || 'product')
-      if (uploadedUrl) {
-        product.image_url = uploadedUrl
+      const uploaded = await downloadAndUploadImage(product.image_url, product.name)
+      if (uploaded) {
+        product.image_url      = uploaded
         product.image_uploaded = true
       } else {
-        // Keep original URL as fallback
+        // Keep original URL — browser can load it directly
         product.image_uploaded = false
       }
     }
