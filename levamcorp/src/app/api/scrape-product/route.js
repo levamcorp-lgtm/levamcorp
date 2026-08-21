@@ -7,74 +7,32 @@ export async function POST(request) {
     const { url } = await request.json()
     if (!url) return Response.json({ error: 'No URL provided' }, { status: 400 })
 
-    // Clean URL — remove tracking parameters, keep only the product ID
-    let cleanUrl = url
-    if (url.includes('amazon.com')) {
-      const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})/) || url.match(/\/gp\/product\/([A-Z0-9]{10})/)
-      if (asinMatch) cleanUrl = `https://www.amazon.com/dp/${asinMatch[1]}`
-    } else if (url.includes('walmart.com')) {
-      const idMatch = url.match(/\/ip\/[^/]+\/(\d+)/)
-      if (idMatch) cleanUrl = `https://www.walmart.com/ip/${idMatch[1]}`
-    }
-
-    const isAmazon  = cleanUrl.includes('amazon.com')
-    const isWalmart = cleanUrl.includes('walmart.com')
+    const isAmazon  = url.includes('amazon.com')
+    const isWalmart = url.includes('walmart.com')
 
     if (!isAmazon && !isWalmart) {
       return Response.json({ error: 'Only Amazon and Walmart URLs are supported' }, { status: 400 })
     }
 
-    // Extract ASIN or Walmart ID from URL
+    // Clean URL to just the product ID
+    let cleanUrl = url
     let productId = ''
     if (isAmazon) {
-      const m = cleanUrl.match(/\/dp\/([A-Z0-9]{10})/) || cleanUrl.match(/\/gp\/product\/([A-Z0-9]{10})/)
-      if (m) productId = m[1]
+      const m = url.match(/\/dp\/([A-Z0-9]{10})/) || url.match(/\/gp\/product\/([A-Z0-9]{10})/)
+      if (m) { productId = m[1]; cleanUrl = `https://www.amazon.com/dp/${productId}` }
     } else {
-      const m = cleanUrl.match(/\/ip\/[^/]+\/(\d+)/)
-      if (m) productId = m[1]
+      const m = url.match(/\/ip\/[^/]+\/(\d+)/)
+      if (m) { productId = m[1]; cleanUrl = `https://www.walmart.com/ip/${productId}` }
     }
-
-    const prompt = `Visit this EXACT product page URL and extract the product information:
-
-URL: ${cleanUrl}
-
-IMPORTANT: 
-- You MUST fetch this specific URL directly, do not search for similar products
-- Extract information ONLY from this specific product page
-- The product ID is: ${productId || 'check the URL'}
-- Do not confuse this with other similar products
-
-Return ONLY valid JSON (no markdown):
-{
-  "name": "exact product name from this page",
-  "brand": "brand name",
-  "sku": "model number from this specific product",
-  "asin": "${isAmazon ? productId || '' : ''}",
-  "upc": "12 or 13 digit barcode, empty string if not found",
-  "image_url": "main product image URL from this page",
-  "category": "one of: tvs, electronics, small appliances, kitchen appliances, gaming, audio & speakers, computers & laptops, phones & accessories, cameras, smart home, appliances, other",
-  "description": "2-3 sentence description of THIS specific product",
-  "weight": "weight in lbs, number only",
-  "dimensions": "LxWxH inches",
-  "amazon_url": "${isAmazon ? cleanUrl : ''}",
-  "walmart_url": "${isWalmart ? cleanUrl : ''}",
-  "model_number": "manufacturer model number",
-  "color": "exact color of THIS product variant",
-  "features": ["feature 1", "feature 2", "feature 3"]
-}`
 
     const response = await client.messages.create({
       model:      'claude-sonnet-4-6',
-      max_tokens: 800,
-      tools: [{
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: 1,
-      }],
-      tool_choice: { type: 'auto' },
+      max_tokens: 1024,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       messages: [{
         role:    'user',
-        content: `Search ONCE for: ${isAmazon ? 'amazon' : 'walmart'} ${productId} product specs UPC\n\n${prompt}`
+        content: `Go to ${cleanUrl} and return this JSON only, no markdown:
+{"name":"","brand":"","sku":"","asin":"${productId || ''}","upc":"","image_url":"","category":"electronics","description":"","weight":"","dimensions":"","model_number":"","color":"","amazon_url":"${isAmazon ? cleanUrl : ''}","walmart_url":"${isWalmart ? cleanUrl : ''}","features":[]}`
       }],
     })
 
@@ -84,20 +42,13 @@ Return ONLY valid JSON (no markdown):
     }
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      return Response.json({ error: 'Could not extract product data.' }, { status: 422 })
-    }
+    if (!jsonMatch) return Response.json({ error: 'Could not extract product data.' }, { status: 422 })
 
     const product = JSON.parse(jsonMatch[0])
 
-    // Clean UPC
     if (product.upc) {
       product.upc = product.upc.replace(/[^0-9]/g, '')
       if (product.upc.length < 8) product.upc = ''
-    }
-
-    if (isAmazon && productId && !product.asin) {
-      product.asin = productId
     }
 
     return Response.json({ success: true, product })
