@@ -1,49 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@supabase/supabase-js'
-
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
-
-async function downloadAndUploadImage(imageUrl, productName) {
-  try {
-    // Try multiple user agents
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://www.amazon.com/',
-    }
-
-    const res = await fetch(imageUrl, { headers })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
-    const buffer      = await res.arrayBuffer()
-    const contentType = res.headers.get('content-type') || 'image/jpeg'
-    const ext         = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
-    const safeName    = (productName || 'product').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().slice(0, 40)
-    const fileName    = `imported/${Date.now()}-${safeName}.${ext}`
-
-    const { error } = await supabaseAdmin.storage
-      .from('product-images')
-      .upload(fileName, buffer, { contentType, upsert: false })
-
-    if (error) throw new Error(error.message)
-
-    const { data: { publicUrl } } = supabaseAdmin.storage
-      .from('product-images')
-      .getPublicUrl(fileName)
-
-    return publicUrl
-  } catch (e) {
-    console.warn('Image upload failed:', e.message)
-    return null
-  }
-}
 
 export async function POST(request) {
   try {
@@ -113,17 +70,9 @@ Return ONLY valid JSON (no markdown, no backticks):
       if (product.upc.length < 8) product.upc = ''
     }
 
-    // Try to upload image to Supabase
-    if (product.image_url) {
-      const uploaded = await downloadAndUploadImage(product.image_url, product.name)
-      if (uploaded) {
-        product.image_url      = uploaded
-        product.image_uploaded = true
-      } else {
-        // Keep original URL — browser can load it directly
-        product.image_uploaded = false
-      }
-    }
+    // Use image URL directly — Amazon/Walmart CDN URLs work fine in the browser
+    product.image_uploaded = false
+    product.image_source   = product.image_url ? 'external' : 'none'
 
     return Response.json({ success: true, product })
 
