@@ -157,9 +157,11 @@ export default function AdminProducts() {
         prep_fee: form.prep_fee ? parseFloat(form.prep_fee) : null,
       }
       if (editingId) {
-        await supabase.from('products').update(payload).eq('id', editingId)
+        const { error: updateErr } = await supabase.from('products').update(payload).eq('id', editingId)
+        if (updateErr) throw new Error('Update failed: ' + updateErr.message)
       } else {
-        await supabase.from('products').insert([payload])
+        const { error: insertErr } = await supabase.from('products').insert([payload])
+        if (insertErr) throw new Error('Insert failed: ' + insertErr.message)
       }
       await loadProducts(supabase)
       setShowAdd(false)
@@ -168,7 +170,11 @@ export default function AdminProducts() {
       setImageFile(null)
       setShowVariations(false)
       setNewVariation(emptyVariation)
-    } catch (e) { alert('Error saving: ' + e.message) }
+      alert('✓ Product saved successfully!')
+    } catch (e) { 
+      console.error('Save error:', e)
+      alert('Error saving product: ' + e.message) 
+    }
     setSaving(false)
   }
 
