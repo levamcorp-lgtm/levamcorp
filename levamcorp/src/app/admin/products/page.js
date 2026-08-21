@@ -91,6 +91,8 @@ export default function AdminProducts() {
         dimensions:  p.dimensions  || prev.dimensions,
         amazon_url:  p.amazon_url  || prev.amazon_url,
         walmart_url: p.walmart_url || prev.walmart_url,
+        upc:         p.upc         || prev.upc,
+        asin:        p.sku?.startsWith('B0') ? p.sku : prev.asin,
       }))
       setImportMsg('✓ Imported: ' + p.name)
       setImportUrl('')
