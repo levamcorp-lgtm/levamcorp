@@ -67,11 +67,13 @@ export default function AdminProducts() {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
-  // Fetch image from URL and upload to Supabase from the browser
+  // Fetch image via proxy and upload to Supabase
   const fetchAndUploadImage = async (imageUrl) => {
     try {
       const supabase = createClient()
-      const res = await fetch(imageUrl)
+      // Use our proxy to bypass CORS/hotlinking restrictions
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+      const res = await fetch(proxyUrl)
       if (!res.ok) throw new Error('Could not download image')
       const blob = await res.blob()
       const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg'
