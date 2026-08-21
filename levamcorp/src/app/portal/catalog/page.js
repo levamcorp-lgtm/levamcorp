@@ -190,7 +190,7 @@ const addToCart = (product, qty) => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 0 }}>
-            {[['all', 'All products'], ['electronics', 'Electronics'], ['home', 'Home appliances'], ['kitchen', 'Kitchen']].map(([val, label]) => (
+            {[['all', 'All products'], ['tvs', 'TVs'], ['electronics', 'Electronics'], ['small appliances', 'Small Appliances'], ['kitchen appliances', 'Kitchen'], ['gaming', 'Gaming'], ['audio & speakers', 'Audio'], ['computers & laptops', 'Computers']].map(([val, label]) => (
               <button key={val} onClick={() => setCategory(val)} style={{ fontSize: 12, fontWeight: 600, padding: '10px 20px', cursor: 'pointer', border: 'none', background: 'transparent', color: category === val ? '#fff' : 'rgba(255,255,255,0.4)', borderBottom: `2px solid ${category === val ? '#2d7dd2' : 'transparent'}` }}>{label}</button>
             ))}
           </div>
