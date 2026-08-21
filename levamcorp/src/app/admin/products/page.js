@@ -95,7 +95,7 @@ export default function AdminProducts() {
         asin:        p.asin         || (p.sku?.startsWith('B0') ? p.sku : prev.asin),
         image_url:   p.image_url    || prev.image_url,
       }))
-      const imgNote = p.image_uploaded ? ' · Image uploaded ✓' : p.image_url ? ' · Image linked' : ' · No image found'
+      const imgNote = p.image_url ? ' · Image ✓' : ' · No image found (add manually)'
       setImportMsg('✓ Imported: ' + p.name + imgNote)
       setImportUrl('')
     } catch(e) {
