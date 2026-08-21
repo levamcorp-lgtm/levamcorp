@@ -128,7 +128,7 @@ export default function AdminProducts() {
   }
 
   const saveProduct = async () => {
-    if (!form.name || !form.price) { alert('Name and price are required'); return }
+    // No required fields — save whatever is filled in
     setSaving(true)
     try {
       const supabase = createClient()
