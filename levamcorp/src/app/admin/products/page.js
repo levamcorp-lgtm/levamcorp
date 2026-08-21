@@ -206,7 +206,36 @@ export default function AdminProducts() {
       alert('✓ Product saved successfully!')
     } catch (e) { 
       console.error('Save error:', e)
-      alert('Error saving product: ' + e.message) 
+      if (e.message.includes('duplicate key') && e.message.includes('sku')) {
+        // Clear SKU and try again
+        try {
+          const supabase2 = createClient()
+          let imageUrl2 = form.image_url
+          if (imageFile) { imageUrl2 = await uploadImage(imageFile) || imageUrl2 }
+          const payload2 = {
+            ...form,
+            image_url: imageUrl2,
+            sku: null,
+            price: parseFloat(form.price) || 0,
+            cost_price: parseFloat(form.cost_price) || null,
+            stock: parseInt(form.stock) || 0,
+            moq: parseInt(form.moq) || 1,
+          }
+          if (editingId) {
+            await supabase2.from('products').update(payload2).eq('id', editingId)
+          } else {
+            const { error: e2 } = await supabase2.from('products').insert([payload2])
+            if (e2) throw new Error(e2.message)
+          }
+          await loadProducts(supabase2)
+          setShowAdd(false); setEditingId(null); setForm(emptyProduct); setImageFile(null)
+          alert('✓ Product saved! (SKU was duplicate so it was cleared — add a unique SKU manually)')
+        } catch(e3) {
+          alert('Error saving product: ' + e3.message)
+        }
+      } else {
+        alert('Error saving product: ' + e.message)
+      }
     }
     setSaving(false)
   }
