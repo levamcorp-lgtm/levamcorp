@@ -834,6 +834,8 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="lc-section" id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(15,22,41,0.6)', borderTop:'1px solid rgba(240,244,255,0.05)', borderBottom:'1px solid rgba(240,244,255,0.05)' }}>
         <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(47,125,246,0.05) 1px, transparent 1px)', backgroundSize:'38px 38px', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:'-15%', right:'2%', width:480, height:480, background:'radial-gradient(circle,rgba(139,124,246,0.15) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-20%', left:'-2%', width:420, height:420, background:'radial-gradient(circle,rgba(18,183,106,0.12) 0%,transparent 70%)', pointerEvents:'none' }}/>
         <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2rem', textAlign:'center' }}>
             {[
@@ -860,8 +862,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── PROCESS ─────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="process" style={{ padding:'7rem 2rem', position:'relative', zIndex:5 }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <section className="lc-section" id="process" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'5%', right:'-8%', width:500, height:500, background:'radial-gradient(circle,rgba(18,183,106,0.13) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-10%', left:'-8%', width:380, height:380, background:'radial-gradient(circle,rgba(232,182,87,0.10) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5rem', alignItems:'start' }}>
             <Reveal>
               <div style={{ position:'sticky', top:100 }}>
@@ -936,8 +940,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── ABOUT ───────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="about" style={{ padding:'7rem 2rem', position:'relative', zIndex:5 }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <section className="lc-section" id="about" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'-12%', left:'-8%', width:480, height:480, background:'radial-gradient(circle,rgba(232,182,87,0.12) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-15%', right:'-6%', width:400, height:400, background:'radial-gradient(circle,rgba(47,125,246,0.10) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5rem', alignItems:'center' }}>
             <Reveal>
               <div>
@@ -984,8 +990,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── LANGUAGE ────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" style={{ padding:'5rem 2rem', position:'relative', zIndex:5, background:'rgba(47,125,246,0.02)', borderTop:'1px solid rgba(47,125,246,0.06)', borderBottom:'1px solid rgba(47,125,246,0.06)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', alignItems:'center', gap:'3rem', flexWrap:'wrap', justifyContent:'space-between' }}>
+      <section className="lc-section" style={{ padding:'5rem 2rem', position:'relative', zIndex:5, background:'rgba(47,125,246,0.02)', borderTop:'1px solid rgba(47,125,246,0.06)', borderBottom:'1px solid rgba(47,125,246,0.06)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'-30%', right:'4%', width:440, height:440, background:'radial-gradient(circle,rgba(139,124,246,0.14) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-30%', left:'-2%', width:380, height:380, background:'radial-gradient(circle,rgba(18,183,106,0.10) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', alignItems:'center', gap:'3rem', flexWrap:'wrap', justifyContent:'space-between', position:'relative' }}>
           <Reveal>
             <div style={{ flex:1, minWidth:280 }}>
               <Label>We speak your language</Label>
@@ -1022,8 +1030,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── MARKET INSIGHTS PREVIEW ─────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <section className="lc-section" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', bottom:'-20%', left:'-6%', width:460, height:460, background:'radial-gradient(circle,rgba(18,183,106,0.13) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:'-15%', right:'0%', width:340, height:340, background:'radial-gradient(circle,rgba(232,182,87,0.09) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <Reveal>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:'3rem', flexWrap:'wrap', gap:12 }}>
               <div>
@@ -1066,8 +1076,10 @@ export default function Home() {
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── FOUNDERS ────────────────────────────────────────────────── */}
-      <section className="lc-section" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <section className="lc-section" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'0%', left:'8%', width:420, height:420, background:'radial-gradient(circle,rgba(47,125,246,0.13) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:'8%', right:'6%', width:420, height:420, background:'radial-gradient(circle,rgba(139,124,246,0.13) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <Reveal>
             <div style={{ textAlign:'center', marginBottom:'4rem' }}>
               <Label>The people behind Levam Corp</Label>
@@ -1157,7 +1169,9 @@ export default function Home() {
       {/* ── CTA ─────────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="lc-section" id="cta" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
-        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 70% at 50% 50%,rgba(47,125,246,0.07) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 70% at 50% 50%,rgba(47,125,246,0.10) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:'-20%', left:'-6%', width:420, height:420, background:'radial-gradient(circle,rgba(139,124,246,0.12) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-25%', right:'-6%', width:420, height:420, background:'radial-gradient(circle,rgba(232,182,87,0.10) 0%,transparent 70%)', pointerEvents:'none' }}/>
         <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(47,125,246,0.08) 1px, transparent 1px)', backgroundSize:'24px 24px', pointerEvents:'none', opacity:0.6 }}/>
         <Reveal>
           <div style={{ maxWidth:680, margin:'0 auto', textAlign:'center', position:'relative', zIndex:1 }}>
@@ -1179,8 +1193,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CONTACT ─────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="contact" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <section className="lc-section" id="contact" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'-15%', right:'-2%', width:460, height:460, background:'radial-gradient(circle,rgba(18,183,106,0.14) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-20%', left:'-4%', width:360, height:360, background:'radial-gradient(circle,rgba(47,125,246,0.09) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <Reveal>
             <Label>Contact</Label>
             <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', margin:'0 0 3rem', lineHeight:1.1 }}>Get in touch.</h2>

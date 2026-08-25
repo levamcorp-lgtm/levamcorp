@@ -48,35 +48,36 @@ export default function PortalPage() {
     : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 
   return (
-    <div style={{ minHeight:'100vh', background:'#060810', fontFamily:'-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
+    <div style={{ minHeight:'100vh', background:'#080B14', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulseDot { 0%,100%{opacity:.5} 50%{opacity:1} }
         @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+        .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.02em; }
         input::placeholder { color: rgba(255,255,255,0.2); }
-        input:focus { border-color: rgba(14,165,233,0.5) !important; background: rgba(14,165,233,0.04) !important; outline: none; }
+        input:focus { border-color: rgba(47,125,246,0.5) !important; background: rgba(47,125,246,0.04) !important; outline: none; }
         @media(max-width:768px) { .portal-grid { grid-template-columns:1fr !important; } .portal-left { display:none !important; } }
       `}</style>
 
       {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
-      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'3rem', background:'rgba(6,8,16,0.8)' }}>
+      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'3rem', background:'rgba(8,11,20,0.8)' }}>
 
         {/* Dot grid */}
-        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(14,165,233,0.12) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(47,125,246,0.12) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }}/>
         {/* Blue glow */}
-        <div style={{ position:'absolute', top:'-20%', left:'-10%', width:'70%', height:'70%', background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', bottom:'-10%', right:'-10%', width:'50%', height:'50%', background:'radial-gradient(circle,rgba(99,102,241,0.06) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:'-20%', left:'-10%', width:'70%', height:'70%', background:'radial-gradient(circle,rgba(47,125,246,0.07) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-10%', right:'-10%', width:'50%', height:'50%', background:'radial-gradient(circle,rgba(139,124,246,0.06) 0%,transparent 70%)', pointerEvents:'none' }}/>
         {/* Border right */}
-        <div style={{ position:'absolute', right:0, top:0, bottom:0, width:1, background:'linear-gradient(180deg,transparent,rgba(14,165,233,0.2),transparent)' }}/>
+        <div style={{ position:'absolute', right:0, top:0, bottom:0, width:1, background:'linear-gradient(180deg,transparent,rgba(47,125,246,0.2),transparent)' }}/>
 
         {/* LOGO */}
         <div style={{ position:'relative', zIndex:1 }}>
           <Link href="/" style={{ textDecoration:'none', display:'inline-flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:32, height:32, border:'1.5px solid rgba(14,165,233,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(14,165,233,0.06)' }}>
-              <div style={{ width:10, height:10, background:'#0EA5E9', borderRadius:2 }}/>
+            <div style={{ width:32, height:32, border:'1.5px solid rgba(47,125,246,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(47,125,246,0.06)' }}>
+              <div style={{ width:10, height:10, background:'#2F7DF6', borderRadius:2 }}/>
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:900, letterSpacing:'0.2em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span></div>
+              <div className="lc-display" style={{ fontSize:14, fontWeight:700, letterSpacing:'0.16em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>
               <div style={{ fontSize:7, letterSpacing:'0.22em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2 }}>Distributors · Doral, FL</div>
             </div>
           </Link>
@@ -84,10 +85,10 @@ export default function PortalPage() {
 
         {/* CENTER */}
         <div style={{ position:'relative', zIndex:1 }}>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.25em', color:'#0EA5E9', textTransform:'uppercase', marginBottom:14 }}>Partner portal</div>
-          <h2 style={{ fontSize:'clamp(28px,3.5vw,42px)', fontWeight:900, color:'#fff', lineHeight:1.1, marginBottom:'1rem', letterSpacing:'-0.02em' }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.25em', color:'#2F7DF6', textTransform:'uppercase', marginBottom:14 }}>Partner portal</div>
+          <h2 className="lc-display" style={{ fontSize:'clamp(28px,3.5vw,42px)', fontWeight:700, color:'#fff', lineHeight:1.1, marginBottom:'1rem', letterSpacing:'-0.02em' }}>
             Your private<br/>
-            <span style={{ color:'transparent', backgroundImage:'linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC,#0EA5E9)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 4s linear infinite' }}>distribution hub.</span>
+            <span style={{ color:'transparent', backgroundImage:'linear-gradient(90deg,#2F7DF6,#5B93FA,#8FB8FF,#2F7DF6)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 4s linear infinite' }}>distribution hub.</span>
           </h2>
           <p style={{ fontSize:13, color:'rgba(255,255,255,0.35)', lineHeight:1.85, marginBottom:'2.5rem', maxWidth:320 }}>
             Access your full catalog, submit orders, generate quotes and invoices — all in one place.
@@ -100,7 +101,7 @@ export default function PortalPage() {
               { icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>, label:'Full order history & tracking' },
             ].map(({ icon, label }) => (
               <div key={label} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:'rgba(14,165,233,0.08)', border:'1px solid rgba(14,165,233,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color:'#0EA5E9', flexShrink:0 }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:'rgba(47,125,246,0.08)', border:'1px solid rgba(47,125,246,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color:'#2F7DF6', flexShrink:0 }}>
                   {icon}
                 </div>
                 <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:500 }}>{label}</span>
@@ -117,21 +118,21 @@ export default function PortalPage() {
       </div>
 
       {/* ── RIGHT PANEL — LOGIN FORM ───────────────────────────────────── */}
-      <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', padding:'3rem 2.5rem', background:'rgba(8,10,18,0.95)', position:'relative' }}>
+      <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', padding:'3rem 2.5rem', background:'rgba(17,26,46,0.95)', position:'relative' }}>
         {/* Subtle gradient */}
-        <div style={{ position:'absolute', top:0, right:0, width:'60%', height:'40%', background:'radial-gradient(circle at 100% 0%,rgba(14,165,233,0.05),transparent)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', top:0, right:0, width:'60%', height:'40%', background:'radial-gradient(circle at 100% 0%,rgba(47,125,246,0.05),transparent)', pointerEvents:'none' }}/>
 
         <div style={{ maxWidth:380, width:'100%', margin:'0 auto', position:'relative', animation:'fadeUp 0.5s ease' }}>
 
           {/* Header */}
           <div style={{ marginBottom:'2.5rem' }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 12px', border:'1px solid rgba(14,165,233,0.2)', borderRadius:20, background:'rgba(14,165,233,0.05)', marginBottom:'1rem' }}>
-              <span style={{ width:5, height:5, borderRadius:'50%', background:'#22c55e', boxShadow:'0 0 6px #22c55e', animation:'pulseDot 2s infinite' }}/>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 12px', border:'1px solid rgba(47,125,246,0.2)', borderRadius:20, background:'rgba(47,125,246,0.05)', marginBottom:'1rem' }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:'#12B76A', boxShadow:'0 0 6px #12B76A', animation:'pulseDot 2s infinite' }}/>
               <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>Approved partners only</span>
             </div>
-            <h3 style={{ fontSize:'clamp(24px,3vw,32px)', fontWeight:900, color:'#fff', marginBottom:'0.5rem', letterSpacing:'-0.02em' }}>Sign in to your account</h3>
+            <h3 className="lc-display" style={{ fontSize:'clamp(24px,3vw,32px)', fontWeight:700, color:'#fff', marginBottom:'0.5rem', letterSpacing:'-0.02em' }}>Sign in to your account</h3>
             <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)' }}>
-              Don't have access? <Link href="/apply" style={{ color:'#0EA5E9', textDecoration:'none', fontWeight:600 }}>Apply to become a partner →</Link>
+              Don't have access? <Link href="/apply" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>Apply to become a partner →</Link>
             </p>
           </div>
 
@@ -162,10 +163,10 @@ export default function PortalPage() {
           {/* Remember + Forgot */}
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
             <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'rgba(255,255,255,0.35)', cursor:'pointer' }}>
-              <input type="checkbox" style={{ accentColor:'#0EA5E9' }}/> Keep me signed in
+              <input type="checkbox" style={{ accentColor:'#2F7DF6' }}/> Keep me signed in
             </label>
             <button onClick={handleForgotPassword} disabled={resetLoading}
-              style={{ fontSize:12, color:resetSent?'#22c55e':'#0EA5E9', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600, padding:0 }}>
+              style={{ fontSize:12, color:resetSent?'#12B76A':'#2F7DF6', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600, padding:0 }}>
               {resetLoading?'Sending…':resetSent?'✓ Email sent!':'Forgot password?'}
             </button>
           </div>
@@ -179,13 +180,13 @@ export default function PortalPage() {
 
           {/* Submit */}
           <button onClick={handleLogin} disabled={loading}
-            style={{ width:'100%', padding:'13px', background:loading?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#0EA5E9,#0284C7)', color:'#fff', fontSize:12, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', border:'none', borderRadius:6, cursor:loading?'not-allowed':'pointer', fontFamily:'inherit', marginBottom:'1.25rem', boxShadow:loading?'none':'0 4px 16px rgba(14,165,233,0.35)', transition:'all 0.2s' }}>
+            style={{ width:'100%', padding:'13px', background:loading?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#2F7DF6,#1B5FD1)', color:'#fff', fontSize:12, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', border:'none', borderRadius:6, cursor:loading?'not-allowed':'pointer', fontFamily:'inherit', marginBottom:'1.25rem', boxShadow:loading?'none':'0 4px 16px rgba(47,125,246,0.35)', transition:'all 0.2s' }}>
             {loading?'Signing in…':'Sign in to portal'}
           </button>
 
           {/* Apply link */}
           <div style={{ textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.25)' }}>
-            Not a partner yet? <Link href="/apply" style={{ color:'#0EA5E9', textDecoration:'none', fontWeight:600 }}>Apply for access</Link>
+            Not a partner yet? <Link href="/apply" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>Apply for access</Link>
           </div>
 
           {/* Security note */}
