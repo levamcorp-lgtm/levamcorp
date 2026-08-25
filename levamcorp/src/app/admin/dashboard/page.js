@@ -1,10 +1,14 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Chart from 'chart.js/auto'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAIL = 'levamcorp@gmail.com'
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+const EXPENSE_CATS = ['Rent/Storage','Shipping & Logistics','Marketing','Software & Tools','Utilities','Office','Travel','Legal & Accounting','Other']
+const DEFAULT_GOAL = 100000
+const DEFAULT_MARGIN_ALERT = 15
 
 const NAV_LINKS = [['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']]
 
@@ -16,6 +20,8 @@ const STATUS = {
   completed:  { color: '#12B76A', label: 'Done' },
   cancelled:  { color: '#EF4444', label: 'Cancelled' },
 }
+
+const CATEGORY_COLOR = ['#2F7DF6', '#8B7CF6', '#12B76A', '#F2A93B', '#E8B657', '#EF4444']
 
 function AdminNav({ active, newOrders, unreadMessages, pendingApps, onLogout, now }) {
   return (
@@ -72,19 +78,59 @@ const Row = ({ label, val, color = '#9AACC9' }) => (
   </div>
 )
 
+// Circular goal-progress ring, built with a conic-gradient — no chart lib needed for this one.
+function GoalRing({ pct, color }) {
+  const clamped = Math.max(0, Math.min(100, pct))
+  return (
+    <div style={{ width: 56, height: 56, borderRadius: '50%', background: `conic-gradient(${color} ${clamped * 3.6}deg, rgba(255,255,255,0.08) 0deg)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#111A2E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="lc-mono" style={{ fontSize: 11, fontWeight: 700, color }}>{Math.round(pct)}%</span>
+      </div>
+    </div>
+  )
+}
+
+// Large hero KPI tile for the executive row
+function KpiTile({ label, value, sub, color, ring }) {
+  return (
+    <div style={{ background: 'rgba(17,26,46,0.65)', backdropFilter: 'blur(16px)', border: `1px solid ${color}30`, borderRadius: 14, padding: '1.25rem 1.4rem', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg,transparent,${color}70,transparent)` }} />
+      <div style={{ position: 'absolute', bottom: -30, right: -30, width: 110, height: 110, background: `radial-gradient(circle,${color}22 0%,transparent 70%)`, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative' }}>
+        <div style={{ fontSize: 9, color: 'rgba(154,172,201,0.55)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
+        <div className="lc-display" style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1 }}>{value}</div>
+        {sub && <div style={{ fontSize: 10.5, color, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
+      </div>
+      {ring !== undefined && <GoalRing pct={ring} color={color} />}
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState({
     orders: [], clients: [], applications: [], products: [],
-    payments: [], messages: [], investments: []
+    payments: [], messages: [], investments: [], expenses: []
   })
+  const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const [showGoalModal, setShowGoalModal] = useState(false)
+  const [goalForm, setGoalForm] = useState({ revenue_goal: DEFAULT_GOAL, margin_alert_pct: DEFAULT_MARGIN_ALERT })
+  const [savingGoal, setSavingGoal] = useState(false)
+
+  const [expenseForm, setExpenseForm] = useState({ description: '', category: EXPENSE_CATS[0], amount: '' })
+  const [savingExpense, setSavingExpense] = useState(false)
+
+  const barCanvasRef = useRef(null)
+  const donutCanvasRef = useRef(null)
+  const chartsRef = useRef({ bar: null, donut: null })
 
   const now = new Date()
   const currentMonth = now.toLocaleString('en-US', { month: 'long' })
   const currentYear = now.getFullYear()
   const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const fmtTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
+  const fmtMoney = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 
   useEffect(() => {
     const supabase = createClient()
@@ -93,24 +139,55 @@ export default function AdminDashboard() {
       const [
         { data: orders }, { data: clients }, { data: applications },
         { data: products }, { data: payments }, { data: messages },
-        { data: investments }
+        { data: investments }, { data: expenses }, { data: settingsRows }
       ] = await Promise.all([
-        supabase.from('orders').select('*, order_items(*, products(cost_price))').order('submitted_at', { ascending: false }),
+        supabase.from('orders').select('*, order_items(*, products(cost_price, category))').order('submitted_at', { ascending: false }),
         supabase.from('clients').select('*').order('created_at', { ascending: false }),
         supabase.from('applications').select('*').order('created_at', { ascending: false }),
         supabase.from('products').select('*').order('name'),
         supabase.from('payments').select('*').order('created_at', { ascending: false }),
         supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
         supabase.from('partner_investments').select('*'),
+        supabase.from('expenses').select('*').order('date', { ascending: false }),
+        supabase.from('dashboard_settings').select('*').eq('id', 1).maybeSingle(),
       ])
-      setData({ orders: orders||[], clients: clients||[], applications: applications||[], products: products||[], payments: payments||[], messages: messages||[], investments: investments||[] })
+      setData({ orders: orders||[], clients: clients||[], applications: applications||[], products: products||[], payments: payments||[], messages: messages||[], investments: investments||[], expenses: expenses||[] })
+      const goal = settingsRows?.revenue_goal ?? DEFAULT_GOAL
+      const marginAlert = settingsRows?.margin_alert_pct ?? DEFAULT_MARGIN_ALERT
+      setSettings({ revenue_goal: goal, margin_alert_pct: marginAlert })
+      setGoalForm({ revenue_goal: goal, margin_alert_pct: marginAlert })
       setLoading(false)
     })
   }, [])
 
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
 
-  // Calculations
+  const saveGoal = async () => {
+    setSavingGoal(true)
+    const revenue_goal = parseFloat(goalForm.revenue_goal) || 0
+    const margin_alert_pct = parseFloat(goalForm.margin_alert_pct) || 0
+    await createClient().from('dashboard_settings').upsert({ id: 1, revenue_goal, margin_alert_pct, updated_at: new Date().toISOString() })
+    setSettings({ revenue_goal, margin_alert_pct })
+    setSavingGoal(false)
+    setShowGoalModal(false)
+  }
+
+  const addExpense = async () => {
+    if (!expenseForm.description || !expenseForm.amount) return
+    setSavingExpense(true)
+    const row = { date: new Date().toISOString().slice(0,10), category: expenseForm.category, description: expenseForm.description, amount: parseFloat(expenseForm.amount) || 0, paid_by: 'company' }
+    const { data: inserted } = await createClient().from('expenses').insert([row]).select()
+    if (inserted) setData(d => ({ ...d, expenses: [...inserted, ...d.expenses] }))
+    setExpenseForm({ description: '', category: EXPENSE_CATS[0], amount: '' })
+    setSavingExpense(false)
+  }
+
+  const deleteExpense = async (id) => {
+    await createClient().from('expenses').delete().eq('id', id)
+    setData(d => ({ ...d, expenses: d.expenses.filter(e => e.id !== id) }))
+  }
+
+  // ── Calculations ──────────────────────────────────────────────────────────
   const completedOrders = data.orders.filter(o => ['confirmed','dispatched','completed'].includes(o.status))
   const newOrders = data.orders.filter(o => o.status === 'new')
   const activeOrders = data.orders.filter(o => ['review','confirmed','dispatched'].includes(o.status))
@@ -126,7 +203,6 @@ export default function AdminDashboard() {
   const totalCost = completedOrders.reduce((s, o) => s + calcCost(o), 0)
   const totalProfit = totalRevenue - totalCost
 
-  // Revenue includes confirmed, dispatched and completed orders
   const monthOrders = completedOrders.filter(o => {
     const d = new Date(o.submitted_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === currentYear
@@ -134,6 +210,7 @@ export default function AdminDashboard() {
   const monthRevenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0)
   const monthCost = monthOrders.reduce((s, o) => s + calcCost(o), 0)
   const monthProfit = monthRevenue - monthCost
+  const monthMargin = monthRevenue > 0 ? (monthProfit / monthRevenue) * 100 : 0
 
   const currentInvestments = data.investments.filter(i => i.month === currentMonth && i.year === currentYear)
   const victorInvested = currentInvestments.filter(i => i.partner_name === 'Victor').reduce((s, i) => s + i.amount, 0)
@@ -141,6 +218,144 @@ export default function AdminDashboard() {
   const totalInvested = victorInvested + leopoldoInvested
   const victorShare = totalInvested > 0 ? victorInvested / totalInvested : 0.5
   const leopoldoShare = totalInvested > 0 ? leopoldoInvested / totalInvested : 0.5
+
+  // Goal, pacing & projection
+  const revenueGoal = settings?.revenue_goal ?? DEFAULT_GOAL
+  const marginAlertPct = settings?.margin_alert_pct ?? DEFAULT_MARGIN_ALERT
+  const goalPct = revenueGoal > 0 ? (monthRevenue / revenueGoal) * 100 : 0
+  const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate()
+  const dayOfMonth = now.getDate()
+  const daysLeft = daysInMonth - dayOfMonth
+  const dailyPace = dayOfMonth > 0 ? monthRevenue / dayOfMonth : 0
+  const projectedRevenue = dailyPace * daysInMonth
+  const remainingToGoal = Math.max(0, revenueGoal - monthRevenue)
+  const neededDailyPace = daysLeft > 0 ? remainingToGoal / daysLeft : remainingToGoal
+
+  // Last 12 months revenue series (for the bar+target chart)
+  const monthlySeries = Array.from({ length: 12 }, (_, i) => {
+    const idx = 11 - i
+    const d = new Date(currentYear, now.getMonth() - idx, 1)
+    const rev = completedOrders.filter(o => {
+      const od = new Date(o.submitted_at)
+      return od.getMonth() === d.getMonth() && od.getFullYear() === d.getFullYear()
+    }).reduce((s, o) => s + (o.total || 0), 0)
+    return { label: d.toLocaleString('en-US', { month: 'short' }), rev }
+  })
+
+  // Revenue by product category, this month
+  const categoryRevenue = {}
+  monthOrders.forEach(o => (o.order_items || []).forEach(item => {
+    const cat = item.products?.category || 'Other'
+    categoryRevenue[cat] = (categoryRevenue[cat] || 0) + (item.unit_price || 0) * (item.quantity || 0)
+  }))
+  const categoryEntries = Object.entries(categoryRevenue).sort((a, b) => b[1] - a[1])
+
+  // Expenses — current & prior month, from the same table the Profit page manages
+  const currentMonthKey = now.toISOString().slice(0, 7)
+  const priorMonthKey = new Date(currentYear, now.getMonth() - 1, 1).toISOString().slice(0, 7)
+  const currentExpenses = data.expenses.filter(e => e.date?.startsWith(currentMonthKey))
+  const priorExpenses = data.expenses.filter(e => e.date?.startsWith(priorMonthKey))
+  const totalExpensesMonth = currentExpenses.reduce((s, e) => s + (e.amount || 0), 0)
+  const expenseByCatCurrent = {}
+  currentExpenses.forEach(e => { expenseByCatCurrent[e.category] = (expenseByCatCurrent[e.category] || 0) + (e.amount || 0) })
+  const expenseByCatPrior = {}
+  priorExpenses.forEach(e => { expenseByCatPrior[e.category] = (expenseByCatPrior[e.category] || 0) + (e.amount || 0) })
+  const expenseGrowthAlerts = Object.keys(expenseByCatCurrent)
+    .filter(cat => expenseByCatPrior[cat] > 0 && ((expenseByCatCurrent[cat] - expenseByCatPrior[cat]) / expenseByCatPrior[cat]) * 100 > 20)
+    .map(cat => ({ cat, growth: ((expenseByCatCurrent[cat] - expenseByCatPrior[cat]) / expenseByCatPrior[cat]) * 100 }))
+
+  // Alerts
+  const alerts = []
+  if (monthRevenue > 0 && monthMargin < marginAlertPct) {
+    alerts.push({ color: '#EF4444', icon: IC.alert, text: `Margin is ${monthMargin.toFixed(1)}%, below your ${marginAlertPct}% alert threshold.` })
+  }
+  if (dayOfMonth >= 5 && projectedRevenue < revenueGoal) {
+    alerts.push({ color: '#F2A93B', icon: IC.trend, text: `At the current pace you'll close the month at ${fmtMoney(projectedRevenue)}, ${fmtMoney(revenueGoal - projectedRevenue)} short of your ${fmtMoney(revenueGoal)} goal.` })
+  }
+  expenseGrowthAlerts.forEach(({ cat, growth }) => {
+    alerts.push({ color: '#F2A93B', icon: IC.trend, text: `"${cat}" expenses are up ${growth.toFixed(0)}% vs last month (${fmtMoney(expenseByCatCurrent[cat])} vs ${fmtMoney(expenseByCatPrior[cat])}).` })
+  })
+  if (outOfStock.length > 0) {
+    alerts.push({ color: '#EF4444', icon: IC.box, text: `${outOfStock.length} product${outOfStock.length>1?'s':''} out of stock — may be limiting sales.` })
+  }
+
+  // ── Charts ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (loading || !barCanvasRef.current || !donutCanvasRef.current) return
+
+    chartsRef.current.bar?.destroy()
+    chartsRef.current.bar = new Chart(barCanvasRef.current, {
+      data: {
+        labels: monthlySeries.map(m => m.label),
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Revenue',
+            data: monthlySeries.map(m => m.rev),
+            backgroundColor: monthlySeries.map((_, i) => i === 11 ? 'rgba(47,125,246,0.85)' : 'rgba(47,125,246,0.35)'),
+            borderRadius: 4,
+            maxBarThickness: 28,
+          },
+          {
+            type: 'line',
+            label: 'Goal',
+            data: monthlySeries.map(() => revenueGoal),
+            borderColor: '#E8B657',
+            borderDash: [6, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111A2E', borderColor: 'rgba(240,244,255,0.1)', borderWidth: 1,
+            titleColor: '#fff', bodyColor: '#9AACC9', padding: 10, displayColors: false,
+            callbacks: { label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}` },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: 'rgba(154,172,201,0.6)', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(240,244,255,0.05)' }, ticks: { color: 'rgba(154,172,201,0.5)', font: { size: 9 }, callback: (v) => `$${(v/1000)}k` } },
+        },
+      },
+    })
+
+    chartsRef.current.donut?.destroy()
+    chartsRef.current.donut = new Chart(donutCanvasRef.current, {
+      type: 'doughnut',
+      data: {
+        labels: categoryEntries.map(([cat]) => cat),
+        datasets: [{
+          data: categoryEntries.map(([, v]) => v),
+          backgroundColor: categoryEntries.map((_, i) => CATEGORY_COLOR[i % CATEGORY_COLOR.length]),
+          borderColor: '#111A2E',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(154,172,201,0.7)', font: { size: 10 }, boxWidth: 8, padding: 10 } },
+          tooltip: {
+            backgroundColor: '#111A2E', borderColor: 'rgba(240,244,255,0.1)', borderWidth: 1,
+            titleColor: '#fff', bodyColor: '#9AACC9', padding: 10, displayColors: false,
+            callbacks: { label: (ctx) => `${ctx.label}: $${ctx.parsed.toLocaleString()}` },
+          },
+        },
+      },
+    })
+
+    return () => { chartsRef.current.bar?.destroy(); chartsRef.current.donut?.destroy() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, settings, data.orders])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#05070C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Inter",-apple-system,sans-serif' }}>
@@ -156,10 +371,11 @@ export default function AdminDashboard() {
     <div style={{ background: '#05070C', minHeight: '100vh', fontFamily: '"Inter",-apple-system,sans-serif', color: '#F0F4FF' }}>
       <style>{`
         .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.01em; }
-        .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; }
+        .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; font-variant-numeric: tabular-nums; }
         @keyframes pulseDot { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         a:hover { color: #fff !important; }
+        input:focus, select:focus { outline: none; border-color: rgba(47,125,246,0.5) !important; }
       `}</style>
 
       <AdminNav active="Dashboard" newOrders={newOrders.length} unreadMessages={unreadMessages.length} pendingApps={pendingApps.length} onLogout={handleLogout} now={now} />
@@ -171,6 +387,7 @@ export default function AdminDashboard() {
         <span>CLIENTS: {data.clients.length}</span>
         <span>PRODUCTS: {data.products.length}</span>
         <span style={{ color: '#12B76A' }}>REVENUE: {fmtMoney(totalRevenue)}</span>
+        <span style={{ color: monthMargin < marginAlertPct ? '#EF4444' : '#12B76A' }}>MARGIN: {monthMargin.toFixed(1)}%</span>
         {newOrders.length > 0 && <span style={{ color: '#EF4444' }}>⚠ {newOrders.length} ORDER{newOrders.length>1?'S':''} AWAITING REVIEW</span>}
         {pendingApps.length > 0 && <span style={{ color: '#F2A93B' }}>⚠ {pendingApps.length} APPLICATION{pendingApps.length>1?'S':''} PENDING</span>}
       </div>
@@ -179,13 +396,26 @@ export default function AdminDashboard() {
       <div style={{ position: 'relative', padding: '2.25rem 2rem 1.5rem', borderBottom: '1px solid rgba(240,244,255,0.05)', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-40%', right: '5%', width: 500, height: 500, background: 'radial-gradient(circle,rgba(47,125,246,0.1) 0%,transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: '-20%', left: '15%', width: 360, height: 360, background: 'radial-gradient(circle,rgba(139,124,246,0.06) 0%,transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <div className="lc-mono" style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2F7DF6', fontWeight: 700, marginBottom: 8 }}>Command center</div>
-          <h1 className="lc-display" style={{ fontSize: 30, fontWeight: 700, color: '#fff', marginBottom: 5, letterSpacing: '-0.02em' }}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, Levam Corp</h1>
-          <p style={{ fontSize: 13, color: 'rgba(154,172,201,0.6)' }}>{currentMonth} {currentYear} · Here is everything happening right now</p>
+        <div style={{ position: 'relative', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div className="lc-mono" style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#2F7DF6', fontWeight: 700, marginBottom: 8 }}>Command center</div>
+            <h1 className="lc-display" style={{ fontSize: 30, fontWeight: 700, color: '#fff', marginBottom: 5, letterSpacing: '-0.02em' }}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening'}, Levam Corp</h1>
+            <p style={{ fontSize: 13, color: 'rgba(154,172,201,0.6)' }}>{currentMonth} {currentYear} · Here is everything happening right now</p>
+          </div>
+          <button onClick={() => setShowGoalModal(true)} style={{ fontSize: 11, fontWeight: 700, color: '#E8B657', background: 'rgba(232,182,87,0.08)', border: '1px solid rgba(232,182,87,0.25)', padding: '9px 16px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {IC.target} Edit monthly goal
+          </button>
         </div>
 
-        {/* TOP STATS */}
+        {/* EXECUTIVE KPI ROW */}
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
+          <KpiTile label="Revenue this month" value={fmtMoney(monthRevenue)} sub={`${fmtMoney(totalRevenue)} all-time`} color="#2F7DF6" />
+          <KpiTile label="Net profit this month" value={fmtMoney(monthProfit)} sub={monthProfit >= 0 ? 'Profitable' : 'Loss this month'} color={monthProfit >= 0 ? '#12B76A' : '#EF4444'} />
+          <KpiTile label="Margin" value={`${monthMargin.toFixed(1)}%`} sub={monthMargin < marginAlertPct ? `Below ${marginAlertPct}% target` : 'Healthy margin'} color={monthMargin < marginAlertPct ? '#EF4444' : '#12B76A'} />
+          <KpiTile label="Goal completion" value={fmtMoney(revenueGoal)} sub={`${fmtMoney(remainingToGoal)} to go · ${daysLeft}d left`} color="#E8B657" ring={goalPct} />
+        </div>
+
+        {/* TOP STATS — operational */}
         <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 10 }}>
           {[
             { label: 'New orders', value: newOrders.length, color: '#EF4444', icon: IC.inbox, href: '/admin/orders', alert: newOrders.length > 0 },
@@ -208,6 +438,61 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* 12-MONTH REVENUE CHART */}
+      <div style={{ padding: '1.5rem 2rem 0' }}>
+        <Panel title="Revenue — last 12 months vs. goal" icon={IC.chart} accent="#2F7DF6">
+          <div style={{ padding: '1.25rem 1.25rem 0.75rem', height: 260 }}>
+            <canvas ref={barCanvasRef} />
+          </div>
+        </Panel>
+      </div>
+
+      {/* CATEGORY DONUT + GOAL CARD + ALERTS */}
+      <div style={{ padding: '1rem 2rem 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+        <Panel title="Revenue by category" icon={IC.pie} accent="#8B7CF6">
+          <div style={{ padding: '1rem 1rem 0.5rem', height: 220 }}>
+            {categoryEntries.length > 0 ? <canvas ref={donutCanvasRef} /> : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: 'rgba(154,172,201,0.4)' }}>No sales yet this month</div>}
+          </div>
+        </Panel>
+
+        <Panel title="Monthly goal" icon={IC.target} accent="#E8B657">
+          <div style={{ padding: '1.1rem 1.1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 9, color: 'rgba(154,172,201,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Remaining to goal</div>
+                <div className="lc-display" style={{ fontSize: 22, fontWeight: 700, color: '#E8B657' }}>{fmtMoney(remainingToGoal)}</div>
+              </div>
+              <GoalRing pct={goalPct} color="#E8B657" />
+            </div>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, marginBottom: 12 }}>
+              <div style={{ height: '100%', width: `${Math.min(100, goalPct)}%`, background: 'linear-gradient(90deg,#E8B657,#F2A93B)', borderRadius: 3, boxShadow: '0 0 8px rgba(232,182,87,0.6)' }} />
+            </div>
+            <Row label="Days left in month" val={daysLeft} />
+            <Row label="Current daily pace" val={fmtMoney(dailyPace)} color="#2F7DF6" />
+            <Row label="Projected month end" val={fmtMoney(projectedRevenue)} color={projectedRevenue >= revenueGoal ? '#12B76A' : '#F2A93B'} />
+            <Row label="Daily pace needed" val={fmtMoney(neededDailyPace)} color="#E8B657" />
+          </div>
+        </Panel>
+
+        <Panel title={`Alerts${alerts.length > 0 ? ` (${alerts.length})` : ''}`} icon={IC.alert} accent={alerts.length > 0 ? '#EF4444' : '#12B76A'} alert={alerts.length > 0}>
+          {alerts.length === 0 ? (
+            <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+              <div style={{ color: '#12B76A', marginBottom: 6 }}>{IC.check}</div>
+              <div style={{ fontSize: 11, color: 'rgba(154,172,201,0.5)' }}>All metrics look healthy</div>
+            </div>
+          ) : (
+            <div style={{ padding: '0.6rem 0' }}>
+              {alerts.map((a, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '0.6rem 1.1rem', borderTop: i > 0 ? '1px solid rgba(240,244,255,0.04)' : 'none' }}>
+                  <span style={{ color: a.color, flexShrink: 0, marginTop: 1 }}>{a.icon}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(220,228,245,0.85)', lineHeight: 1.5 }}>{a.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
+
       <div style={{ padding: '1.5rem 2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
         {/* COLUMN 1 */}
@@ -224,6 +509,44 @@ export default function AdminDashboard() {
               <Row label="Total profit" val={fmtMoney(totalProfit)} color={totalProfit >= 0 ? '#12B76A' : '#EF4444'} />
               <Row label="This month revenue" val={fmtMoney(monthRevenue)} color="#2F7DF6" />
               <Row label="This month profit" val={fmtMoney(monthProfit)} color={monthProfit >= 0 ? '#12B76A' : '#EF4444'} />
+            </div>
+          </Panel>
+
+          {/* EXPENSES — reads/writes the same `expenses` table as the Profit page */}
+          <Panel title="Operating expenses" icon={IC.receipt} accent="#F2A93B" href="/admin/profit" linkLabel="Full manager →">
+            <div style={{ padding: '1rem 1.1rem' }}>
+              <Row label={`${currentMonth} total`} val={fmtMoney(totalExpensesMonth)} color="#F2A93B" />
+              {currentExpenses.slice(0, 4).map(e => (
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid rgba(240,244,255,0.04)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11, color: '#F0F4FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(154,172,201,0.45)' }}>{e.category}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <span className="lc-mono" style={{ fontSize: 11, fontWeight: 700, color: '#F0F4FF' }}>{fmtMoney(e.amount)}</span>
+                    <button onClick={() => deleteExpense(e.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                  </div>
+                </div>
+              ))}
+              {currentExpenses.length > 4 && <div style={{ fontSize: 10, color: 'rgba(154,172,201,0.4)', marginTop: 4 }}>+{currentExpenses.length - 4} more this month</div>}
+              {currentExpenses.length === 0 && <div style={{ fontSize: 11, color: 'rgba(154,172,201,0.4)', textAlign: 'center', padding: '0.5rem 0' }}>No expenses logged this month</div>}
+
+              {/* Quick add */}
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(240,244,255,0.06)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} placeholder="Expense description"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 11, padding: '8px 10px', borderRadius: 6, fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(154,172,201,0.8)', fontSize: 10.5, padding: '8px 6px', borderRadius: 6, fontFamily: 'inherit' }}>
+                    {EXPENSE_CATS.map(c => <option key={c} value={c} style={{ background: '#111A2E' }}>{c}</option>)}
+                  </select>
+                  <input type="number" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} placeholder="$"
+                    style={{ width: 70, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 11, padding: '8px 8px', borderRadius: 6, fontFamily: 'inherit' }} />
+                </div>
+                <button onClick={addExpense} disabled={savingExpense} style={{ padding: '8px', background: savingExpense ? 'rgba(255,255,255,0.06)' : 'rgba(242,169,59,0.15)', color: '#F2A93B', fontSize: 11, fontWeight: 700, border: '1px solid rgba(242,169,59,0.3)', borderRadius: 6, cursor: savingExpense ? 'not-allowed' : 'pointer' }}>
+                  {savingExpense ? 'Adding…' : '+ Add expense'}
+                </button>
+              </div>
             </div>
           </Panel>
 
@@ -363,6 +686,29 @@ export default function AdminDashboard() {
           </Panel>
         </div>
       </div>
+
+      {/* GOAL SETTINGS MODAL */}
+      {showGoalModal && (
+        <div onClick={() => setShowGoalModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,7,12,0.75)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 380, background: '#111A2E', border: '1px solid rgba(240,244,255,0.08)', borderRadius: 12, padding: '1.5rem', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div className="lc-display" style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Edit monthly goal</div>
+            <div style={{ fontSize: 11, color: 'rgba(154,172,201,0.55)', marginBottom: '1.25rem' }}>Used for the goal ring, projection and margin alerts.</div>
+
+            <label style={{ fontSize: 9, color: 'rgba(154,172,201,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Monthly revenue goal (USD)</label>
+            <input type="number" value={goalForm.revenue_goal} onChange={e => setGoalForm(f => ({ ...f, revenue_goal: e.target.value }))}
+              style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, padding: '10px 12px', borderRadius: 6, fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 14 }} />
+
+            <label style={{ fontSize: 9, color: 'rgba(154,172,201,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Margin alert threshold (%)</label>
+            <input type="number" value={goalForm.margin_alert_pct} onChange={e => setGoalForm(f => ({ ...f, margin_alert_pct: e.target.value }))}
+              style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, padding: '10px 12px', borderRadius: 6, fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 18 }} />
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowGoalModal(false)} style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.05)', color: 'rgba(154,172,201,0.7)', fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={saveGoal} disabled={savingGoal} style={{ flex: 1, padding: 11, background: savingGoal ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#2F7DF6,#1B5FD1)', color: '#fff', fontSize: 12, fontWeight: 700, border: 'none', borderRadius: 6, cursor: savingGoal ? 'not-allowed' : 'pointer' }}>{savingGoal ? 'Saving…' : 'Save goal'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -379,4 +725,10 @@ const IC = {
   box:       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>,
   package:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
   handshake: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  target:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  pie:       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+  receipt:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/></svg>,
+  alert:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  trend:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  check:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
 }
