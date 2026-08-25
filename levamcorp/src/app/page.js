@@ -196,6 +196,7 @@ const IC = {
   home2:  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>,
   coffee: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
   fridge: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M4 10h16"/><path d="M8 6v2M8 14v4"/></svg>,
+  chevron:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>,
 }
 
 // ── MOBILE MENU ───────────────────────────────────────────────────────────────
@@ -214,7 +215,7 @@ function MobileMenu() {
       {open && (
         <div style={{ position:'fixed', inset:0, background:'rgba(8,11,20,0.97)', backdropFilter:'blur(24px)', zIndex:300, display:'flex', flexDirection:'column', padding:'5rem 2rem 3rem' }}>
           <button onClick={() => setOpen(false)} style={{ position:'absolute', top:20, right:20, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', width:40, height:40, borderRadius:'50%', fontSize:18, cursor:'pointer' }}>×</button>
-          {[['#brands','Products'],['#process','How it works'],['#about','About'],['#contact','Contact'],['/insights','Market Insights'],['/apply','Apply now']].map(([href,label],i) => (
+          {[['#brands','Products'],['#process','How it works'],['#about','About'],['#faq','FAQ'],['#contact','Contact'],['/insights','Market Insights'],['/apply','Apply now']].map(([href,label],i) => (
             <a key={label} href={href} onClick={() => setOpen(false)}
               style={{ fontSize:22, fontWeight:800, color:label==='Apply now'?'#2F7DF6':'#fff', textDecoration:'none', padding:'0.9rem 0', borderBottom:'1px solid rgba(255,255,255,0.05)', letterSpacing:'-0.01em', opacity:0, animation:`fadeUp 0.4s ${i*0.06}s ease forwards` }}>
               {label}
@@ -523,6 +524,103 @@ function ProductPreview() {
   )
 }
 
+// ── FAQ ───────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  { q: 'Who can apply to become a partner?', a: 'We work with registered retailers, resellers, and distributors — a valid EIN and resale certificate are required. Apply and we’ll review your business personally.' },
+  { q: 'Is there a cost to apply?', a: 'No. Applying is free and takes about 5 minutes. You only pay for the products you order once approved.' },
+  { q: 'How long until I get approved?', a: 'We review every application personally and respond within 1–2 business days.' },
+  { q: 'Is there a minimum order quantity (MOQ)?', a: 'MOQ varies by product — no pressure. Exact minimums are shown in your portal once you have catalog access.' },
+  { q: 'How fast do you ship?', a: 'Orders dispatch from our Doral, FL warehouse with a 48-hour average turnaround.' },
+  { q: 'Do you support Spanish speakers?', a: 'Yes — our team supports English and Spanish, Monday–Friday 9AM–5PM ET.' },
+]
+
+function FAQSection() {
+  const [open, setOpen] = useState(0)
+  return (
+    <section className="lc-section" id="faq" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:'-10%', left:'-4%', width:400, height:400, background:'radial-gradient(circle,rgba(139,124,246,0.08) 0%,transparent 70%)', pointerEvents:'none' }}/>
+      <div style={{ maxWidth:760, margin:'0 auto', position:'relative' }}>
+        <Reveal>
+          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
+            <Label>Questions before you apply?</Label>
+            <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
+              Frequently asked questions.
+            </h2>
+            <p style={{ fontSize:13.5, color:'#9AACC9', maxWidth:440, margin:'0 auto' }}>
+              Haven&rsquo;t applied yet? Here&rsquo;s what most prospective partners ask us first.
+            </p>
+          </div>
+        </Reveal>
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {FAQ_ITEMS.map((item, i) => {
+            const isOpen = open === i
+            return (
+              <Reveal key={item.q} delay={i*0.05}>
+                <div style={{ background:'rgba(255,255,255,0.025)', border:`1px solid ${isOpen?'rgba(47,125,246,0.3)':'rgba(255,255,255,0.07)'}`, borderRadius:10, overflow:'hidden', transition:'border-color 0.2s' }}>
+                  <button onClick={() => setOpen(isOpen ? -1 : i)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'1rem 1.25rem', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:'#fff' }}>{item.q}</span>
+                    <span style={{ color:'#2F7DF6', flexShrink:0, transition:'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>{IC.chevron}</span>
+                  </button>
+                  <div style={{ maxHeight: isOpen ? 200 : 0, overflow:'hidden', transition:'max-height 0.25s ease' }}>
+                    <div style={{ padding:'0 1.25rem 1.1rem', fontSize:13, color:'#9AACC9', lineHeight:1.75 }}>{item.a}</div>
+                  </div>
+                </div>
+              </Reveal>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── FOOTER "ASK US ANYTHING" WIDGET ─────────────────────────────────────────
+function FooterAsk() {
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    if (!email || !message) { setError('Add your email and a question.'); return }
+    setSending(true); setError('')
+    try {
+      const res = await fetch('/api/send-contact-email', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ name:'Website visitor', email, company:'', phone:'', message }),
+      })
+      const data = await res.json()
+      if (data.success) { setSent(true); setEmail(''); setMessage('') }
+      else setError('Something went wrong. Please try again.')
+    } catch { setError('Something went wrong. Please try again.') }
+    setSending(false)
+  }
+
+  if (sent) return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'#12B76A', fontWeight:600 }}>
+      {IC.check} Thanks — we&rsquo;ll reply within 1&ndash;2 business days.
+    </div>
+  )
+
+  return (
+    <div style={{ width:'100%', maxWidth:520 }}>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@yourbusiness.com"
+          onKeyDown={e=>e.key==='Enter' && submit()}
+          style={{ flex:'1 1 180px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:12, padding:'10px 12px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}/>
+        <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Ask us anything…"
+          onKeyDown={e=>e.key==='Enter' && submit()}
+          style={{ flex:'2 1 220px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:12, padding:'10px 12px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}/>
+        <button onClick={submit} disabled={sending} style={{ padding:'10px 20px', background: sending?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#2F7DF6,#1B5FD1)', color:'#fff', fontSize:11.5, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', border:'none', borderRadius:6, cursor: sending?'not-allowed':'pointer', flexShrink:0 }}>
+          {sending ? 'Sending…' : 'Ask'}
+        </button>
+      </div>
+      {error && <div style={{ fontSize:11, color:'#EF4444', marginTop:6 }}>{error}</div>}
+    </div>
+  )
+}
+
 export default function Home() {
   const [loaded,    setLoaded]    = useState(false)
   const [heroPhase, setHeroPhase] = useState(0)
@@ -664,7 +762,7 @@ export default function Home() {
           </Link>
           {/* DESKTOP LINKS */}
           <div style={{ display:'flex', alignItems:'center', gap:4 }} className="lc-links">
-            {[['#brands','Products'],['#process','Process'],['#about','About'],['#contact','Contact']].map(([h,l]) => (
+            {[['#brands','Products'],['#process','Process'],['#about','About'],['#faq','FAQ'],['#contact','Contact']].map(([h,l]) => (
               <a key={l} href={h} style={{ fontSize:12, fontWeight:600, color:'#9AACC9', textDecoration:'none', padding:'6px 12px', borderRadius:4, transition:'color 0.2s' }}
                 onMouseOver={e=>e.target.style.color='#fff'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.5)'}>{l}</a>
             ))}
@@ -1166,6 +1264,10 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── FAQ ─────────────────────────────────────────────────────── */}
+      <FAQSection/>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CTA ─────────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="lc-section" id="cta" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
@@ -1226,17 +1328,29 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── FOOTER ──────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <footer style={{ padding:'2rem 2rem', borderTop:'1px solid rgba(47,125,246,0.08)', background:'#080B14', position:'relative', zIndex:5, borderTop:'1px solid rgba(240,244,255,0.05)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
-          <div className="lc-display" style={{ fontSize:12, fontWeight:700, letterSpacing:'0.18em', color:'rgba(154,172,201,0.5)', textTransform:'uppercase' }}>
-            LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span>
+      <footer style={{ padding:'2.5rem 2rem 2rem', borderTop:'1px solid rgba(47,125,246,0.08)', background:'#080B14', position:'relative', zIndex:5, borderTop:'1px solid rgba(240,244,255,0.05)' }}>
+        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+
+          {/* Ask us anything */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16, paddingBottom:'1.75rem', marginBottom:'1.75rem', borderBottom:'1px solid rgba(240,244,255,0.06)' }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>Haven&rsquo;t applied yet? Ask us anything.</div>
+              <div style={{ fontSize:11.5, color:'rgba(154,172,201,0.5)' }}>Drop your email and a question — we&rsquo;ll reply within 1&ndash;2 business days.</div>
+            </div>
+            <FooterAsk/>
           </div>
-          <div style={{ fontSize:10, color:'rgba(255,255,255,0.14)' }}>© {new Date().getFullYear()} Levam Corp Distributors · Doral, FL · B2B wholesale only</div>
-          <div style={{ display:'flex', gap:18 }}>
-            {[['Portal','/portal'],['Apply','/apply'],['Insights','/insights'],['Contact','#contact']].map(([l,h]) => (
-              <a key={l} href={h} style={{ fontSize:11, color:'rgba(154,172,201,0.5)', textDecoration:'none', fontWeight:600, letterSpacing:'0.06em', transition:'color 0.2s' }}
-                onMouseOver={e=>e.target.style.color='rgba(255,255,255,0.6)'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.22)'}>{l}</a>
-            ))}
+
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
+            <div className="lc-display" style={{ fontSize:12, fontWeight:700, letterSpacing:'0.18em', color:'rgba(154,172,201,0.5)', textTransform:'uppercase' }}>
+              LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span>
+            </div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.14)' }}>© {new Date().getFullYear()} Levam Corp Distributors · Doral, FL · B2B wholesale only</div>
+            <div style={{ display:'flex', gap:18 }}>
+              {[['Portal','/portal'],['Apply','/apply'],['Insights','/insights'],['FAQ','#faq'],['Contact','#contact']].map(([l,h]) => (
+                <a key={l} href={h} style={{ fontSize:11, color:'rgba(154,172,201,0.5)', textDecoration:'none', fontWeight:600, letterSpacing:'0.06em', transition:'color 0.2s' }}
+                  onMouseOver={e=>e.target.style.color='rgba(255,255,255,0.6)'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.22)'}>{l}</a>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
