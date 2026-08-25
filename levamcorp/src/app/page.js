@@ -240,8 +240,9 @@ const Wave = ({ flip = false, opacity = 0.04, color = '14,165,233' }) => (
 )
 
 // ── SECTION LABEL ─────────────────────────────────────────────────────────────
-const Label = ({ children }) => (
-  <div style={{ fontSize:9, fontWeight:800, letterSpacing:'0.28em', color:'#0EA5E9', textTransform:'uppercase', marginBottom:12 }}>
+const Label = ({ children, gold = false }) => (
+  <div style={{ fontSize:8, fontWeight:800, letterSpacing:'0.32em', color: gold ? '#C8A96E' : '#0EA5E9', textTransform:'uppercase', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
+    <span style={{ display:'inline-block', width:16, height:1, background: gold ? '#C8A96E' : '#0EA5E9', opacity:0.6 }}/>
     {children}
   </div>
 )
@@ -249,17 +250,15 @@ const Label = ({ children }) => (
 // ── CARD SHELL ────────────────────────────────────────────────────────────────
 const Card = ({ children, style={}, accent='#0EA5E9' }) => (
   <div style={{
-    background:'rgba(255,255,255,0.025)',
-    backdropFilter:'blur(20px)',
-    border:'1px solid rgba(255,255,255,0.07)',
-    borderRadius:12,
+    background:'#0F1629',
+    border:'1px solid rgba(240,244,255,0.07)',
+    borderRadius:10,
     padding:'1.75rem',
     position:'relative',
     overflow:'hidden',
     ...style,
   }}>
-    {/* Top edge highlight */}
-    <div style={{ position:'absolute', top:0, left:'20%', right:'20%', height:1, background:`linear-gradient(90deg,transparent,${accent}50,transparent)`, pointerEvents:'none' }}/>
+    <div style={{ position:'absolute', top:0, left:0, right:0, height:1, background:`linear-gradient(90deg,transparent,${accent}40,transparent)`, pointerEvents:'none' }}/>
     {children}
   </div>
 )
@@ -337,9 +336,9 @@ function HeroVideo() {
 function TypewriterText({ phase }) {
   const lines  = ['Premium brands.', 'Wholesale pricing.', 'Built for resellers.']
   const styles = [
-    { color: '#fff' },
-    { color:'transparent', backgroundImage:'linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC,#60A5FA,#0EA5E9)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 3s linear infinite' },
-    { color:'rgba(255,255,255,0.28)', fontStyle:'italic' },
+    { color: '#F0F4FF', fontWeight:400 },
+    { color:'#F0F4FF', fontWeight:900 },
+    { color:'#8FA3C0', fontWeight:400, fontStyle:'italic' },
   ]
   const [lineIdx, setLineIdx] = useState(0)
   const [chars,   setChars]   = useState(0)
@@ -472,7 +471,7 @@ function ProductPreview() {
             <h2 style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
               Premium brands at wholesale prices.
             </h2>
-            <p style={{ fontSize:14, color:'rgba(255,255,255,0.35)', maxWidth:440, margin:'0 auto' }}>
+            <p style={{ fontSize:14, color:'#8FA3C0', maxWidth:440, margin:'0 auto' }}>
               Approved partners get access to full pricing, stock levels, and ordering. Apply to unlock the full catalog.
             </p>
           </div>
@@ -497,7 +496,7 @@ function ProductPreview() {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                       <span style={{ fontSize:10, fontWeight:700, color:'#0EA5E9' }}>Apply to see pricing</span>
                     </div>
-                    {p.moq && <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)' }}>MOQ: {p.moq}</div>}
+                    {p.moq && <div style={{ fontSize:9, color:'rgba(143,163,192,0.5)' }}>MOQ: {p.moq}</div>}
                   </div>
                 </div>
               </div>
@@ -540,6 +539,18 @@ export default function Home() {
         /* Base */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
+        body { -webkit-font-smoothing: antialiased; }
+
+        /* Design tokens */
+        :root {
+          --c-bg:      #060810;
+          --c-blue:    #0EA5E9;
+          --c-gold:    #C8A96E;
+          --c-text:    #F0F4FF;
+          --c-muted:   #8FA3C0;
+          --c-card:    #0F1629;
+          --c-border:  rgba(240,244,255,0.07);
+        }
 
         /* Animations */
         @keyframes ticker   { from{transform:translateX(0)} to{transform:translateX(-33.333%)} }
@@ -613,7 +624,7 @@ export default function Home() {
 
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
-      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px)', background:'rgba(6,8,16,0.92)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px) saturate(180%)', background:'rgba(6,8,16,0.95)', borderBottom:'1px solid rgba(240,244,255,0.06)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', height:60, maxWidth:1200, margin:'0 auto' }}>
           {/* LOGO */}
           <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
@@ -624,7 +635,7 @@ export default function Home() {
               <div style={{ fontSize:14, fontWeight:900, letterSpacing:'0.2em', color:'#ffffff', textTransform:'uppercase', lineHeight:1 }}>
                 LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span>
               </div>
-              <div style={{ fontSize:7, letterSpacing:'0.2em', color:'rgba(255,255,255,0.3)', textTransform:'uppercase', marginTop:2 }}>
+              <div style={{ fontSize:7, letterSpacing:'0.2em', color:'#8FA3C0', textTransform:'uppercase', marginTop:2 }}>
                 Distributors · Doral, FL
               </div>
             </div>
@@ -632,10 +643,10 @@ export default function Home() {
           {/* DESKTOP LINKS */}
           <div style={{ display:'flex', alignItems:'center', gap:4 }} className="lc-nav-desktop">
             {[['#brands','Products'],['#process','Process'],['#about','About'],['#contact','Contact']].map(([h,l]) => (
-              <a key={l} href={h} style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.5)', textDecoration:'none', padding:'6px 12px', borderRadius:4, transition:'color 0.2s' }}
+              <a key={l} href={h} style={{ fontSize:12, fontWeight:600, color:'#8FA3C0', textDecoration:'none', padding:'6px 12px', borderRadius:4, transition:'color 0.2s' }}
                 onMouseOver={e=>e.target.style.color='#fff'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.5)'}>{l}</a>
             ))}
-            <a href="/insights" style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.5)', textDecoration:'none', padding:'6px 12px', borderRadius:4, display:'inline-flex', alignItems:'center', gap:6 }}>
+            <a href="/insights" style={{ fontSize:12, fontWeight:600, color:'#8FA3C0', textDecoration:'none', padding:'6px 12px', borderRadius:4, display:'inline-flex', alignItems:'center', gap:6 }}>
               <span style={{ width:6, height:6, background:'#22c55e', borderRadius:'50%', boxShadow:'0 0 6px #22c55e', flexShrink:0 }}/>
               Market Insights
             </a>
@@ -675,11 +686,11 @@ export default function Home() {
         <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5 }}>
 
           {/* Badge */}
-          <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 16px',
-            border:'1px solid rgba(14,165,233,0.28)', borderRadius:20, background:'rgba(14,165,233,0.06)',
-            backdropFilter:'blur(8px)', marginBottom:'2rem', animation:'fadeUp 0.6s ease both' }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#0EA5E9', animation:'pulseDot 2s infinite' }}/>
-            <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.2em', color:'#0EA5E9', textTransform:'uppercase' }}>B2B Wholesale Distribution · Doral, FL</span>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'5px 5px 5px 16px',
+            border:'1px solid rgba(200,169,110,0.2)', borderRadius:4, background:'rgba(200,169,110,0.05)',
+            marginBottom:'2rem', animation:'fadeUp 0.6s ease both' }}>
+            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.28em', color:'#C8A96E', textTransform:'uppercase' }}>B2B Wholesale · Doral, FL</span>
+            <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#C8A96E', color:'#060810', borderRadius:2, letterSpacing:'0.1em' }}>APPROVED PARTNERS ONLY</span>
           </div>
 
           {/* Headline — typewriter entrance */}
@@ -689,7 +700,7 @@ export default function Home() {
             {heroPhase >= 2 && <TypewriterText phase={heroPhase}/>}
           </h1>
 
-          <p style={{ fontSize:16, color:'rgba(255,255,255,0.42)', lineHeight:1.85, maxWidth:500, marginBottom:'2.5rem', animation:'fadeUp 0.7s 0.2s ease both' }}>
+          <p style={{ fontSize:16, color:'#8FA3C0', lineHeight:1.85, maxWidth:500, marginBottom:'2.5rem', animation:'fadeUp 0.7s 0.2s ease both' }}>
             Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
           </p>
 
@@ -701,10 +712,10 @@ export default function Home() {
           {/* Stats */}
           <div className="g4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1.5rem', maxWidth:520, animation:'fadeUp 0.7s 0.4s ease both' }}>
             {[['48h','Avg. dispatch'],['7+','Premium brands'],['500+','Active SKUs'],['100%','B2B only']].map(([n,l]) => (
-              <div key={l} style={{ paddingLeft:'1rem', borderLeft:'2px solid rgba(14,165,233,0.25)', position:'relative' }}>
-                <div style={{ position:'absolute', left:-1, top:0, bottom:0, width:2, background:'linear-gradient(180deg,#0EA5E9,transparent)', borderRadius:1 }}/>
-                <div style={{ fontSize:18, fontWeight:900, color:'#fff', letterSpacing:'-0.02em', lineHeight:1 }}>{n}</div>
-                <div style={{ fontSize:9, color:'rgba(255,255,255,0.28)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:3 }}>{l}</div>
+              <div key={l} style={{ paddingLeft:'1rem', borderLeft:'1px solid rgba(200,169,110,0.3)', position:'relative' }}>
+                <div style={{ position:'absolute', left:-1, top:0, bottom:0, width:1, background:'linear-gradient(180deg,#C8A96E,transparent)', borderRadius:1 }}/>
+                <div style={{ fontSize:18, fontWeight:900, color:'#F0F4FF', letterSpacing:'-0.02em', lineHeight:1 }}>{n}</div>
+                <div style={{ fontSize:9, color:'#8FA3C0', textTransform:'uppercase', letterSpacing:'0.14em', marginTop:4, fontWeight:600 }}>{l}</div>
               </div>
             ))}
           </div>
@@ -712,7 +723,7 @@ export default function Home() {
 
         {/* Scroll cue */}
         <div style={{ position:'absolute', bottom:36, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', gap:0, opacity:0.35, animation:'float1 3s ease-in-out infinite' }}>
-          <div style={{ width:1, height:36, background:'linear-gradient(180deg,transparent,rgba(14,165,233,0.8),transparent)' }}/>
+          <div style={{ width:1, height:36, background:'linear-gradient(180deg,transparent,#C8A96E,transparent)' }}/>
         </div>
       </section>
 
@@ -732,7 +743,7 @@ export default function Home() {
               <h2 style={{ fontSize:'clamp(26px,4vw,48px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1 }}>
                 One source. Every category.
               </h2>
-              <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', maxWidth:360, margin:'0.75rem auto 0' }}>
+              <p style={{ fontSize:13, color:'#8FA3C0', maxWidth:360, margin:'0.75rem auto 0' }}>
                 From 32" TVs to kitchen appliances — all from verified brand suppliers.
               </p>
             </div>
@@ -755,7 +766,7 @@ export default function Home() {
                     </div>
                     <div>
                       <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:6 }}>{c.label}</div>
-                      <div style={{ fontSize:12.5, color:'rgba(255,255,255,0.35)', lineHeight:1.7 }}>{c.desc}</div>
+                      <div style={{ fontSize:12.5, color:'#8FA3C0', lineHeight:1.7 }}>{c.desc}</div>
                     </div>
                   </Card>
                 </TiltCard>
@@ -770,7 +781,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── STATS ───────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(14,165,233,0.015)', borderTop:'1px solid rgba(14,165,233,0.06)', borderBottom:'1px solid rgba(14,165,233,0.06)' }}>
+      <section id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(15,22,41,0.6)', borderTop:'1px solid rgba(240,244,255,0.05)', borderBottom:'1px solid rgba(240,244,255,0.05)' }}>
         <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(14,165,233,0.05) 1px, transparent 1px)', backgroundSize:'38px 38px', pointerEvents:'none' }}/>
         <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
           <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2rem', textAlign:'center' }}>
@@ -785,7 +796,7 @@ export default function Home() {
                     <SlotCounter to={stat.to} suffix={stat.s}/>
                   </div>
                   <div style={{ fontSize:12, fontWeight:700, color:'#0EA5E9', marginTop:10, letterSpacing:'0.06em' }}>{stat.label}</div>
-                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.22)', marginTop:4 }}>{stat.sub}</div>
+                  <div style={{ fontSize:11, color:'rgba(143,163,192,0.5)', marginTop:4 }}>{stat.sub}</div>
                 </div>
               </Reveal>
             ))}
@@ -805,7 +816,7 @@ export default function Home() {
               <div style={{ position:'sticky', top:100 }}>
                 <Label>How it works</Label>
                 <h2 style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:900, letterSpacing:'-0.02em', margin:'0 0 1.25rem', lineHeight:1.1 }}>Simple process.<br/>Real results.</h2>
-                <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.35)', lineHeight:1.85, maxWidth:360, marginBottom:'2rem' }}>
+                <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85, maxWidth:360, marginBottom:'2rem' }}>
                   We review every application personally. We work with a select group of serious distributors, resellers, and retailers — not a marketplace.
                 </p>
                 <Link href="/apply" className="lc-btn">Start your application {IC.arrow}</Link>
@@ -826,7 +837,7 @@ export default function Home() {
                     </div>
                     <div style={{ paddingTop:6 }}>
                       <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:5 }}>{step.title}</div>
-                      <div style={{ fontSize:12.5, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{step.desc}</div>
+                      <div style={{ fontSize:12.5, color:'#8FA3C0', lineHeight:1.7 }}>{step.desc}</div>
                     </div>
                   </div>
                 </Reveal>
@@ -862,7 +873,7 @@ export default function Home() {
                   <Card style={{ height:'100%' }} accent={f.color}>
                     <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
                     <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
-                    <div style={{ fontSize:12, color:'rgba(255,255,255,0.33)', lineHeight:1.7 }}>{f.desc}</div>
+                    <div style={{ fontSize:12, color:'#8FA3C0', lineHeight:1.7 }}>{f.desc}</div>
                   </Card>
                 </TiltCard>
               </Reveal>
@@ -883,14 +894,14 @@ export default function Home() {
                 <h2 style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:900, letterSpacing:'-0.02em', margin:'0 0 1.25rem', lineHeight:1.1 }}>
                   A different kind<br/>of distributor.
                 </h2>
-                <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.38)', lineHeight:1.9, marginBottom:'1rem' }}>
+                <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.9, marginBottom:'1rem' }}>
                   Levam Corp Distributors is a B2B wholesale distribution company based in Doral, FL. We source electronics and home appliances directly from top brands and distribute them to approved business partners at competitive wholesale prices.
                 </p>
-                <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.38)', lineHeight:1.9, marginBottom:'2rem' }}>
+                <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.9, marginBottom:'2rem' }}>
                   We are not a marketplace. We are a distribution company with a real warehouse, a real team, and a real commitment to the partners we work with.
                 </p>
                 {['Registered Florida business (DBA)','Warehouse in Doral, FL 33178','English & Spanish speaking team','MOQ varies by product — no pressure'].map(item => (
-                  <div key={item} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, color:'rgba(255,255,255,0.5)', fontSize:13 }}>
+                  <div key={item} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, color:'#8FA3C0', fontSize:13 }}>
                     <span style={{ color:'#0EA5E9', flexShrink:0 }}>{IC.check}</span>{item}
                   </div>
                 ))}
@@ -899,7 +910,7 @@ export default function Home() {
             <Reveal delay={0.12}>
               <TiltCard glow="#0EA5E9">
                 <Card accent="#0EA5E9">
-                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'rgba(255,255,255,0.22)', textTransform:'uppercase', marginBottom:'1.25rem' }}>Company information</div>
+                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'rgba(143,163,192,0.5)', textTransform:'uppercase', marginBottom:'1.25rem' }}>Company information</div>
                   {[
                     ['Legal name','Levam Corp Distributors (DBA)'],
                     ['Address','6315 NW 99th Ave, Doral, FL 33178'],
@@ -908,7 +919,7 @@ export default function Home() {
                     ['Brands','Hisense · Samsung · Brentwood · Hamilton Beach · Avanti · Proctor Silex · Magic Bullet'],
                   ].map(([lbl,val]) => (
                     <div key={lbl} style={{ padding:'0.8rem 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                      <div style={{ fontSize:9, color:'rgba(255,255,255,0.22)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3 }}>{lbl}</div>
+                      <div style={{ fontSize:9, color:'rgba(143,163,192,0.5)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3 }}>{lbl}</div>
                       <div style={{ fontSize:12.5, color:'rgba(255,255,255,0.65)', fontWeight:500, lineHeight:1.5 }}>{val}</div>
                     </div>
                   ))}
@@ -929,9 +940,9 @@ export default function Home() {
               <Label>We speak your language</Label>
               <h2 style={{ fontSize:'clamp(22px,3vw,36px)', fontWeight:900, letterSpacing:'-0.02em', margin:'0 0 1rem', lineHeight:1.15 }}>
                 English & Español.<br/>
-                <span style={{ color:'rgba(255,255,255,0.3)', fontWeight:500, fontSize:'0.75em' }}>A dedicated rep for every partner.</span>
+                <span style={{ color:'#8FA3C0', fontWeight:500, fontSize:'0.75em' }}>A dedicated rep for every partner.</span>
               </h2>
-              <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.38)', lineHeight:1.85, maxWidth:440 }}>
+              <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85, maxWidth:440 }}>
                 Whether you communicate in English or Spanish, we have dedicated team members ready to assist you. We'll help you find exactly what you need — the right products, the right quantities, the right price. You are never left searching alone.
               </p>
             </div>
@@ -944,7 +955,7 @@ export default function Home() {
                     <span style={{ fontSize:22, lineHeight:1, flexShrink:0 }}>{flag}</span>
                     <div>
                       <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>{lang}</div>
-                      <div style={{ fontSize:11.5, color:'rgba(255,255,255,0.35)', lineHeight:1.55 }}>{desc}</div>
+                      <div style={{ fontSize:11.5, color:'#8FA3C0', lineHeight:1.55 }}>{desc}</div>
                     </div>
                   </div>
                 </TiltCard>
@@ -984,7 +995,7 @@ export default function Home() {
                     <Card style={{ display:'flex', flexDirection:'column', gap:12 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <span style={{ fontSize:9, padding:'3px 10px', background:'rgba(14,165,233,0.1)', color:'#0EA5E9', borderRadius:10, fontWeight:700, border:'0.5px solid rgba(14,165,233,0.2)', textTransform:'uppercase', letterSpacing:'0.1em' }}>{ins.tag}</span>
-                        <span style={{ fontSize:9, color:'rgba(255,255,255,0.22)' }}>{ins.date}</span>
+                        <span style={{ fontSize:9, color:'rgba(143,163,192,0.5)' }}>{ins.date}</span>
                       </div>
                       <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', lineHeight:1.5, flex:1 }}>{ins.title}</div>
                       <div style={{ fontSize:11, color:'#0EA5E9', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>Read insight {IC.arrow}</div>
@@ -1012,7 +1023,7 @@ export default function Home() {
               <h2 style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
                 Built by people who know<br/>the business.
               </h2>
-              <p style={{ fontSize:14, color:'rgba(255,255,255,0.35)', maxWidth:480, margin:'0 auto', lineHeight:1.8 }}>
+              <p style={{ fontSize:14, color:'#8FA3C0', maxWidth:480, margin:'0 auto', lineHeight:1.8 }}>
                 Levam Corp was founded by two entrepreneurs who understand what resellers and distributors actually need — reliable supply, real pricing, and a partner who picks up the phone.
               </p>
             </div>
@@ -1029,10 +1040,10 @@ export default function Home() {
                   </div>
                   <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#0EA5E9', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
                   <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Victor Mendoza</h3>
-                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85, marginBottom:'1.25rem' }}>
+                  <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85, marginBottom:'1.25rem' }}>
                     Victor brings hands-on experience in B2B sales and product sourcing. His focus is on building direct relationships with brand suppliers and making sure every partner we work with gets consistent access to the right products at the right price.
                   </p>
-                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85 }}>
+                  <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85 }}>
                     "We started Levam Corp because we saw how hard it was for serious resellers to find a distributor they could actually trust. We wanted to be that company."
                   </p>
                   <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
@@ -1057,10 +1068,10 @@ export default function Home() {
                   </div>
                   <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#6366F1', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
                   <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Leopoldo Espinoza</h3>
-                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85, marginBottom:'1.25rem' }}>
+                  <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85, marginBottom:'1.25rem' }}>
                     Leopoldo oversees operations and logistics, making sure orders move fast and partners are always taken care of. With a background in business operations and client management, he keeps the Levam Corp machine running smoothly every day.
                   </p>
-                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85 }}>
+                  <p style={{ fontSize:13.5, color:'#8FA3C0', lineHeight:1.85 }}>
                     "Our partners are not just customers. They are businesses we're invested in helping grow. When they win, we win."
                   </p>
                   <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
@@ -1079,7 +1090,7 @@ export default function Home() {
           {/* Bottom note */}
           <Reveal delay={0.2}>
             <div style={{ textAlign:'center', marginTop:'3rem', padding:'1.5rem 2rem', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10 }}>
-              <div style={{ fontSize:13, color:'rgba(255,255,255,0.35)', lineHeight:1.8 }}>
+              <div style={{ fontSize:13, color:'#8FA3C0', lineHeight:1.8 }}>
                 Based in <strong style={{ color:'rgba(255,255,255,0.6)' }}>Doral, FL</strong> · English & Spanish · Mon–Fri 9AM–5PM ET
                 <span style={{ margin:'0 12px', opacity:0.3 }}>·</span>
                 <a href="mailto:partners@levamcorp.com" style={{ color:'#0EA5E9', textDecoration:'none', fontWeight:600 }}>partners@levamcorp.com</a>
@@ -1103,7 +1114,7 @@ export default function Home() {
             <h2 style={{ fontSize:'clamp(28px,4.5vw,54px)', fontWeight:900, letterSpacing:'-0.02em', margin:'0 0 1rem', lineHeight:1.05 }}>
               Apply in 5 minutes.<br/>Response in 48 hours.
             </h2>
-            <p style={{ fontSize:14, color:'rgba(255,255,255,0.35)', lineHeight:1.8, marginBottom:'2.5rem' }}>
+            <p style={{ fontSize:14, color:'#8FA3C0', lineHeight:1.8, marginBottom:'2.5rem' }}>
               We review every application personally. If your business is a fit, you'll get access to our full wholesale catalog with live pricing and stock levels.
             </p>
             <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
@@ -1133,7 +1144,7 @@ export default function Home() {
                 <TiltCard glow="#0EA5E9" style={{ height:'100%' }}>
                   <Card style={{ height:'100%' }}>
                     <div style={{ color:'#0EA5E9', marginBottom:'1rem' }}>{c.icon}</div>
-                    <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'rgba(255,255,255,0.22)', textTransform:'uppercase', marginBottom:8 }}>{c.label}</div>
+                    <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'rgba(143,163,192,0.5)', textTransform:'uppercase', marginBottom:8 }}>{c.label}</div>
                     {c.href
                       ? <a href={c.href} style={{ fontSize:13, color:'#fff', textDecoration:'none', fontWeight:500 }}>{c.value}</a>
                       : <div style={{ fontSize:13, color:'#fff', fontWeight:500, whiteSpace:'pre-line', lineHeight:1.6 }}>{c.value}</div>}
@@ -1148,15 +1159,15 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── FOOTER ──────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <footer style={{ padding:'2rem 2rem', borderTop:'1px solid rgba(14,165,233,0.08)', background:'rgba(6,8,16,0.95)', position:'relative', zIndex:5, backdropFilter:'blur(20px)' }}>
+      <footer style={{ padding:'2rem 2rem', borderTop:'1px solid rgba(14,165,233,0.08)', background:'#060810', position:'relative', zIndex:5, borderTop:'1px solid rgba(240,244,255,0.05)' }}>
         <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
-          <div style={{ fontSize:12, fontWeight:900, letterSpacing:'0.22em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase' }}>
+          <div style={{ fontSize:12, fontWeight:900, letterSpacing:'0.22em', color:'rgba(143,163,192,0.5)', textTransform:'uppercase' }}>
             LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span>
           </div>
           <div style={{ fontSize:10, color:'rgba(255,255,255,0.14)' }}>© {new Date().getFullYear()} Levam Corp Distributors · Doral, FL · B2B wholesale only</div>
           <div style={{ display:'flex', gap:18 }}>
             {[['Portal','/portal'],['Apply','/apply'],['Insights','/insights'],['Contact','#contact']].map(([l,h]) => (
-              <a key={l} href={h} style={{ fontSize:11, color:'rgba(255,255,255,0.22)', textDecoration:'none', fontWeight:600, letterSpacing:'0.06em', transition:'color 0.2s' }}
+              <a key={l} href={h} style={{ fontSize:11, color:'rgba(143,163,192,0.5)', textDecoration:'none', fontWeight:600, letterSpacing:'0.06em', transition:'color 0.2s' }}
                 onMouseOver={e=>e.target.style.color='rgba(255,255,255,0.6)'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.22)'}>{l}</a>
             ))}
           </div>
