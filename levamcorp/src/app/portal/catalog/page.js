@@ -77,8 +77,7 @@ const addToCart = (product, qty) => {
       p.price ? `$${p.price.toFixed(2)}` : '',
       p.moq || 1,
       p.stock || 0,
-      (p.description || '').replace(/,/g, ' ').replace(/
-/g, ' '),
+      (p.description || '').replace(/,/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' '),
       p.amazon_url || '',
       p.walmart_url || '',
     ])
