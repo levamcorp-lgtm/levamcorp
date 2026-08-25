@@ -1001,6 +1001,96 @@ export default function Home() {
       {/* ── PRODUCT PREVIEW ─────────────────────────────────────────────── */}
       <ProductPreview/>
 
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── FOUNDERS ────────────────────────────────────────────────── */}
+      <section style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ maxWidth:1200, margin:'0 auto' }}>
+          <Reveal>
+            <div style={{ textAlign:'center', marginBottom:'4rem' }}>
+              <Label>The people behind Levam Corp</Label>
+              <h2 style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
+                Built by people who know<br/>the business.
+              </h2>
+              <p style={{ fontSize:14, color:'rgba(255,255,255,0.35)', maxWidth:480, margin:'0 auto', lineHeight:1.8 }}>
+                Levam Corp was founded by two entrepreneurs who understand what resellers and distributors actually need — reliable supply, real pricing, and a partner who picks up the phone.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            {/* Victor */}
+            <Reveal delay={0.05}>
+              <TiltCard glow="#0EA5E9" style={{ height:'100%' }}>
+                <Card style={{ height:'100%' }} accent="#0EA5E9">
+                  {/* Avatar */}
+                  <div style={{ width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,rgba(14,165,233,0.3),rgba(99,102,241,0.2))', border:'2px solid rgba(14,165,233,0.3)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.25rem', fontSize:28, fontWeight:900, color:'#0EA5E9', letterSpacing:'-0.02em' }}>
+                    VM
+                  </div>
+                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#0EA5E9', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
+                  <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Victor Mendoza</h3>
+                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85, marginBottom:'1.25rem' }}>
+                    Victor brings hands-on experience in B2B sales and product sourcing. His focus is on building direct relationships with brand suppliers and making sure every partner we work with gets consistent access to the right products at the right price.
+                  </p>
+                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85 }}>
+                    "We started Levam Corp because we saw how hard it was for serious resellers to find a distributor they could actually trust. We wanted to be that company."
+                  </p>
+                  <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
+                    <a href="mailto:partners@levamcorp.com" style={{ fontSize:11, color:'#0EA5E9', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(14,165,233,0.25)', borderRadius:20, background:'rgba(14,165,233,0.06)' }}>
+                      Get in touch
+                    </a>
+                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20 }}>
+                      WhatsApp
+                    </a>
+                  </div>
+                </Card>
+              </TiltCard>
+            </Reveal>
+
+            {/* Leopoldo */}
+            <Reveal delay={0.12}>
+              <TiltCard glow="#6366F1" style={{ height:'100%' }}>
+                <Card style={{ height:'100%' }} accent="#6366F1">
+                  {/* Avatar */}
+                  <div style={{ width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,rgba(99,102,241,0.3),rgba(14,165,233,0.2))', border:'2px solid rgba(99,102,241,0.3)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.25rem', fontSize:28, fontWeight:900, color:'#6366F1', letterSpacing:'-0.02em' }}>
+                    LE
+                  </div>
+                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#6366F1', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
+                  <h3 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Leopoldo Espinoza</h3>
+                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85, marginBottom:'1.25rem' }}>
+                    Leopoldo oversees operations and logistics, making sure orders move fast and partners are always taken care of. With a background in business operations and client management, he keeps the Levam Corp machine running smoothly every day.
+                  </p>
+                  <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.45)', lineHeight:1.85 }}>
+                    "Our partners are not just customers. They are businesses we're invested in helping grow. When they win, we win."
+                  </p>
+                  <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
+                    <a href="mailto:leopoldo@levamcorp.com" style={{ fontSize:11, color:'#6366F1', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(99,102,241,0.25)', borderRadius:20, background:'rgba(99,102,241,0.06)' }}>
+                      Get in touch
+                    </a>
+                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20 }}>
+                      WhatsApp
+                    </a>
+                  </div>
+                </Card>
+              </TiltCard>
+            </Reveal>
+          </div>
+
+          {/* Bottom note */}
+          <Reveal delay={0.2}>
+            <div style={{ textAlign:'center', marginTop:'3rem', padding:'1.5rem 2rem', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10 }}>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.35)', lineHeight:1.8 }}>
+                Based in <strong style={{ color:'rgba(255,255,255,0.6)' }}>Doral, FL</strong> · English & Spanish · Mon–Fri 9AM–5PM ET
+                <span style={{ margin:'0 12px', opacity:0.3 }}>·</span>
+                <a href="mailto:partners@levamcorp.com" style={{ color:'#0EA5E9', textDecoration:'none', fontWeight:600 }}>partners@levamcorp.com</a>
+                <span style={{ margin:'0 12px', opacity:0.3 }}>·</span>
+                <a href="https://wa.me/17864909005" style={{ color:'#0EA5E9', textDecoration:'none', fontWeight:600 }}>(786) 490-9005</a>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CTA ─────────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
