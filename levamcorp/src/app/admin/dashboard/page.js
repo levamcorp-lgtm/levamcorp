@@ -10,7 +10,7 @@ const EXPENSE_CATS = ['Rent/Storage','Shipping & Logistics','Marketing','Softwar
 const DEFAULT_GOAL = 100000
 const DEFAULT_MARGIN_ALERT = 15
 
-const NAV_LINKS = [['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']]
+const NAV_LINKS = [['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Marketing','/admin/marketing'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']]
 
 const STATUS = {
   new:        { color: '#2F7DF6', label: 'New' },

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
-const NAV_LINKS = [['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']]
+const NAV_LINKS = [['Dashboard','/admin/dashboard'],['Orders','/admin/orders'],['Applications','/admin/applications'],['Clients','/admin/clients'],['Marketing','/admin/marketing'],['Products','/admin/products'],['Payments','/admin/payments'],['Messages','/admin/messages'],['Invoices','/admin/invoices'],['Profit','/admin/profit'],['Walmart','/admin/walmart'],['Offers','/admin/offers'],['Recruit','/admin/recruit'],['Analytics','/admin/insights']]
 
 const statusColor = { new: '#2F7DF6', review: '#F2A93B', confirmed: '#8B7CF6', dispatched: '#12B76A', completed: '#12B76A', cancelled: '#EF4444' }
 const statusLabel = { new: 'New', review: 'In review', confirmed: 'Confirmed', dispatched: 'Dispatched', completed: 'Completed', cancelled: 'Cancelled' }
