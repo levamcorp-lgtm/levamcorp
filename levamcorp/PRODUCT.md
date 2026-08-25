@@ -3,7 +3,10 @@
 # Levam Corp Distributors — Product
 
 ## Platform
-Web. Next.js 15 (App Router) + React 18 application, server-rendered marketing site plus authenticated client portal and admin panel, deployed as a standard responsive website (desktop and mobile browsers).
+web
+
+## Stack
+Next.js 15 (App Router) + React 18, server-rendered marketing site plus authenticated client portal and admin panel, deployed as a standard responsive website (desktop and mobile browsers).
 
 ## Users
 Primary user: **resellers who buy wholesale to resell on marketplaces** — chiefly Amazon and Walmart sellers (also general registered retailers/distributors), sourcing consumer electronics and home appliances at wholesale prices to resell online. They need a supplier they can trust for authentic stock, competitive margins, and reliable fulfillment — not a marketplace, a vetted long-term supply relationship.
