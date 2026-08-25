@@ -63,6 +63,40 @@ const addToCart = (product, qty) => {
     window.location.href = '/portal'
   }
 
+  const downloadExcel = () => {
+    if (!products.length) return
+
+    // Build CSV content (Excel compatible)
+    const headers = ['Name','Brand','SKU','UPC','Category','Price','MOQ','Stock','Description','Amazon URL','Walmart URL']
+    const rows = products.map(p => [
+      p.name || '',
+      p.brand || '',
+      p.sku || '',
+      p.upc || '',
+      p.category || '',
+      p.price ? `$${p.price.toFixed(2)}` : '',
+      p.moq || 1,
+      p.stock || 0,
+      (p.description || '').replace(/,/g, ' ').replace(/
+/g, ' '),
+      p.amazon_url || '',
+      p.walmart_url || '',
+    ])
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('
+')
+
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href     = url
+    link.download = `Levam-Corp-Catalog-${new Date().toISOString().slice(0,10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const submitOrder = async () => {
     if (!paymentMethod) { alert('Please select a payment method'); return }
     if (!shippingMethod) { alert('Please select a shipping method'); return }
@@ -167,6 +201,11 @@ const addToCart = (product, qty) => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={downloadExcel}
+            style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'rgba(255,255,255,0.6)', padding:'7px 14px', border:'0.5px solid rgba(255,255,255,0.15)', background:'transparent', borderRadius:2, cursor:'pointer', fontWeight:600 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download catalog
+          </button>
           <button onClick={() => setShowQuote(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: cartCount > 0 ? '#fff' : 'rgba(255,255,255,0.5)', padding: '7px 16px', border: `0.5px solid ${cartCount > 0 ? '#2d7dd2' : 'rgba(255,255,255,0.15)'}`, background: cartCount > 0 ? '#2d7dd2' : 'transparent', borderRadius: 2, cursor: 'pointer', fontWeight: 600 }}>
             🧾 Quote {cartCount > 0 && <span style={{ background: '#fff', color: '#2d7dd2', fontSize: 10, fontWeight: 700, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount}</span>}
           </button>
