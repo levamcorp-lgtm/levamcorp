@@ -176,11 +176,11 @@ export default function Apply() {
       <nav style={{ position:'sticky', top:0, zIndex:100, backdropFilter:'blur(20px)', background:'rgba(6,8,16,0.92)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', height:60, maxWidth:1100, margin:'0 auto' }}>
           <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:30, height:30, border:'1.5px solid rgba(14,165,233,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(14,165,233,0.06)' }}>
-              <div style={{ width:9, height:9, background:'#0EA5E9', borderRadius:2 }}/>
+            <div style={{ width:30, height:30, border:'1.5px solid rgba(47,125,246,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(47,125,246,0.06)' }}>
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:17, height:'auto' }}/>
             </div>
             <div>
-              <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.2em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#0EA5E9' }}>CORP</span></div>
+              <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.2em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>
               <div style={{ fontSize:7, letterSpacing:'0.2em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2 }}>Distributors · Doral, FL</div>
             </div>
           </Link>
