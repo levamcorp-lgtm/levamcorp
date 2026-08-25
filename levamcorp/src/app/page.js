@@ -450,6 +450,76 @@ function DrawLine({ height = 120, color = '#0EA5E9', delay = 0 }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
+// ── PRODUCT PREVIEW ──────────────────────────────────────────────────────────
+function ProductPreview() {
+  const [products, setProducts] = useState([])
+
+  useEffect(() => {
+    fetch('/api/public-products')
+      .then(r => r.json())
+      .then(d => setProducts(d.products || []))
+      .catch(() => {})
+  }, [])
+
+  if (!products.length) return null
+
+  return (
+    <section style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ maxWidth:1200, margin:'0 auto' }}>
+        <Reveal>
+          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
+            <Label>Our catalog</Label>
+            <h2 style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:900, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
+              Premium brands at wholesale prices.
+            </h2>
+            <p style={{ fontSize:14, color:'rgba(255,255,255,0.35)', maxWidth:440, margin:'0 auto' }}>
+              Approved partners get access to full pricing, stock levels, and ordering. Apply to unlock the full catalog.
+            </p>
+          </div>
+        </Reveal>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:12, marginBottom:'2.5rem' }}>
+          {products.map((p, i) => (
+            <Reveal key={p.id} delay={i * 0.06}>
+              <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden' }}>
+                <div style={{ height:180, background:'rgba(255,255,255,0.03)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {p.image_url
+                    ? <img src={p.image_url} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:16 }}
+                        onError={e => e.target.style.display='none'}/>
+                    : <div style={{ fontSize:48, opacity:0.1 }}>◻</div>
+                  }
+                </div>
+                <div style={{ padding:'1rem' }}>
+                  {p.brand && <div style={{ fontSize:9, fontWeight:700, color:'#0EA5E9', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:4 }}>{p.brand}</div>}
+                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:10, lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.name}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', background:'rgba(14,165,233,0.08)', border:'1px solid rgba(14,165,233,0.15)', borderRadius:6 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <span style={{ fontSize:10, fontWeight:700, color:'#0EA5E9' }}>Apply to see pricing</span>
+                    </div>
+                    {p.moq && <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)' }}>MOQ: {p.moq}</div>}
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal>
+          <div style={{ textAlign:'center' }}>
+            <Link href="/apply" className="lc-btn" style={{ fontSize:13, padding:'14px 36px' }}>
+              Apply for wholesale access {IC.arrow}
+            </Link>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:12 }}>
+              500+ products available · Approved partners only · Response in 48h
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 export default function Home() {
   const [loaded,    setLoaded]    = useState(false)
   const [heroPhase, setHeroPhase] = useState(0)
@@ -926,6 +996,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── PRODUCT PREVIEW ─────────────────────────────────────────────── */}
+      <ProductPreview/>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CTA ─────────────────────────────────────────────────────── */}
