@@ -74,7 +74,7 @@ export default function PortalPage() {
         <div style={{ position:'relative', zIndex:1 }}>
           <Link href="/" style={{ textDecoration:'none', display:'inline-flex', alignItems:'center', gap:10 }}>
             <div style={{ width:32, height:32, border:'1.5px solid rgba(47,125,246,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(47,125,246,0.06)' }}>
-              <div style={{ width:10, height:10, background:'#2F7DF6', borderRadius:2 }}/>
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:18, height:'auto' }}/>
             </div>
             <div>
               <div className="lc-display" style={{ fontSize:14, fontWeight:700, letterSpacing:'0.16em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>

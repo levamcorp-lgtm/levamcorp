@@ -66,7 +66,10 @@ export default function InsightsPage() {
       <nav style={{ background: 'rgba(6,8,16,0.92)', borderBottom: '0.5px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: '0.2em', color: '#fff', textTransform: 'uppercase' }}>LEVAM<span style={{ color: '#0EA5E9' }}>CORP</span></div>
+            <div style={{ width: 28, height: 28, border: '1.5px solid rgba(47,125,246,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(47,125,246,0.06)' }}>
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width: 15, height: 'auto' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: '0.2em', color: '#fff', textTransform: 'uppercase' }}>LEVAM<span style={{ color: '#2F7DF6' }}>CORP</span></div>
           </Link>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>← Back to home</Link>

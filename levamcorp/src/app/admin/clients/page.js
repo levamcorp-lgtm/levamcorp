@@ -163,7 +163,12 @@ export default function AdminClients() {
       {/* NAV */}
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 2rem', background: 'rgba(8,11,20,0.85)', backdropFilter: 'blur(20px) saturate(180%)', borderBottom: '1px solid rgba(240,244,255,0.06)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div className="lc-display" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: '#fff', textTransform: 'uppercase' }}>LEVAM<span style={{ color: '#2F7DF6' }}>CORP</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 28, height: 28, border: '1.5px solid rgba(47,125,246,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(47,125,246,0.06)' }}>
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width: 15, height: 'auto' }} />
+            </div>
+            <div className="lc-display" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: '#fff', textTransform: 'uppercase' }}>LEVAM<span style={{ color: '#2F7DF6' }}>CORP</span></div>
+          </div>
           <div style={{ display: 'flex', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: 20, gap: 2, flexWrap: 'wrap' }}>
             {NAV_LINKS.map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 11.5, fontWeight: 600, color: label === 'Clients' ? '#fff' : 'rgba(154,172,201,0.6)', textDecoration: 'none', padding: '5px 10px', borderRadius: 5, background: label === 'Clients' ? 'rgba(47,125,246,0.12)' : 'transparent' }}>{label}</Link>

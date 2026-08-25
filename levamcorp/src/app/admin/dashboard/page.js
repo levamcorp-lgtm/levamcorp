@@ -29,7 +29,7 @@ function AdminNav({ active, newOrders, unreadMessages, pendingApps, onLogout, no
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, border: '1.5px solid rgba(47,125,246,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(47,125,246,0.06)' }}>
-            <div style={{ width: 9, height: 9, background: '#2F7DF6', borderRadius: 2, boxShadow: '0 0 8px rgba(47,125,246,0.6)' }} />
+            <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width: 15, height: 'auto' }} />
           </div>
           <div>
             <div className="lc-display" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: '#fff', textTransform: 'uppercase', lineHeight: 1 }}>LEVAM<span style={{ color: '#2F7DF6' }}>CORP</span></div>

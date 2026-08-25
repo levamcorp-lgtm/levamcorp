@@ -69,7 +69,7 @@ export default function AdminLogin() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: '1rem' }}>
             <div style={{ width: 40, height: 40, border: '1.5px solid rgba(47,125,246,0.4)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(47,125,246,0.06)' }}>
-              <div style={{ width: 12, height: 12, background: '#2F7DF6', borderRadius: 2, boxShadow: '0 0 12px rgba(47,125,246,0.6)' }} />
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width: 22, height: 'auto' }} />
             </div>
             <div style={{ textAlign: 'left' }}>
               <div className="lc-display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.14em', color: '#fff', textTransform: 'uppercase', lineHeight: 1 }}>LEVAM<span style={{ color: '#2F7DF6' }}>CORP</span></div>
