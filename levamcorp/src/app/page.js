@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
@@ -311,55 +311,120 @@ const JOURNEY_CLIPS = [
   { v: 'hf_20260826_023355_a6931868-7c6b-440d-b225-ef9e5c9fa6d4.mp4', caption: 'Regional network → delivered' },
 ]
 
+const JOURNEY_FADE_SEC = 0.7
+
 // Full-bleed background that autoplays through the 8 clips on its own timeline —
 // completely independent of page scroll, so scrolling the page is always just
-// normal scrolling. A clip that fails to load is skipped (onError advances to
-// the next one) instead of ever blocking anything: there is no loader, no gate,
-// nothing overlaid on top of it can get stuck — the text above it is always
-// visible immediately, whether the video loads or not.
+// normal scrolling. Two stacked <video> elements crossfade into each other: the
+// next clip is preloaded into the idle element well ahead of time and starts
+// playing (both elements briefly in motion together) shortly before the current
+// clip's natural end, so the cut dissolves instead of hard-popping. A clip that
+// fails to load just gets skipped instead of ever blocking anything — there's no
+// loader, no gate, the text above this is always visible regardless of video state.
 function HeroVideoBackground() {
-  const [index, setIndex] = useState(0)
-  const videoRef = useRef(null)
-  const failCount = useRef(0)
-
-  const advance = useCallback(() => {
-    setIndex(i => (i + 1) % JOURNEY_CLIPS.length)
-  }, [])
+  const [caption, setCaption] = useState(JOURNEY_CLIPS[0].caption)
+  const [activeIdx, setActiveIdx] = useState(0)
+  const slotRefs = [useRef(null), useRef(null)]
+  const activeSlot = useRef(0)
+  const clipIndex  = useRef(0)
+  const switching  = useRef(false)
+  const failCount  = useRef(0)
 
   useEffect(() => {
-    const v = videoRef.current
-    if (v) v.play().catch(() => {})
-  }, [index])
+    const els = [slotRefs[0].current, slotRefs[1].current]
+    if (!els[0] || !els[1]) return
 
-  const onError = () => {
-    // If every clip in the set fails (dead URL, blocked host, etc.) stop
-    // retrying after one full lap so we don't spin forever in the background.
-    failCount.current += 1
-    if (failCount.current <= JOURNEY_CLIPS.length) advance()
-  }
+    const loadInto = (el, i) => { el.src = JOURNEY_BASE + JOURNEY_CLIPS[i].v; el.load() }
+
+    activeSlot.current = 0
+    clipIndex.current  = 0
+    switching.current  = false
+    loadInto(els[0], 0)
+    els[0].play().catch(() => {})
+    loadInto(els[1], 1 % JOURNEY_CLIPS.length)
+    els[0].style.opacity = '1'
+    els[1].style.opacity = '0'
+
+    const crossfadeToNext = () => {
+      if (switching.current) return
+      switching.current = true
+      const from = activeSlot.current
+      const to   = from === 0 ? 1 : 0
+      const nextIndex = (clipIndex.current + 1) % JOURNEY_CLIPS.length
+
+      els[to].play().catch(() => {})
+      els[to].style.opacity = '1'
+      els[from].style.opacity = '0'
+
+      clipIndex.current  = nextIndex
+      activeSlot.current = to
+      setActiveIdx(nextIndex)
+      setCaption(JOURNEY_CLIPS[nextIndex].caption)
+
+      setTimeout(() => {
+        els[from].pause()
+        loadInto(els[from], (nextIndex + 1) % JOURNEY_CLIPS.length)
+        switching.current = false
+      }, JOURNEY_FADE_SEC * 1000)
+    }
+
+    const onError = () => {
+      failCount.current += 1
+      // Stop retrying after a couple of full laps so a dead CDN doesn't spin forever.
+      if (failCount.current <= JOURNEY_CLIPS.length * 2) crossfadeToNext()
+    }
+
+    const makeTimeUpdate = (slot) => () => {
+      if (activeSlot.current !== slot || switching.current) return
+      const el = els[slot]
+      if (el.duration && isFinite(el.duration) && el.currentTime >= el.duration - JOURNEY_FADE_SEC) {
+        crossfadeToNext()
+      }
+    }
+    const onTimeUpdateA = makeTimeUpdate(0)
+    const onTimeUpdateB = makeTimeUpdate(1)
+    const onEndedFallback = () => crossfadeToNext() // safety net if timeupdate never fired in time
+
+    els[0].addEventListener('timeupdate', onTimeUpdateA)
+    els[1].addEventListener('timeupdate', onTimeUpdateB)
+    els[0].addEventListener('ended', onEndedFallback)
+    els[1].addEventListener('ended', onEndedFallback)
+    els[0].addEventListener('error', onError)
+    els[1].addEventListener('error', onError)
+
+    return () => {
+      els[0].removeEventListener('timeupdate', onTimeUpdateA)
+      els[1].removeEventListener('timeupdate', onTimeUpdateB)
+      els[0].removeEventListener('ended', onEndedFallback)
+      els[1].removeEventListener('ended', onEndedFallback)
+      els[0].removeEventListener('error', onError)
+      els[1].removeEventListener('error', onError)
+    }
+  }, [])
 
   return (
     <div style={{ position:'absolute', inset:0, overflow:'hidden', zIndex:0 }}>
-      <video
-        ref={videoRef}
-        key={index}
-        src={JOURNEY_BASE + JOURNEY_CLIPS[index].v}
-        autoPlay
-        muted
-        playsInline
-        onEnded={advance}
-        onError={onError}
-        style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
-      />
+      {[0, 1].map(slot => (
+        <video
+          key={slot}
+          ref={slotRefs[slot]}
+          muted
+          playsInline
+          preload="auto"
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+            opacity:0, transition:`opacity ${JOURNEY_FADE_SEC}s ease` }}
+        />
+      ))}
+
       {/* Scrim so overlaid text stays readable over any frame of any clip */}
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(20,18,14,0.55) 0%,rgba(20,18,14,0.25) 35%,rgba(20,18,14,0.35) 65%,rgba(20,18,14,0.85) 100%)' }}/>
 
       {/* Journey caption + dot progress — purely time-driven, never blocks anything */}
       <div style={{ position:'absolute', bottom:0, left:0, right:0, display:'flex', flexDirection:'column', gap:12, padding:'0 2rem 1.75rem', pointerEvents:'none' }}>
-        <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', color:'#F5F1E8' }}>{JOURNEY_CLIPS[index].caption}</div>
+        <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', color:'#F5F1E8', transition:'opacity 0.3s ease' }}>{caption}</div>
         <div style={{ display:'flex', gap:6 }}>
           {JOURNEY_CLIPS.map((c, i) => (
-            <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === index ? '#F2B705' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
+            <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === activeIdx ? '#F2B705' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
           ))}
         </div>
       </div>
