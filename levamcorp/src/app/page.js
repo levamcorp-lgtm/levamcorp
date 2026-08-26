@@ -247,19 +247,44 @@ const hexToRgb = (hex) => {
   return `${parseInt(h.substring(0,2),16)},${parseInt(h.substring(2,4),16)},${parseInt(h.substring(4,6),16)}`
 }
 
+// Tiny deterministic barcode — same accent always draws the same bars
+const Barcode = ({ seed, rgb }) => (
+  <span style={{ display:'flex', gap:1.5, alignItems:'flex-end', height:11, flexShrink:0 }}>
+    {seed.split('').map((ch, i) => {
+      const w = (parseInt(ch, 16) || 1) % 3 + 1
+      return <span key={i} style={{ display:'inline-block', width:w, height:6 + w * 2, background:`rgba(${rgb},0.65)` }}/>
+    })}
+  </span>
+)
+
+// Shared "shipping tag" shell — every info block on the site reads as a manifest
+// tag pulled off a crate, not a generic bordered card: a clipped hang-tag corner,
+// a grommet hole, and a tag-code + barcode header above the content.
 const Card = ({ children, style={}, accent='#2F7DF6' }) => {
-  const rgb = hexToRgb(accent)
+  const rgb  = hexToRgb(accent)
+  const code = accent.replace('#','').toUpperCase().slice(-4)
   return (
     <div style={{
       background:`linear-gradient(160deg, rgba(${rgb},0.16) 0%, rgba(${rgb},0.03) 45%, #1D1A15 80%)`,
-      border:`1px solid rgba(${rgb},0.28)`,
-      borderRadius:10,
-      padding:'1.75rem',
+      border:`1.5px dashed rgba(${rgb},0.45)`,
+      borderRadius:2,
+      padding:'1.5rem 1.5rem 1.35rem 2.15rem',
       position:'relative',
       overflow:'hidden',
+      clipPath:'polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%)',
       ...style,
     }}>
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:1, background:`linear-gradient(90deg,transparent,${accent},transparent)`, pointerEvents:'none' }}/>
+      {/* Grommet — the hang-tag hole */}
+      <div style={{ position:'absolute', top:15, left:10, width:8, height:8, borderRadius:'50%', border:`1.5px solid rgba(${rgb},0.55)`, background:'#14120E' }}/>
+
+      {/* Tag code + barcode header, perforated rule below */}
+      <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10,
+        fontSize:8, letterSpacing:'0.12em', color:`rgba(${rgb},0.75)`, marginBottom:12, paddingBottom:9,
+        borderBottom:`1px dashed rgba(${rgb},0.22)` }}>
+        <span>TAG·{code}</span>
+        <Barcode seed={code} rgb={rgb}/>
+      </div>
+
       {children}
     </div>
   )
