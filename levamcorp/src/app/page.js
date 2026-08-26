@@ -483,60 +483,6 @@ function StampSeal({ label, sub, color = '#2F7DF6', delay = 0 }) {
   )
 }
 
-// ── HERO 3D BOX — closes as you scroll ───────────────────────────────────────
-// Sealed shipping box — reused as the closing beat right after the video journey
-function Hero3DBox() {
-  const wrapRef = useRef(null)
-  const boxRef  = useRef(null)
-
-  useEffect(() => {
-    const wrap = wrapRef.current, box = boxRef.current
-    if (!wrap || !box) return
-    let ticking = false
-    const update = () => {
-      ticking = false
-      const rect = wrap.getBoundingClientRect()
-      const total = rect.height + window.innerHeight * 0.55
-      const scrolled = window.innerHeight - rect.top
-      const progress = Math.min(Math.max(scrolled / total, 0), 1)
-      const side  = Math.min(Math.max(progress / 0.5, 0), 1)
-      const front = Math.min(Math.max((progress - 0.4) / 0.6, 0), 1)
-      box.style.setProperty('--side',  side)
-      box.style.setProperty('--front', front)
-      box.style.setProperty('--seal',  Math.min(Math.max((progress - 0.82) / 0.18, 0), 1))
-    }
-    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update) } }
-    update()
-    window.addEventListener('scroll', onScroll, { passive:true })
-    window.addEventListener('resize', onScroll)
-    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
-  }, [])
-
-  return (
-    <div ref={wrapRef} className="box3d-wrap">
-      <div className="box3d-floor"/>
-      <div className="box3d-stage">
-        <div ref={boxRef} className="box3d">
-          <div className="box3d-face box3d-front"/>
-          <div className="box3d-face box3d-back"/>
-          <div className="box3d-face box3d-left"/>
-          <div className="box3d-face box3d-right"/>
-          <div className="box3d-face box3d-bottom"/>
-
-          <div className="box3d-hinge box3d-hinge-left"><div className="box3d-flap box3d-flap-side"/></div>
-          <div className="box3d-hinge box3d-hinge-right"><div className="box3d-flap box3d-flap-side"/></div>
-          <div className="box3d-hinge box3d-hinge-back"><div className="box3d-flap box3d-flap-main"/></div>
-          <div className="box3d-hinge box3d-hinge-front">
-            <div className="box3d-flap box3d-flap-main box3d-flap-labeled">
-              <span className="box3d-tape"/>
-              <span className="box3d-stamp lc-display">LEVAM CORP<br/><small>WHOLESALE · DORAL, FL</small></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
@@ -772,40 +718,6 @@ export default function Home() {
         @keyframes flashOut  { 0%{opacity:1} 100%{opacity:0} }
         @keyframes heroGlow  { 0%{opacity:0;transform:scale(0.8)} 100%{opacity:1;transform:scale(1)} }
         @keyframes stripeMove { from{background-position:0 0} to{background-position:56px 0} }
-        @keyframes floatBox   { 0%,100%{transform:rotateX(-22deg) rotateY(-38deg) translateY(0)} 50%{transform:rotateX(-22deg) rotateY(-38deg) translateY(-10px)} }
-
-        /* ── 3D SHIPPING BOX — closes as the hero scrolls past ─────────────── */
-        .box3d-wrap  { position:relative; height:460px; }
-        .box3d-floor { position:absolute; left:50%; bottom:8%; width:320px; height:70px; transform:translateX(-50%);
-          background:radial-gradient(ellipse at center,rgba(0,0,0,0.45) 0%,transparent 72%); filter:blur(2px); }
-        .box3d-stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; perspective:1700px; }
-        .box3d       { position:relative; width:196px; height:196px; transform-style:preserve-3d; animation:floatBox 6s ease-in-out infinite; }
-        .box3d-face  { position:absolute; width:196px; height:196px; box-shadow:inset 0 0 30px rgba(0,0,0,0.28); }
-        .box3d-face::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(180deg,rgba(0,0,0,0.05) 0 2px,transparent 2px 26px); }
-        .box3d-front  { background:linear-gradient(160deg,#C79A5E,#9C7038); transform:translateZ(98px); }
-        .box3d-back   { background:linear-gradient(160deg,#9C7038,#7A5528); transform:rotateY(180deg) translateZ(98px); }
-        .box3d-left   { background:linear-gradient(160deg,#8A6533,#69491F); transform:rotateY(-90deg) translateZ(98px); }
-        .box3d-right  { background:linear-gradient(160deg,#B08B52,#8A6533); transform:rotateY(90deg) translateZ(98px); }
-        .box3d-bottom { background:#5F4420; transform:rotateX(-90deg) translateZ(98px); }
-
-        .box3d-hinge { position:absolute; width:196px; height:0; left:0; top:0; transform-style:preserve-3d; }
-        .box3d-hinge-front { transform:translateZ(98px) translateY(-98px) rotateX(calc(var(--front,0) * -92deg)); }
-        .box3d-hinge-back  { transform:rotateY(180deg) translateZ(98px) translateY(-98px) rotateX(calc(var(--front,0) * -92deg)); }
-        .box3d-hinge-left  { transform:rotateY(-90deg) translateZ(98px) translateY(-98px) rotateX(calc(var(--side,0) * -90deg)); }
-        .box3d-hinge-right { transform:rotateY(90deg) translateZ(98px) translateY(-98px) rotateX(calc(var(--side,0) * -90deg)); }
-
-        .box3d-flap  { position:absolute; top:0; left:0; width:196px; height:96px; transform-origin:top center;
-          background:linear-gradient(180deg,#C79A5E,#A67A48); box-shadow:0 2px 10px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.15); }
-        .box3d-flap-side { width:196px; height:96px; opacity:0.97; }
-        .box3d-flap-main { z-index:2; }
-        .box3d-flap-labeled { display:flex; align-items:center; justify-content:center; overflow:hidden; }
-
-        .box3d-tape { position:absolute; top:0; bottom:0; left:50%; width:34px; transform:translateX(-50%);
-          background:rgba(245,241,232,0.5); opacity:calc(var(--front,0)); box-shadow:0 0 0 1px rgba(0,0,0,0.08); }
-        .box3d-stamp { position:relative; z-index:1; font-weight:800; font-size:12px;
-          letter-spacing:0.14em; color:#2F7DF6; text-align:center; line-height:1.6; text-transform:uppercase;
-          opacity:calc(var(--seal,0)); transform:scale(calc(0.7 + var(--seal,0) * 0.3)) rotate(-3deg); transition:none; }
-        .box3d-stamp small { font-size:6.5px; letter-spacing:0.16em; color:#F2B705; }
 
         /* Hazard stripe divider */
         .hazard-strip { height:10px; width:100%;
@@ -850,12 +762,6 @@ export default function Home() {
         /* Responsive */
         .lc-ham  { display:none !important; }
         .lc-links { display:flex; }
-
-        /* Tablet — hero drops to one column, visual panel hidden to keep the fold tight */
-        @media(max-width:980px) {
-          .hero-grid { grid-template-columns:1fr !important; }
-          .hero-visual { display:none !important; }
-        }
 
         @media(max-width:768px) {
           .lc-ham   { display:flex !important; }
@@ -931,11 +837,10 @@ export default function Home() {
         {/* Real footage of the shipment's own journey — label to delivered, on a loop */}
         <HeroVideoBackground/>
 
-        {/* Content */}
-        <div className="hero-grid" style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5,
-          display:'grid', gridTemplateColumns:'1.15fr 0.85fr', gap:'3rem', alignItems:'center' }}>
+        {/* Content — single column, left-weighted, so the video reads as the hero */}
+        <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5 }}>
 
-          <div>
+          <div style={{ maxWidth:640 }}>
             {/* Badge — shipping label */}
             <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
               border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(20,18,14,0.45)', backdropFilter:'blur(6px)',
@@ -971,11 +876,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Visual panel — the sealed shipping box */}
-          <div className="hero-visual" style={{ animation:'fadeUp 0.8s 0.25s ease both' }}>
-            <Hero3DBox/>
           </div>
         </div>
       </section>
