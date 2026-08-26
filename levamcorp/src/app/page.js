@@ -273,62 +273,220 @@ const insightItems = [
 ]
 
 
-// ── HERO VIDEO BACKGROUND ─────────────────────────────────────────────────────
-// Replace VIDEO_URL with your Supabase Storage URL or any public video URL
-// Recommended: MP4, H.264, 720p or 1080p, under 10MB
+// ── HERO SCROLL VIDEO — scrubs through the shipping journey as you scroll ────
+const JOURNEY_BASE = 'https://d8j0ntlcm91z4.cloudfront.net/user_3IQhU7OnYTGi99XvrFek8jPDWTc/'
+const JOURNEY_CLIPS = [
+  { v: 'hf_20260826_023432_87cb8820-993f-4a71-8ef2-d3f32985ac36.mp4', caption: 'Shipping label' },
+  { v: 'hf_20260826_023432_6d578439-1a93-48c8-8224-48cf7a0f0f33.mp4', caption: 'The carton' },
+  { v: 'hf_20260826_023432_5225b5c5-0e67-42fd-bc62-f23e00d5abab.mp4', caption: 'Wholesale pallet' },
+  { v: 'hf_20260826_023432_7b2d9392-b5bd-41c3-96d5-3e761a67efef.mp4', caption: 'On the forklift' },
+  { v: 'hf_20260826_023432_3884ce55-7ae3-4903-8b89-9b6aa739f5d3.mp4', caption: 'Into the trailer' },
+  { v: 'hf_20260826_023432_e04b4f7d-ceba-487d-9b9e-41fefd44cd35.mp4', caption: 'Truck at the bay' },
+  { v: 'hf_20260826_023432_7bb258ee-e933-4ecb-9f2a-b8ea2b96f379.mp4', caption: 'The distribution centre' },
+  { v: 'hf_20260826_023355_a6931868-7c6b-440d-b225-ef9e5c9fa6d4.mp4', caption: 'Regional network → delivered' },
+]
+const JOURNEY_OVERLAP = 0.45
+const JOURNEY_STORE_KEY = 'lc-hero-journey-progress'
 
-const VIDEO_URL = 'https://videos.pexels.com/video-files/28483048/28483048-hd_1920_1080_24fps.mp4'
+function HeroScrollVideo({ children }) {
+  const rootRef    = useRef(null)
+  const stageRef   = useRef(null)
+  const readoutRef = useRef(null)
+  const captionRef = useRef(null)
+  const loaderRef  = useRef(null)
+  const loaderBarRef = useRef(null)
+  const segRefs    = useRef(JOURNEY_CLIPS.map(() => React.createRef()))
 
-function HeroVideo() {
-  if (!VIDEO_URL) return null
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    stage.replaceChildren()
+
+    const videos = []
+    const durations = JOURNEY_CLIPS.map(() => 5)
+    const ready = JOURNEY_CLIPS.map(() => false)
+    let raf = null, target = 0, shown = 0, active = -1, saveThrottle = 0
+
+    const updateLoader = () => {
+      const done = ready.filter(Boolean).length
+      const bar = loaderBarRef.current
+      if (bar) bar.style.width = Math.round((done / JOURNEY_CLIPS.length) * 100) + '%'
+      if (done === JOURNEY_CLIPS.length) {
+        const l = loaderRef.current
+        if (l) { l.style.opacity = '0'; setTimeout(() => { l.style.display = 'none' }, 420) }
+      }
+    }
+
+    JOURNEY_CLIPS.forEach((c, i) => {
+      const v = document.createElement('video')
+      v.src = JOURNEY_BASE + c.v
+      v.preload = 'auto'
+      v.muted = true
+      v.playsInline = true
+      v.setAttribute('playsinline', '')
+      v.crossOrigin = 'anonymous'
+      Object.assign(v.style, {
+        position: 'absolute', inset: '0', width: '100%', height: '100%',
+        objectFit: 'cover', opacity: i === 0 ? '1' : '0', zIndex: String(i === 0 ? 1 : 0),
+      })
+      v.addEventListener('loadedmetadata', () => { if (v.duration && isFinite(v.duration)) durations[i] = v.duration })
+      const mark = () => { ready[i] = true; updateLoader() }
+      v.addEventListener('canplaythrough', mark)
+      v.addEventListener('loadeddata', () => { if (v.readyState >= 3) mark() })
+      v.load()
+      stage.appendChild(v)
+      videos.push(v)
+    })
+
+    const scrollProgress = () => {
+      const el = rootRef.current
+      if (!el) return 0
+      const rect = el.getBoundingClientRect()
+      const span = rect.height - window.innerHeight
+      if (span <= 0) return 0
+      return Math.min(1, Math.max(0, -rect.top / span))
+    }
+
+    const starts = () => {
+      const out = []
+      let acc = 0
+      for (let i = 0; i < JOURNEY_CLIPS.length; i++) { out.push(acc); acc += durations[i] - JOURNEY_OVERLAP }
+      return out
+    }
+
+    const driveVideo = (v, local) => {
+      const diff = local - v.currentTime
+      if (diff > 0.75 || diff < -0.06) {
+        if (!v.paused) v.pause()
+        try { if (v.fastSeek) v.fastSeek(local); else v.currentTime = local } catch (e) {}
+      } else if (diff > 0.015) {
+        v.playbackRate = Math.min(4, Math.max(0.25, diff * 5))
+        if (v.paused) v.play().catch(() => {})
+      } else if (!v.paused) v.pause()
+    }
+
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      shown += (target - shown) * 0.085
+      const p = shown
+      const s = starts()
+      const last = JOURNEY_CLIPS.length - 1
+      const total = s[last] + durations[last]
+      const t = p * total
+
+      let i = 0
+      while (i < last && t >= s[i] + durations[i]) i++
+      const local = Math.min(t - s[i], durations[i] - 0.04)
+
+      let w = 0
+      const j = i + 1
+      const hasNext = j <= last
+      if (hasNext) {
+        const raw = (t - s[j]) / JOURNEY_OVERLAP
+        const c = Math.min(1, Math.max(0, raw))
+        w = c * c * (3 - 2 * c)
+      }
+
+      videos.forEach((v, idx) => {
+        if (idx !== i && idx !== j) {
+          if (v.style.opacity !== '0') v.style.opacity = '0'
+          if (!v.paused) v.pause()
+          return
+        }
+        const isOut = idx === i
+        const lt = isOut ? local : Math.max(0, t - s[j])
+        driveVideo(v, lt)
+        v.style.zIndex = isOut ? '0' : '1'
+        v.style.opacity = String(isOut ? 1 : w)
+        const sc = isOut ? 1 + 0.035 * w : 1 + 0.03 * (1 - w)
+        v.style.transform = 'scale(' + sc.toFixed(4) + ')'
+        v.style.transformOrigin = '50% 50%'
+      })
+
+      const dominant = w > 0.5 && hasNext ? j : i
+      if (active !== dominant) {
+        active = dominant
+        const cap = captionRef.current
+        if (cap) cap.textContent = JOURNEY_CLIPS[dominant].caption
+      }
+
+      const read = readoutRef.current
+      if (read) {
+        const secs = Math.round(p * total)
+        read.textContent = String(secs).padStart(2, '0') + ' / ' + Math.round(total) + 's'
+      }
+
+      segRefs.current.forEach((r, idx) => {
+        const el = r.current && r.current.firstElementChild
+        if (!el) return
+        const fill = idx < i ? 1 : idx > i ? (idx === j ? w * 0.2 : 0) : local / durations[idx]
+        el.style.transform = 'scaleX(' + fill.toFixed(4) + ')'
+      })
+
+      if (!saveThrottle || Date.now() - saveThrottle > 500) {
+        saveThrottle = Date.now()
+        try { localStorage.setItem(JOURNEY_STORE_KEY, String(p)) } catch (e) {}
+      }
+    }
+
+    const saved = Number(localStorage.getItem(JOURNEY_STORE_KEY))
+    if (saved > 0 && saved < 1) {
+      const doc = document.documentElement
+      window.scrollTo(0, saved * (doc.scrollHeight - window.innerHeight))
+    }
+
+    const onScroll = () => { target = scrollProgress() }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    target = scrollProgress()
+    shown = target
+    tick()
+
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
   return (
-    <div style={{
-      position:   'absolute',
-      inset:      0,
-      zIndex:     1,
-      overflow:   'hidden',
-      pointerEvents: 'none',
-    }}>
-      {/* Video */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position:   'absolute',
-          inset:      0,
-          width:      '100%',
-          height:     '100%',
-          objectFit:  'cover',
-          opacity:    0.18,         // keep it subtle — text must stay readable
-          filter:     'saturate(0.6) brightness(0.5)',
-        }}
-      >
-        <source src={VIDEO_URL} type="video/mp4"/>
-      </video>
+    <div ref={rootRef} style={{ position:'relative', height:'1000vh' }}>
+      <div style={{ position:'sticky', top:0, height:'100vh', width:'100%', overflow:'hidden', background:'#000' }}>
+        <div ref={stageRef} style={{ position:'absolute', inset:0, zIndex:0 }}/>
 
-      {/* Dark gradient overlay — heavier at bottom so text pops */}
-      <div style={{
-        position:   'absolute',
-        inset:      0,
-        background: 'linear-gradient(180deg, rgba(20,18,14,0.3) 0%, rgba(20,18,14,0.0) 40%, rgba(20,18,14,0.6) 100%)',
-      }}/>
+        {/* Scrim — heavier top/bottom so overlaid text stays readable */}
+        <div style={{ position:'absolute', inset:0, zIndex:2, pointerEvents:'none',
+          background:'linear-gradient(180deg,rgba(20,18,14,0.6) 0%,rgba(20,18,14,0.1) 26%,rgba(20,18,14,0.15) 60%,rgba(20,18,14,0.8) 100%)' }}/>
 
-      {/* Blue tint overlay */}
-      <div style={{
-        position:   'absolute',
-        inset:      0,
-        background: 'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(47,125,246,0.08) 0%, transparent 70%)',
-        mixBlendMode: 'screen',
-      }}/>
+        {/* Persistent content overlay (headline/CTA/stats passed as children) */}
+        <div style={{ position:'absolute', inset:0, zIndex:3 }}>{children}</div>
 
-      {/* Vignette */}
-      <div style={{
-        position:   'absolute',
-        inset:      0,
-        background: 'radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(20,18,14,0.7) 100%)',
-      }}/>
+        {/* Bottom readout — journey caption + progress */}
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:3, display:'flex', flexDirection:'column', gap:14, padding:'0 2rem 2.25rem', pointerEvents:'none' }}>
+          <div style={{ display:'flex', gap:4, alignItems:'stretch', height:3 }}>
+            {JOURNEY_CLIPS.map((c, idx) => (
+              <div key={c.v} ref={segRefs.current[idx]} style={{ flex:1, background:'rgba(245,241,232,0.18)', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', inset:0, transformOrigin:'left center', transform:'scaleX(0)', background:'#F2B705' }}/>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
+            <div ref={captionRef} className="lc-display" style={{ fontSize:15, fontWeight:600, letterSpacing:'0.01em', color:'#F5F1E8' }}>Shipping label</div>
+            <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'#A7A090' }}>Scroll to travel</div>
+          </div>
+        </div>
+
+        {/* Loader */}
+        <div ref={loaderRef} style={{ position:'absolute', inset:0, zIndex:4, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, background:'#14120E', transition:'opacity 400ms linear' }}>
+          <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2B705' }}>Buffering shot</div>
+          <div style={{ width:200, height:2, background:'rgba(245,241,232,0.16)', overflow:'hidden' }}>
+            <div ref={loaderBarRef} style={{ height:'100%', width:'0%', background:'#F2B705' }}/>
+          </div>
+        </div>
+
+        {/* Live timecode readout */}
+        <div ref={readoutRef} className="lc-mono" style={{ position:'absolute', top:32, right:32, zIndex:3, fontSize:11, letterSpacing:'0.14em', padding:'8px 12px', background:'rgba(20,18,14,0.6)', border:'1px solid rgba(245,241,232,0.16)', whiteSpace:'nowrap', color:'#A7A090' }}>00 / 40s</div>
+      </div>
     </div>
   )
 }
@@ -475,6 +633,7 @@ function StampSeal({ label, sub, color = '#2F7DF6', delay = 0 }) {
 }
 
 // ── HERO 3D BOX — closes as you scroll ───────────────────────────────────────
+// Sealed shipping box — reused as the closing beat right after the video journey
 function Hero3DBox() {
   const wrapRef = useRef(null)
   const boxRef  = useRef(null)
@@ -914,77 +1073,68 @@ export default function Home() {
       </nav>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── HERO ────────────────────────────────────────────────────── */}
+      {/* ── HERO — the shipping journey, scrubbed by scroll ───────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 5rem', position:'relative', overflow:'hidden',
-        background:'radial-gradient(ellipse 90% 70% at 50% -5%, rgba(242,183,5,0.06) 0%, transparent 65%)' }}>
+      <HeroScrollVideo>
+        <div style={{ maxWidth:640, padding:'7.5rem 2rem 0', margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'flex-start' }}>
+          {/* Badge — shipping label */}
+          <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
+            border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(20,18,14,0.45)', backdropFilter:'blur(6px)',
+            marginBottom:'1.75rem', animation:'fadeUp 0.6s ease both' }}>
+            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#F2B705', textTransform:'uppercase' }}>MANIFEST · B2B WHOLESALE · DORAL FL</span>
+            <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#F2B705', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+          </div>
 
-        {/* Warehouse racking grid — parallax layer */}
+          {/* Headline — typewriter entrance, heavy weight for contrast against the footage */}
+          <h1 className="hero-h lc-display" style={{ fontSize:'clamp(38px,5.4vw,74px)', fontWeight:800, lineHeight:0.98, letterSpacing:'-0.035em', margin:0,
+            textShadow:'0 2px 24px rgba(0,0,0,0.5)',
+            opacity: heroPhase >= 2 ? 1 : 0, transform: heroPhase >= 2 ? 'translateY(0)' : 'translateY(20px)',
+            transition:'opacity 0.7s ease, transform 0.7s ease' }}>
+            {heroPhase >= 2 && <TypewriterText phase={heroPhase}/>}
+          </h1>
+        </div>
+      </HeroScrollVideo>
+
+      {/* ── HERO CLOSER — same info as before (subcopy, CTAs, stats), now the ── */}
+      {/* ── beat right after the journey lands, with the sealed box as company ── */}
+      <section style={{ padding:'5rem 2rem 5rem', position:'relative', overflow:'hidden',
+        background:'radial-gradient(ellipse 90% 70% at 50% -5%, rgba(242,183,5,0.06) 0%, transparent 65%)' }}>
         <div style={{ position:'absolute', inset:'-6%', backgroundImage:'linear-gradient(rgba(245,241,232,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(245,241,232,0.05) 1px, transparent 1px)', backgroundSize:'48px 48px',
           pointerEvents:'none', maskImage:'radial-gradient(ellipse 70% 60% at 50% 30%, black 0%, transparent 75%)' }}/>
 
-        {/* Hero video background */}
-        <HeroVideo/>
-
-        {/* Hero glow behind text */}
-        <div style={{ position:'absolute', top:'30%', left:'45%', width:600, height:600,
-          background:'radial-gradient(circle,rgba(185,138,84,0.16) 0%,transparent 70%)',
-          pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', top:'45%', left:'15%', width:400, height:400,
-          background:'radial-gradient(circle,rgba(242,183,5,0.09) 0%,transparent 70%)',
-          pointerEvents:'none' }}/>
-
-        {/* Content */}
         <div className="hero-grid" style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5,
           display:'grid', gridTemplateColumns:'1.15fr 0.85fr', gap:'3rem', alignItems:'center' }}>
 
-          <div>
-            {/* Badge — shipping label */}
-            <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
-              border:'1.5px dashed rgba(242,183,5,0.45)', borderRadius:4, background:'rgba(242,183,5,0.05)',
-              marginBottom:'2rem', animation:'fadeUp 0.6s ease both' }}>
-              <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#F2B705', textTransform:'uppercase' }}>MANIFEST · B2B WHOLESALE · DORAL FL</span>
-              <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#F2B705', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+          <Reveal>
+            <div>
+              <p style={{ fontSize:16, color:'#A7A090', lineHeight:1.85, maxWidth:480, marginBottom:'2.5rem' }}>
+                Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
+              </p>
+
+              <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:'4rem' }}>
+                <Link href="/apply" className="lc-btn">Apply for wholesale access {IC.arrow}</Link>
+                <Link href="/portal" className="lc-ghost">Partner portal login</Link>
+              </div>
+
+              {/* Stats */}
+              <div className="g4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1.5rem', maxWidth:520 }}>
+                {[['48h','Avg. dispatch'],['7+','Premium brands'],['500+','Active SKUs'],['100%','B2B only']].map(([n,l]) => (
+                  <div key={l} style={{ paddingLeft:'1rem', borderLeft:'1px solid rgba(242,183,5,0.3)', position:'relative' }}>
+                    <div style={{ position:'absolute', left:-1, top:0, bottom:0, width:1, background:'linear-gradient(180deg,#F2B705,transparent)', borderRadius:1 }}/>
+                    <div className="lc-display" style={{ fontSize:19, fontWeight:700, color:'#F5F1E8', letterSpacing:'-0.02em', lineHeight:1 }}>{n}</div>
+                    <div style={{ fontSize:9, color:'#A7A090', textTransform:'uppercase', letterSpacing:'0.14em', marginTop:4, fontWeight:600 }}>{l}</div>
+                  </div>
+                ))}
+              </div>
             </div>
+          </Reveal>
 
-            {/* Headline — typewriter entrance */}
-            <h1 className="hero-h lc-display" style={{ fontSize:'clamp(40px,5.6vw,80px)', fontWeight:700, lineHeight:0.98, letterSpacing:'-0.035em', margin:'0 0 1.5rem',
-              opacity: heroPhase >= 2 ? 1 : 0, transform: heroPhase >= 2 ? 'translateY(0)' : 'translateY(20px)',
-              transition:'opacity 0.7s ease, transform 0.7s ease' }}>
-              {heroPhase >= 2 && <TypewriterText phase={heroPhase}/>}
-            </h1>
-
-            <p style={{ fontSize:16, color:'#A7A090', lineHeight:1.85, maxWidth:480, marginBottom:'2.5rem', animation:'fadeUp 0.7s 0.2s ease both' }}>
-              Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
-            </p>
-
-            <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', animation:'fadeUp 0.7s 0.3s ease both', marginBottom:'4rem' }}>
-              <Link href="/apply" className="lc-btn">Apply for wholesale access {IC.arrow}</Link>
-              <Link href="/portal" className="lc-ghost">Partner portal login</Link>
+          {/* Visual panel — the sealed shipping box, journey complete */}
+          <Reveal delay={0.15}>
+            <div className="hero-visual">
+              <Hero3DBox/>
             </div>
-
-            {/* Stats */}
-            <div className="g4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1.5rem', maxWidth:520, animation:'fadeUp 0.7s 0.4s ease both' }}>
-              {[['48h','Avg. dispatch'],['7+','Premium brands'],['500+','Active SKUs'],['100%','B2B only']].map(([n,l]) => (
-                <div key={l} style={{ paddingLeft:'1rem', borderLeft:'1px solid rgba(242,183,5,0.3)', position:'relative' }}>
-                  <div style={{ position:'absolute', left:-1, top:0, bottom:0, width:1, background:'linear-gradient(180deg,#F2B705,transparent)', borderRadius:1 }}/>
-                  <div className="lc-display" style={{ fontSize:19, fontWeight:700, color:'#F5F1E8', letterSpacing:'-0.02em', lineHeight:1 }}>{n}</div>
-                  <div style={{ fontSize:9, color:'#A7A090', textTransform:'uppercase', letterSpacing:'0.14em', marginTop:4, fontWeight:600 }}>{l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Visual panel — real 3D shipping box, seals shut as you scroll */}
-          <div className="hero-visual" style={{ animation:'fadeUp 0.8s 0.25s ease both' }}>
-            <Hero3DBox/>
-          </div>
-        </div>
-
-        {/* Scroll cue */}
-        <div style={{ position:'absolute', bottom:36, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', gap:6, opacity:0.5, animation:'float1 3s ease-in-out infinite' }}>
-          <span className="lc-mono" style={{ fontSize:8, letterSpacing:'0.2em', color:'#F2B705', textTransform:'uppercase' }}>Scroll to seal</span>
-          <div style={{ width:1, height:30, background:'linear-gradient(180deg,transparent,#F2B705,transparent)' }}/>
+          </Reveal>
         </div>
       </section>
 
@@ -1127,7 +1277,7 @@ export default function Home() {
             {[
               { icon:IC.dollar, title:'Wholesale pricing',       desc:'Direct access to competitive wholesale rates — not inflated reseller prices.',  color:'#12B76A' },
               { icon:IC.shield, title:'Verified partners only',  desc:'Every partner is vetted personally. This protects your margins.',                color:'#2F7DF6' },
-              { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                   color:'#F2A93B' },
+              { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                   color:'#F2B705' },
               { icon:IC.box,    title:'Live catalog access',     desc:'Your private portal shows real-time pricing and stock. No guessing.',            color:'#6B7280' },
               { icon:IC.globe,  title:'U.S. based operation',    desc:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',               color:'#2F7DF6' },
               { icon:IC.users,  title:'Dedicated support',       desc:'Mon–Fri 9AM–5PM ET. We speak English and Spanish. You talk to us directly.',    color:'#12B76A' },
