@@ -119,8 +119,7 @@ function TiltCard({ children, style = {}, glow = '#2F7DF6' }) {
     el.addEventListener('mouseleave', leave)
     el.addEventListener('mousemove',  move)
 
-    const glowRGB = glow === '#2F7DF6' ? '47,125,246' : glow === '#6B7280' ? '107,114,128' : glow === '#12B76A' ? '18,183,106'
-      : glow === '#F2B705' ? '242,183,5' : glow === '#B98A54' ? '185,138,84' : '47,125,246'
+    const glowRGB = hexToRgb(glow)
 
     const tick = () => {
       raf.current = requestAnimationFrame(tick)
@@ -333,7 +332,7 @@ const CategoryLabel = ({ item }) => {
     </div>
   )
   return (
-    <div style={{ background:'#f4f2ec', color:'#111', border:'1px solid #dcd8ce', borderRadius:4,
+    <div className="category-label" style={{ '--label-accent':item.swatch, background:'#f4f2ec', color:'#111', border:'1px solid #dcd8ce', borderRadius:4,
       boxShadow:'0 26px 54px -20px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.06)',
       display:'flex', flexDirection:'column', height:'100%', fontFamily:"'JetBrains Mono',monospace", overflow:'hidden' }}>
 
@@ -887,6 +886,9 @@ export default function Home() {
 
         .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; }
 
+        .category-label { transition: border-color 0.25s ease; }
+        .category-label:hover { border-color: var(--label-accent) !important; }
+
         /* Animations */
         @keyframes ticker   { from{transform:translateX(0)} to{transform:translateX(-33.333%)} }
         @keyframes shimmer  { 0%{background-position:-200% center} 100%{background-position:200% center} }
@@ -1089,7 +1091,9 @@ export default function Home() {
           <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
             {CATEGORY_LABELS.map((item, i) => (
               <Reveal key={item.label} delay={i * 0.06}>
-                <CategoryLabel item={item}/>
+                <TiltCard glow={item.swatch} style={{ height:'100%', borderRadius:4 }}>
+                  <CategoryLabel item={item}/>
+                </TiltCard>
               </Reveal>
             ))}
           </div>
