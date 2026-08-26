@@ -324,19 +324,34 @@ function HeroScrollVideo({ children }) {
       v.muted = true
       v.playsInline = true
       v.setAttribute('playsinline', '')
-      v.crossOrigin = 'anonymous'
+      // No crossOrigin here: this CDN doesn't send CORS headers for this origin, and
+      // setting crossOrigin="anonymous" without matching headers makes the browser
+      // hard-fail the whole video load (readyState never advances, canplaythrough
+      // never fires) — that's what was pinning the loader up and showing a black
+      // screen for the entire scroll-scrub distance. We never touch pixel data
+      // (no canvas), so no CORS mode is needed at all.
       Object.assign(v.style, {
         position: 'absolute', inset: '0', width: '100%', height: '100%',
         objectFit: 'cover', opacity: i === 0 ? '1' : '0', zIndex: String(i === 0 ? 1 : 0),
       })
       v.addEventListener('loadedmetadata', () => { if (v.duration && isFinite(v.duration)) durations[i] = v.duration })
-      const mark = () => { ready[i] = true; updateLoader() }
+      const mark = () => { if (!ready[i]) { ready[i] = true; updateLoader() } }
       v.addEventListener('canplaythrough', mark)
       v.addEventListener('loadeddata', () => { if (v.readyState >= 3) mark() })
+      // A clip that fails to load (network error, dead URL, etc.) should never be
+      // able to block the other 7 forever — count it "ready" and move on.
+      v.addEventListener('error', mark)
       v.load()
       stage.appendChild(v)
       videos.push(v)
     })
+
+    // Hard backstop: whatever happens with buffering, never leave the visitor
+    // staring at a blocked black screen for the whole 1000vh scroll distance.
+    const loaderTimeout = setTimeout(() => {
+      const l = loaderRef.current
+      if (l && l.style.display !== 'none') { l.style.opacity = '0'; setTimeout(() => { l.style.display = 'none' }, 420) }
+    }, 6000)
 
     const scrollProgress = () => {
       const el = rootRef.current
@@ -446,6 +461,7 @@ function HeroScrollVideo({ children }) {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
       cancelAnimationFrame(raf)
+      clearTimeout(loaderTimeout)
     }
   }, [])
 
