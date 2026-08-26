@@ -52,6 +52,8 @@ Committed-strategy palette: one saturated accent (safety-yellow) carries CTAs-ad
 
 Do not reintroduce `#080B14` / cool blue-gray text (`#9AACC9`, `#F0F4FF`) on this page — that's the legacy system this world replaced.
 
+Sections do **not** carry their own ambient radial-gradient "glow blob" (a 350–500px soft circle in some accent color, positioned in a corner). An earlier pass had ~17 of these scattered one or two per section, rotating through blue/yellow/green/steel — removed on explicit feedback that it read as scattered colored dots rather than one cohesive background. The ground is flat warm charcoal plus the fixed steel-grid texture layer (behind everything, set once in the page root); color now lives in the Card tags, the video, and the hazard-strip, not in floating per-section spotlights. The two remaining full-bleed `radial-gradient(ellipse ...)` washes (hero, final CTA) are a different, much subtler device — under 0.10 opacity, spanning the whole section rather than reading as a discrete shape — and are fine to keep or reuse sparingly; the discrete circular blob is what's banned.
+
 ## Typography
 
 Space Grotesk (display/headlines) + Inter (body) are a **confirmed cross-site asset** — already shipped on 7+ pages (admin, portal, login) before this redesign — kept here for brand consistency rather than picked fresh for this surface. `.lc-mono` (SF Mono/JetBrains Mono) is reserved for manifest/tracking-number-style data (the hero badge, the stamp captions, the brand ticker) — it represents actual shipping/inventory data, not a "technical" costume.
