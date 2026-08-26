@@ -290,6 +290,101 @@ const Card = ({ children, style={}, accent='#2F7DF6' }) => {
   )
 }
 
+// ── CATEGORY LABEL — literal printed shipping-label card, cream stock on black ──
+const LABEL_ICON = {
+  class:    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>,
+  code:     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h16M4 12h16M4 17h10"/></svg>,
+  origin:   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 21s7-6.3 7-11a7 7 0 10-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>,
+  shipping: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/></svg>,
+}
+
+const CATEGORY_LABELS = [
+  { num:'01', label:'Televisions', code:'TV', tag:'TAG·7DF6·TV', swatch:'#2f6fd0',
+    desc:'Smart TVs, 4K UHD, QLED, Mini-LED and premium home entertainment displays.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 20.5h6"/><path d="M12 17v3.5"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 5px,#111 5px 6px,transparent 6px 9px,#111 9px 12px,transparent 12px 14px,#111 14px 15px,transparent 15px 19px)' },
+  { num:'02', label:'Electronics', code:'EL', tag:'TAG·B705·EL', swatch:'#b8860f',
+    desc:'Cameras, streaming devices, smart technology, virtual reality and electronic accessories.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="6.5" width="19" height="12" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 6.5l1.5-2.5h5L16 6.5"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 1px,transparent 1px 4px,#111 4px 6px,transparent 6px 8px,#111 8px 11px,transparent 11px 13px,#111 13px 14px,transparent 14px 18px)' },
+  { num:'03', label:'Kitchen Appliances', code:'KA', tag:'TAG·8A54·KA', swatch:'#d98014',
+    desc:'Air fryers, blenders, microwaves, ice makers, toasters and specialty kitchen appliances.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="7" cy="6.5" r=".6"/><circle cx="10" cy="6.5" r=".6"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 4px,#111 4px 7px,transparent 7px 9px,#111 9px 10px,transparent 10px 13px,#111 13px 16px,transparent 16px 18px)' },
+  { num:'04', label:'Gaming', code:'GM', tag:'TAG·C41D·GM', swatch:'#6d5bd0',
+    desc:'Consoles, controllers, racing wheels, gaming chairs and gaming accessories.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="16.5" cy="11" r=".9"/><circle cx="18.5" cy="13.5" r=".9"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 3px,transparent 3px 5px,#111 5px 6px,transparent 6px 10px,#111 10px 12px,transparent 12px 13px,#111 13px 15px,transparent 15px 19px)' },
+  { num:'05', label:'Audio', code:'AU', tag:'TAG·5E22·AU', swatch:'#1f9d55',
+    desc:'Speakers, headphones, audio cables and sound accessories.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="2.5" y="13.5" width="4" height="6.5" rx="1.6"/><rect x="17.5" y="13.5" width="4" height="6.5" rx="1.6"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 6px,#111 6px 7px,transparent 7px 9px,#111 9px 11px,transparent 11px 14px,#111 14px 16px,transparent 16px 19px)' },
+  { num:'06', label:'Computers & Accessories', code:'CA', tag:'TAG·9B08·CA', swatch:'#4a6b8a',
+    desc:'Computers, keyboards, mice, peripherals and workspace accessories.',
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="11" rx="2"/><path d="M1.5 19.5h21"/></svg>,
+    barcode:'repeating-linear-gradient(90deg,#111 0 1px,transparent 1px 3px,#111 3px 6px,transparent 6px 8px,#111 8px 9px,transparent 9px 12px,#111 12px 15px,transparent 15px 18px)' },
+]
+
+const CategoryLabel = ({ item }) => {
+  const metaCell = (key, value, borderRight, borderTop) => (
+    <div style={{ padding:'9px 12px', borderRight: borderRight ? '1px dashed #b9b5aa' : 'none', borderTop: borderTop ? '1px dashed #b9b5aa' : 'none', display:'flex', flexDirection:'column', gap:4 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:7.5, letterSpacing:'0.16em', color:'#6b6b6b', whiteSpace:'nowrap' }}>{LABEL_ICON[key]}{key.toUpperCase()}</div>
+      <div style={{ fontSize:11, fontWeight:700 }}>{value}</div>
+    </div>
+  )
+  return (
+    <div style={{ background:'#f4f2ec', color:'#111', border:'1px solid #dcd8ce', borderRadius:4,
+      boxShadow:'0 26px 54px -20px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.06)',
+      display:'flex', flexDirection:'column', height:'100%', fontFamily:"'JetBrains Mono',monospace", overflow:'hidden' }}>
+
+      {/* Header — brand bar */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, background:'#14120E', color:'#f4f2ec', padding:'9px 12px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+          <div style={{ width:17, height:17, border:'1.2px solid rgba(245,241,232,0.8)', borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <img src="/levamcorp-mark-white.png" alt="" style={{ width:10, height:'auto' }}/>
+          </div>
+          <div className="lc-display" style={{ fontSize:8.5, letterSpacing:'0.2em', fontWeight:700, whiteSpace:'nowrap' }}>LEVAMCORP</div>
+        </div>
+        <div className="lc-mono" style={{ fontSize:8, letterSpacing:'0.14em', opacity:0.7, whiteSpace:'nowrap' }}>DORAL · FL</div>
+      </div>
+
+      {/* Category / class */}
+      <div style={{ padding:'11px 12px 9px', borderBottom:'1.5px solid #111', display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:8 }}>
+        <div className="lc-mono" style={{ fontSize:7.5, letterSpacing:'0.2em', color:'#6b6b6b', whiteSpace:'nowrap' }}>CATEGORY / CLASE</div>
+        <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.1em', fontWeight:700, whiteSpace:'nowrap', display:'flex', alignItems:'center' }}>
+          <span style={{ display:'inline-block', width:7, height:7, borderRadius:1, background:item.swatch, marginRight:7 }}/>{item.num} OF 06
+        </div>
+      </div>
+
+      {/* Icon + title */}
+      <div style={{ padding:'14px 12px 13px', minHeight:82, borderBottom:'1px dashed #b9b5aa', display:'flex', alignItems:'center', gap:11 }}>
+        <div style={{ flex:'0 0 26px' }}>{item.icon}</div>
+        <div style={{ fontFamily:"'Archivo','Inter',sans-serif", fontSize:21, fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.08 }}>{item.label}</div>
+      </div>
+
+      {/* Description */}
+      <div style={{ padding:12, minHeight:82, borderBottom:'1px dashed #b9b5aa', fontFamily:"'Archivo','Inter',sans-serif", fontSize:12.5, lineHeight:1.5, color:'#3a3a3a' }}>{item.desc}</div>
+
+      {/* Metadata grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderBottom:'1.5px solid #111' }}>
+        {metaCell('class', `${item.num} / 06`, true, false)}
+        {metaCell('code', item.code, false, false)}
+        {metaCell('origin', 'DORAL, FL', true, true)}
+        {metaCell('shipping', 'FCL / LCL', false, true)}
+      </div>
+
+      {/* Footer — barcode + tag code */}
+      <div style={{ padding:'13px 12px 12px', marginTop:'auto', background:'#efece4', display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ height:44, backgroundImage:item.barcode }}/>
+        <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'4px 10px', fontSize:9.5, fontWeight:700, letterSpacing:'0.16em' }}>
+          <div style={{ whiteSpace:'nowrap' }}>{item.tag}</div>
+          <div style={{ color:'#6b6b6b', fontWeight:400 }}>levamcorp.com</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── INSIGHT PREVIEW CARD ──────────────────────────────────────────────────────
 const insightItems = [
   { tag:'Electronics', title:'Smart TVs dominate wholesale in 2026', date:'Aug 2026' },
@@ -991,28 +1086,10 @@ export default function Home() {
               </p>
             </div>
           </Reveal>
-          <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            {[
-              { icon:IC.tv,     label:'Televisions',       desc:'Smart TVs, 4K UHD, QLED & Mini-LED from Hisense and Samsung. 32" to 100".', color:'#2F7DF6' },
-              { icon:IC.zap,    label:'Electronics',       desc:'Consumer electronics from top brands — Sony, Samsung, Logitech, Anker and more. Headphones, speakers, chargers, accessories.', color:'#F2B705' },
-              { icon:IC.coffee, label:'Small Appliances',  desc:'Coffee makers, blenders, rice cookers, irons from Brentwood, Hamilton Beach, Proctor Silex.', color:'#12B76A' },
-              { icon:IC.home2,  label:'Kitchen & Cooking', desc:'Air fryers, deep fryers, rice cookers, pressure cookers and complete kitchen lineups from top brands.', color:'#B98A54' },
-            ].map((c, i) => (
-              <Reveal key={c.label} delay={i * 0.08}>
-                <TiltCard glow={c.color}>
-                  <Card style={{ display:'flex', gap:'1.25rem', alignItems:'flex-start', height:'100%' }} accent={c.color}>
-                    <div style={{ width:50, height:50, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                      background:`rgba(${c.color==='#2F7DF6'?'47,125,246':c.color==='#F2B705'?'242,183,5':c.color==='#12B76A'?'18,183,106':'185,138,84'},0.22)`,
-                      border:`1px solid rgba(${c.color==='#2F7DF6'?'47,125,246':c.color==='#F2B705'?'242,183,5':c.color==='#12B76A'?'18,183,106':'185,138,84'},0.4)`,
-                      color:c.color }}>
-                      {c.icon}
-                    </div>
-                    <div>
-                      <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:6 }}>{c.label}</div>
-                      <div style={{ fontSize:12.5, color:'#A7A090', lineHeight:1.7 }}>{c.desc}</div>
-                    </div>
-                  </Card>
-                </TiltCard>
+          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
+            {CATEGORY_LABELS.map((item, i) => (
+              <Reveal key={item.label} delay={i * 0.06}>
+                <CategoryLabel item={item}/>
               </Reveal>
             ))}
           </div>
