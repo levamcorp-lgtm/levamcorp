@@ -58,7 +58,7 @@ Space Grotesk (display/headlines) + Inter (body) are a **confirmed cross-site as
 
 ## Shapes
 
-Corners stay small and functional (4–12px) — this is an operational/industrial world, not a soft consumer one. The 3D shipping box (`.box3d-*` classes) is a secondary shape now: six real CSS `preserve-3d` faces plus four hinged flaps that fold from open to sealed, driven by scroll progress via CSS custom properties (`--side`, `--front`, `--seal`) — not a scripted per-frame transform, and not a flat image standing in for 3D.
+Corners stay small and functional (4–12px) — this is an operational/industrial world, not a soft consumer one. The CSS `preserve-3d` shipping-box treatment (open box, flaps folding to sealed, driven by scroll) was removed from the hero — the video needed the full frame, uncompeted by a foreground object — and wasn't kept elsewhere; a future surface can reintroduce that technique deliberately, but there's no `.box3d-*` scaffolding left to resurrect verbatim.
 
 ## Components
 
@@ -66,7 +66,6 @@ Corners stay small and functional (4–12px) — this is an operational/industri
 - **Card** (shared `Card` component): accent-tinted gradient wash from the accent color to `{colors.bg-panel}`, 1px accent-tinted border, thin top hairline gradient. Accent rotates across sections between brand-blue, safety-yellow, success-green, kraft, and steel — never purple/gold (retired this pass).
 - **StampSeal**: a circular ink-stamp badge that "thuds" into place on scroll (`cubic-bezier(0.22,1.61,0.36,1)` overshoot) — the one intentional bounce-easing use in the system, justified because it mimics a real stamp impact, not decorative bounce on an arbitrary UI element.
 - **hazard-strip**: a diagonal yellow/charcoal repeating-gradient divider (warehouse caution-tape motif), used sparingly as a section break, not on every seam.
-- **Hero3DBox**: back in the hero itself, as the right-column visual next to the badge/headline/subcopy/CTA/stats — the video is the hero's background, the box is its foreground object. See Shapes above.
 
 ## Do's and Don'ts
 
