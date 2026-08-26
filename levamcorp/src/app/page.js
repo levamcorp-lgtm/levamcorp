@@ -301,8 +301,8 @@ const insightItems = [
 // ── HERO VIDEO — the shipping journey, autoplaying in a loop ─────────────────
 const JOURNEY_BASE = 'https://d8j0ntlcm91z4.cloudfront.net/user_3IQhU7OnYTGi99XvrFek8jPDWTc/'
 const JOURNEY_CLIPS = [
-  { v: 'hf_20260826_023432_87cb8820-993f-4a71-8ef2-d3f32985ac36.mp4', caption: 'Shipping label' },
-  { v: 'hf_20260826_023432_6d578439-1a93-48c8-8224-48cf7a0f0f33.mp4', caption: 'The carton' },
+  { v: 'hf_20260826_150327_448dd68c-dcd1-4712-872e-d1792487b1c4.mp4', caption: 'Shipping label' },
+  { v: 'hf_20260826_150327_c1b478e5-cb61-419a-a69f-8954159f7ed2.mp4', caption: 'The carton' },
   { v: 'hf_20260826_023432_5225b5c5-0e67-42fd-bc62-f23e00d5abab.mp4', caption: 'Wholesale pallet' },
   { v: 'hf_20260826_023432_7b2d9392-b5bd-41c3-96d5-3e761a67efef.mp4', caption: 'On the forklift' },
   { v: 'hf_20260826_023432_3884ce55-7ae3-4903-8b89-9b6aa739f5d3.mp4', caption: 'Into the trailer' },
