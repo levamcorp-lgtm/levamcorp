@@ -137,7 +137,7 @@ const addToCart = (product, qty, variation) => {
 
       if (itemsError) {
         console.error('order_items insert failed', itemsError)
-        alert(`Your order #${order.order_number} was created, but we couldn't save the item list. Please contact us at partners@levamcorp.com with your order number so we can add the items manually.`)
+        alert(`Your order #${order.order_number} was created, but we couldn't save the item list. Please screenshot this and send it to partners@levamcorp.com:\n\n${itemsError.message}${itemsError.details ? '\n' + itemsError.details : ''}${itemsError.hint ? '\nHint: ' + itemsError.hint : ''}`)
         setSubmitting(false)
         return
       }
