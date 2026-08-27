@@ -111,49 +111,62 @@ const addToCart = (product, qty) => {
         notes: `Email: ${u.email} | Items: ${cartItems.map(i => `${i.name} x${i.qty}`).join(', ')}`
       }]).select().single()
 
-      if (!error && order) {
-        await supabase.from('order_items').insert(
-          cartItems.map(item => ({
-            order_id: order.id,
-            product_id: item.id,
-            product_name: item.name,
-            product_sku: item.sku,
-            quantity: item.qty,
-            unit_price: item.price,
-          }))
-        )
-
-        // Create payment request automatically
-        await supabase.from('payments').insert([{
-          user_id: u.id,
-          order_id: order.id,
-          amount: cartTotal,
-          status: 'requested',
-          payment_method: paymentMethod,
-          shipping_method: shippingMethod,
-          client_email: u.email,
-          notes: `Payment request for order #${order.order_number} | Shipping: ${shippingMethod}${prepAddress ? ' - ' + prepAddress : ''}`
-        }])
-
-        await fetch('/api/send-order-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order, items: cartItems.map(i => ({ product_name: i.name, product_sku: i.sku, quantity: i.qty, unit_price: i.price })),
-            clientEmail: u.email, invoiceNum, total: cartTotal,
-          })
-        })
-
-        await fetch('/api/send-payment-request-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clientEmail: u.email, orderNumber: order.order_number,
-            total: cartTotal, paymentMethod, shippingMethod,
-            items: cartItems.map(i => ({ product_name: i.name, product_sku: i.sku, quantity: i.qty, unit_price: i.price }))
-          })
-        })
+      if (error || !order) {
+        console.error('Order creation failed', error)
+        alert('There was a problem submitting your order. Please try again or contact us.')
+        setSubmitting(false)
+        return
       }
+
+      const { error: itemsError } = await supabase.from('order_items').insert(
+        cartItems.map(item => ({
+          order_id: order.id,
+          product_id: item.id,
+          product_name: item.name,
+          product_sku: item.sku,
+          quantity: item.qty,
+          unit_price: item.price,
+        }))
+      )
+
+      if (itemsError) {
+        console.error('order_items insert failed', itemsError)
+        alert(`Your order #${order.order_number} was created, but we couldn't save the item list. Please contact us at partners@levamcorp.com with your order number so we can add the items manually.`)
+        setSubmitting(false)
+        return
+      }
+
+      // Create payment request automatically
+      await supabase.from('payments').insert([{
+        user_id: u.id,
+        order_id: order.id,
+        amount: cartTotal,
+        status: 'requested',
+        payment_method: paymentMethod,
+        shipping_method: shippingMethod,
+        client_email: u.email,
+        notes: `Payment request for order #${order.order_number} | Shipping: ${shippingMethod}${prepAddress ? ' - ' + prepAddress : ''}`
+      }])
+
+      await fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order, items: cartItems.map(i => ({ product_name: i.name, product_sku: i.sku, quantity: i.qty, unit_price: i.price })),
+          clientEmail: u.email, invoiceNum, total: cartTotal,
+        })
+      })
+
+      await fetch('/api/send-payment-request-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientEmail: u.email, orderNumber: order.order_number,
+          total: cartTotal, paymentMethod, shippingMethod,
+          items: cartItems.map(i => ({ product_name: i.name, product_sku: i.sku, quantity: i.qty, unit_price: i.price }))
+        })
+      })
+
       setOrderSubmitted(true)
     } catch (e) { alert('Error submitting order. Please try again.') }
     setSubmitting(false)
