@@ -940,28 +940,132 @@ function PackingList() {
   )
 }
 
-// ── STAMP SEAL — ink-stamp reveal on scroll ──────────────────────────────────
-function StampSeal({ label, sub, color = '#2F7DF6', delay = 0 }) {
-  const ref = useRef(null)
-  const [vis, setVis] = useState(false)
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setTimeout(() => setVis(true), delay * 1000); obs.disconnect() }
-    }, { threshold: 0.4 })
-    if (ref.current) obs.observe(ref.current)
-    return () => obs.disconnect()
-  }, [delay])
+const COMPANY_FACTS = [
+  { label:'Registered Florida business (DBA)',   mark:'ON FILE' },
+  { label:'Warehouse in Doral, FL 33178',         mark:'ACTIVE' },
+  { label:'English & Spanish speaking team',      mark:'BILINGUAL' },
+  { label:'MOQ varies by product — no pressure',  mark:'FLEXIBLE' },
+]
+const COMPANY_FIELDS = [
+  { k:'LEGAL NAME',  v:'Levam Corp Distributors (DBA)',       tag:'7DF6' },
+  { k:'ADDRESS',     v:'6315 NW 99th Ave, Doral, FL 33178',   tag:'B705' },
+  { k:'STATE',       v:'Florida, United States',              tag:'C41D' },
+  { k:'OPERATIONS',  v:'B2B Wholesale Distribution',          tag:'7280' },
+  { k:'SINCE',       v:'Registered · DBA on file',            tag:'8A54' },
+]
+const COMPANY_RECORD_BARS = seededBars(20260827, 96)
+
+// Rotating dashed-ring seal — the "Certificate of record" motif's own stamp look
+function SealRing({ l1, l2, l3, ring, color }) {
   return (
-    <div ref={ref} style={{
-      width:106, height:106, borderRadius:'50%', border:`3px solid ${color}`, color, flexShrink:0,
-      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center',
-      transform: vis ? 'scale(1) rotate(-9deg)' : 'scale(2.4) rotate(-9deg)',
-      opacity: vis ? 0.92 : 0,
-      transition:'transform 0.5s cubic-bezier(0.22,1.61,0.36,1), opacity 0.25s ease',
-      padding:10, boxSizing:'border-box',
-    }}>
-      <div className="lc-display" style={{ fontSize:11, fontWeight:800, letterSpacing:'0.04em', lineHeight:1.2, textTransform:'uppercase' }}>{label}</div>
-      {sub && <div className="lc-mono" style={{ fontSize:7, fontWeight:700, letterSpacing:'0.1em', marginTop:4, textTransform:'uppercase', opacity:0.85 }}>{sub}</div>}
+    <div style={{ position:'relative', width:104, height:104, display:'grid', placeItems:'center', border:`1px solid ${ring}`, borderRadius:'50%' }}>
+      <div style={{ position:'absolute', inset:6, border:'1px dashed rgba(245,241,232,0.14)', borderRadius:'50%', animation:'sealSpin 42s linear infinite' }}/>
+      <div className="lc-mono" style={{ textAlign:'center', fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', lineHeight:1.7, color }}>
+        {l1}<br/>{l2}<br/><span style={{ color:'#6F6D67', letterSpacing:'0.14em' }}>{l3}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── COMPANY RECORD — "About" as a certificate-of-record ticket ────────────────
+function CompanyRecord() {
+  const [hovered, setHovered] = useState(-1)
+  const cut = hovered >= 0 ? Math.round(((hovered + 1) / COMPANY_FIELDS.length) * COMPANY_RECORD_BARS.length) : 0
+
+  return (
+    <div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:9 }}>
+          <span style={{ display:'inline-block', width:6, height:6, background:'#F2B705', borderRadius:'50%', animation:'blip 2.8s ease-in-out infinite' }}/>
+          Certificate of record
+        </span>
+        <span>Form 02 · DBA on file</span>
+      </div>
+      <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+      <div style={{ height:3 }}/>
+      <div style={{ height:1, background:'rgba(245,241,232,0.14)' }}/>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))' }}>
+        <div style={{ padding:'clamp(34px,5vh,56px) clamp(20px,3.5vw,46px) clamp(30px,4vh,44px) 0' }}>
+          <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(32px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1, color:'#F5F2E9' }}>
+            A different kind<br/>of distributor.
+          </h2>
+          <p style={{ margin:'clamp(20px,3vh,28px) 0 0', maxWidth:440, fontSize:14.5, lineHeight:1.75, color:'#A7A090' }}>
+            Levam Corp Distributors is a B2B wholesale distribution company based in Doral, FL. We source electronics and home appliances directly from top brands and distribute them to approved business partners at competitive wholesale prices.
+          </p>
+          <p style={{ margin:'16px 0 0', maxWidth:440, fontSize:14.5, lineHeight:1.75, color:'#F5F1E8' }}>
+            We are not a marketplace. We are a distribution company with a real warehouse, a real team, and a real commitment to the partners we work with.
+          </p>
+
+          <div style={{ marginTop:'clamp(26px,4vh,38px)', borderTop:'1px solid rgba(245,241,232,0.14)' }}>
+            {COMPANY_FACTS.map((f,i) => (
+              <div key={f.label} style={{ display:'grid', gridTemplateColumns:'22px 1fr auto', gap:14, alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px solid rgba(245,241,232,0.09)' }}>
+                <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.14em', color:'#5F5D58' }}>0{i+1}</span>
+                <span style={{ fontSize:13.5, color:'#DDD8CD' }}>{f.label}</span>
+                <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2B705' }}>{f.mark}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap:'clamp(20px,3vw,32px)', marginTop:'clamp(26px,4vh,38px)', flexWrap:'wrap' }}>
+            <SealRing l1="FLORIDA" l2="REGISTERED" l3="DBA ON FILE" ring="rgba(245,241,232,0.3)" color="#E4E0D6"/>
+            <SealRing l1="VERIFIED" l2="PARTNERS" l3="REVIEWED" ring="#F2B705" color="#F2B705"/>
+            <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67', lineHeight:2 }}>Seals verified<br/>on file · 2026</div>
+          </div>
+        </div>
+
+        <div style={{ borderLeft:'1px solid rgba(245,241,232,0.14)', padding:'clamp(34px,5vh,56px) 0 clamp(30px,4vh,44px) clamp(20px,3.5vw,46px)' }}>
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', paddingBottom:14 }}>
+            <span style={{ color:'#F5F1E8' }}>Company information</span>
+            <span>Tag · {hovered >= 0 ? COMPANY_FIELDS[hovered].tag : '2F19'}</span>
+          </div>
+          <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+
+          {COMPANY_FIELDS.map((f,i) => {
+            const on = hovered === i
+            return (
+              <div key={f.k} tabIndex={0}
+                onMouseEnter={()=>setHovered(i)} onMouseLeave={()=>setHovered(-1)} onFocus={()=>setHovered(i)} onBlur={()=>setHovered(-1)}
+                style={{ position:'relative', padding:'15px 12px 16px 0', borderBottom:'1px solid rgba(245,241,232,0.09)',
+                  background: on ? 'rgba(245,241,232,0.035)' : 'transparent', cursor:'default', transition:'background 0.35s ease' }}>
+                <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:'#F2B705', transformOrigin:'top', transform: on ? 'scaleY(1)' : 'scaleY(0)', transition:'transform 0.4s cubic-bezier(0.22,0.61,0.36,1)' }}/>
+                <div style={{ display:'grid', gridTemplateColumns:'clamp(96px,12vw,136px) 1fr', gap:'6px 18px', alignItems:'baseline',
+                  transform: on ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.4s cubic-bezier(0.22,0.61,0.36,1)' }}>
+                  <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#F2B705' : '#6F6D67', transition:'color 0.35s' }}>{f.k}</div>
+                  <div style={{ fontSize:15, letterSpacing:'-0.01em', lineHeight:1.5, color: on ? '#fff' : '#DDD8CD', transition:'color 0.35s' }}>{f.v}</div>
+                </div>
+              </div>
+            )
+          })}
+
+          <div style={{ marginTop:'clamp(20px,3vh,30px)', borderTop:'1px solid rgba(245,241,232,0.3)', paddingTop:12 }}>
+            <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', paddingBottom:12 }}>
+              <span style={{ color:'#F5F1E8' }}>Exhibit A · Warehouse</span>
+              <span>Doral · FL 33178</span>
+            </div>
+            <div style={{ position:'relative', width:'100%', aspectRatio:'16/10', border:'1px solid rgba(245,241,232,0.14)', background:'#0B0C0F', overflow:'hidden' }}>
+              <img src="/warehouse.jpg" alt="Levam Corp warehouse — pallets staged for dispatch" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+              <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(245,241,232,0.06)', pointerEvents:'none' }}/>
+              <div style={{ position:'absolute', left:0, right:0, top:0, height:62, pointerEvents:'none', background:'linear-gradient(180deg, rgba(8,9,11,0.72), rgba(8,9,11,0))' }}/>
+              <div style={{ position:'absolute', top:10, left:10, width:14, height:14, borderTop:'1px solid rgba(245,241,232,0.55)', borderLeft:'1px solid rgba(245,241,232,0.55)', pointerEvents:'none' }}/>
+              <div style={{ position:'absolute', top:10, right:10, width:14, height:14, borderTop:'1px solid rgba(245,241,232,0.55)', borderRight:'1px solid rgba(245,241,232,0.55)', pointerEvents:'none' }}/>
+              <div style={{ position:'absolute', bottom:10, right:10, width:14, height:14, borderBottom:'1px solid rgba(245,241,232,0.55)', borderRight:'1px solid rgba(245,241,232,0.55)', pointerEvents:'none' }}/>
+              <div className="lc-mono" style={{ position:'absolute', top:8, right:32, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F5F1E8', background:'rgba(8,9,11,0.82)', padding:'4px 8px', pointerEvents:'none' }}>Ref · WH-01</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ height:1, background:'rgba(245,241,232,0.14)' }}/>
+      <div style={{ position:'relative', display:'flex', alignItems:'flex-end', gap:2, height:32, padding:'8px 0', overflow:'hidden' }}>
+        {COMPANY_RECORD_BARS.map((b,i) => (
+          <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#F2B705' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>
+        ))}
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:6, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span>{hovered >= 0 ? `Field 0${hovered + 1} · ${COMPANY_FIELDS[hovered].tag} · verified` : 'Record complete · 05 fields'}</span>
+        <span>Levamcorp · Doral · FL</span>
+      </div>
     </div>
   )
 }
@@ -1197,6 +1301,8 @@ export default function Home() {
         @keyframes heroWipe  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
         @keyframes scrollCue { 0%{transform:translateY(0);opacity:0} 30%{opacity:1} 100%{transform:translateY(14px);opacity:0} }
         @keyframes manifestScan { 0%{transform:translateX(-40%);opacity:0} 18%{opacity:1} 82%{opacity:1} 100%{transform:translateX(140%);opacity:0} }
+        @keyframes sealSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes blip { 0%,100%{opacity:0.25} 50%{opacity:1} }
         @keyframes flashOut  { 0%{opacity:1} 100%{opacity:0} }
         @keyframes heroGlow  { 0%{opacity:0;transform:scale(0.8)} 100%{opacity:1;transform:scale(1)} }
         @keyframes stripeMove { from{background-position:0 0} to{background-position:56px 0} }
@@ -1467,50 +1573,10 @@ export default function Home() {
       {/* ── ABOUT ───────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="lc-section" id="about" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
-          <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5rem', alignItems:'center' }}>
-            <Reveal>
-              <div>
-                <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', margin:'0 0 1.25rem', lineHeight:1.1 }}>
-                  A different kind<br/>of distributor.
-                </h2>
-                <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.9, marginBottom:'1rem' }}>
-                  Levam Corp Distributors is a B2B wholesale distribution company based in Doral, FL. We source electronics and home appliances directly from top brands and distribute them to approved business partners at competitive wholesale prices.
-                </p>
-                <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.9, marginBottom:'2rem' }}>
-                  We are not a marketplace. We are a distribution company with a real warehouse, a real team, and a real commitment to the partners we work with.
-                </p>
-                {['Registered Florida business (DBA)','Warehouse in Doral, FL 33178','English & Spanish speaking team','MOQ varies by product — no pressure'].map(item => (
-                  <div key={item} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, color:'#A7A090', fontSize:13 }}>
-                    <span style={{ color:'#2F7DF6', flexShrink:0 }}>{IC.check}</span>{item}
-                  </div>
-                ))}
-                <div style={{ display:'flex', gap:18, marginTop:'2rem' }}>
-                  <StampSeal label="Florida Registered" sub="DBA on file" color="#F2B705"/>
-                  <StampSeal label="Verified Partners" sub="Personally reviewed" color="#2F7DF6" delay={0.15}/>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={0.12}>
-              <TiltCard glow="#2F7DF6">
-                <Card accent="#2F7DF6">
-                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'rgba(167,160,144,0.5)', textTransform:'uppercase', marginBottom:'1.25rem' }}>Company information</div>
-                  {[
-                    ['Legal name','Levam Corp Distributors (DBA)'],
-                    ['Address','6315 NW 99th Ave, Doral, FL 33178'],
-                    ['State','Florida, United States'],
-                    ['Operations','B2B Wholesale Distribution'],
-                    ['Brands','Hisense · Samsung · Brentwood · Hamilton Beach · Avanti · Proctor Silex · Magic Bullet'],
-                  ].map(([lbl,val]) => (
-                    <div key={lbl} style={{ padding:'0.8rem 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                      <div style={{ fontSize:9, color:'rgba(167,160,144,0.5)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3 }}>{lbl}</div>
-                      <div style={{ fontSize:12.5, color:'rgba(255,255,255,0.65)', fontWeight:500, lineHeight:1.5 }}>{val}</div>
-                    </div>
-                  ))}
-                </Card>
-              </TiltCard>
-            </Reveal>
-          </div>
+        <div style={{ maxWidth:1180, margin:'0 auto', position:'relative' }}>
+          <Reveal>
+            <CompanyRecord/>
+          </Reveal>
         </div>
       </section>
 
