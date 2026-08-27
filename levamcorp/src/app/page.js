@@ -268,19 +268,6 @@ function MobileMenu() {
   )
 }
 
-// ── WAVE SVG ──────────────────────────────────────────────────────────────────
-const Wave = ({ flip = false, opacity = 0.04, color = '242,183,5' }) => (
-  <div style={{ position:'relative', height:80, overflow:'hidden', pointerEvents:'none' }}>
-    <svg viewBox="0 0 1440 80" preserveAspectRatio="none"
-      style={{ position:'absolute', [flip?'top':'bottom']:0, width:'100%', height:'100%' }}>
-      <path d={flip
-        ? "M0,40 C360,0 720,80 1080,40 C1260,20 1380,60 1440,40 L1440,0 L0,0 Z"
-        : "M0,40 C360,80 720,0 1080,40 C1260,60 1380,20 1440,40 L1440,80 L0,80 Z"}
-        fill={`rgba(${color},${opacity})`}/>
-    </svg>
-  </div>
-)
-
 // ── CARD SHELL ────────────────────────────────────────────────────────────────
 const hexToRgb = (hex) => {
   const h = hex.replace('#','')
@@ -632,68 +619,232 @@ function HeroStats() {
   )
 }
 
-function SlotCounter({ to, suffix = '' }) {
-  const [val,     setVal]     = useState(0)
-  const [flicker, setFlicker] = useState(false)
-  const [slot,    setSlot]    = useState(0)
-  const ref     = useRef(null)
-  const started = useRef(false)
+// Deterministic pseudo-random bar widths (LCG) — same seed always draws the
+// same "barcode ruler" strip, so server and client render identically.
+function seededBars(seed, count) {
+  let s = seed
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
+  return Array.from({ length: count }, () => {
+    const r = rnd()
+    return { w: r > 0.82 ? 3 : r > 0.5 ? 2 : 1, tall: r > 0.94 }
+  })
+}
+const RULER_BARS = seededBars(20260826, 120)
+const TIMER_BARS = seededBars(77113, 120)
 
+// Odometer-style digit roll, each place spinning independently to its target
+function OdometerNumber({ target, play }) {
+  const [display, setDisplay] = useState(0)
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting || started.current) return
-      started.current = true
-      let ticks = 0
-      const iv = setInterval(() => {
-        setSlot(Math.floor(Math.random() * to))
-        setFlicker(true)
-        if (++ticks >= 10) {
-          clearInterval(iv)
-          setFlicker(false)
-          const start = performance.now()
-          const tick  = now => {
-            const p = Math.min((now - start) / 1600, 1)
-            setVal(Math.round((1 - Math.pow(1 - p, 4)) * to))
-            if (p < 1) requestAnimationFrame(tick)
-          }
-          requestAnimationFrame(tick)
-        }
-      }, 60)
-    }, { threshold: 0.4 })
-    if (ref.current) obs.observe(ref.current)
-    return () => obs.disconnect()
-  }, [to])
+    if (!play) return
+    const t0 = performance.now(), dur = 2000
+    let raf
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur)
+      setDisplay(Math.round(target * (1 - Math.pow(1 - k, 4))))
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [play, target])
 
+  const places = String(target).length
   return (
-    <span ref={ref} style={{ filter: flicker ? 'blur(1px) brightness(1.6)' : 'none', transition: 'filter 0.2s' }}>
-      {(flicker ? slot : val).toLocaleString()}{suffix}
-    </span>
+    <div style={{ display:'flex', height:'0.9em', overflow:'hidden' }}>
+      {Array.from({ length: places }, (_, i) => {
+        const divisor = Math.pow(10, places - 1 - i)
+        const digit = Math.floor(display / divisor) % 10
+        return (
+          <div key={i} style={{ height:'0.9em', overflow:'hidden' }}>
+            <div style={{ display:'flex', flexDirection:'column', transform:`translateY(-${digit * 10}%)`, transition:'transform 0.35s cubic-bezier(0.22,0.61,0.36,1)' }}>
+              {[0,1,2,3,4,5,6,7,8,9].map(n => <span key={n} style={{ display:'block', height:'0.9em', lineHeight:'0.9em' }}>{n}</span>)}
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
-function DrawLine({ height = 120, color = '#2F7DF6', delay = 0 }) {
+const MANIFEST_STATS = [
+  { label:'ACTIVE SKUS',    code:'SKU', to:500, suffix:'+', note:'ACROSS ALL BRANDS' },
+  { label:'AVG. DISPATCH',  code:'ETA', to:48,  suffix:'h', note:'FROM DORAL, FL' },
+  { label:'PREMIUM BRANDS', code:'BRD', to:10,  suffix:'+', note:'DIRECT WHOLESALE' },
+]
+
+// ── MANIFEST METRICS — the SKU/dispatch/brands strip, styled as a scan ticket ──
+function ManifestMetrics() {
   const ref = useRef(null)
-  const [progress, setProgress] = useState(0)
+  const [play, setPlay] = useState(false)
+  const [hoverIdx, setHoverIdx] = useState(-1)
+
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return
-      setTimeout(() => {
-        const start = performance.now()
-        const tick  = now => {
-          const p = Math.min((now - start) / 1000, 1)
-          setProgress(1 - Math.pow(1 - p, 3))
-          if (p < 1) requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
-      }, delay * 1000)
-    }, { threshold: 0.3 })
-    if (ref.current) obs.observe(ref.current)
-    return () => obs.disconnect()
-  }, [delay])
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setPlay(true); io.disconnect() } }, { threshold:0.15 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   return (
-    <div ref={ref} style={{ position:'absolute', left:20, top:44, width:1, height }}>
-      <div style={{ position:'absolute', top:0, left:0, width:1, height:`${progress*100}%`, background:`linear-gradient(180deg,${color},${color}00)` }}/>
-      <div style={{ position:'absolute', left:-3, top:`calc(${progress*100}% - 4px)`, width:7, height:7, borderRadius:'50%', background:color, boxShadow:`0 0 10px ${color}`, opacity: progress > 0 && progress < 1 ? 1 : 0 }}/>
+    <div ref={ref} style={{ border:'1px solid rgba(245,241,232,0.16)' }}>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'12px 16px', borderBottom:'1px solid rgba(245,241,232,0.16)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#B7B2A2' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ display:'inline-block', width:13, height:13, border:'1px solid rgba(245,241,232,0.5)', borderLeftWidth:3 }}/>
+          <span style={{ fontWeight:700, letterSpacing:'0.18em', color:'#F5F1E8' }}>LEVAMCORP</span>
+        </div>
+        <span style={{ color:'#7C7A73' }}>DORAL · FL</span>
+      </div>
+
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'10px 16px', borderBottom:'1px solid rgba(245,241,232,0.16)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>
+        <span>MANIFEST / MÉTRICAS</span>
+        <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>03 OF 03
+        </span>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(215px,1fr))' }}>
+        {MANIFEST_STATS.map((s, i) => (
+          <div key={s.label} onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(-1)}
+            style={{ position:'relative', padding:'clamp(24px,3.4vh,34px) 16px clamp(26px,3.6vh,36px)',
+              borderLeft: i === 0 ? '1px solid transparent' : '1px solid rgba(245,241,232,0.16)',
+              background: hoverIdx === i ? 'rgba(245,241,232,0.035)' : 'transparent',
+              transition:'background 0.4s ease' }}>
+            <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', marginBottom:'clamp(18px,2.6vh,26px)' }}>
+              <span>{s.label}</span>
+              <span style={{ transition:'color 0.4s', color: hoverIdx === i ? '#F2B705' : '#5F5D58' }}>{s.code}</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'flex-end', gap:1, fontSize:'clamp(46px,5.4vw,72px)', letterSpacing:'-0.045em', fontVariantNumeric:'tabular-nums', color:'#F5F2E9' }}>
+              <OdometerNumber target={s.to} play={play}/>
+              <span style={{ fontSize:'0.34em', lineHeight:1, letterSpacing:'-0.02em', paddingBottom:'0.16em', color:'#86837C' }}>{s.suffix}</span>
+            </div>
+            <div className="lc-mono" style={{ marginTop:16, fontSize:10.5, letterSpacing:'0.1em', textTransform:'uppercase', color:'#8F8C85' }}>{s.note}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ position:'relative', display:'flex', alignItems:'flex-end', gap:2, height:34, padding:'0 16px', overflow:'hidden', borderTop:'1px solid rgba(245,241,232,0.16)', background:'rgba(245,241,232,0.03)' }}>
+        {RULER_BARS.map((b, i) => (
+          <div key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 24 : 18, background:'#F5F1E8', opacity:0.5 }}/>
+        ))}
+        <div style={{ position:'absolute', top:0, bottom:0, width:'18%', pointerEvents:'none', background:'linear-gradient(90deg,transparent,rgba(245,241,232,0.09),transparent)', animation:'manifestScan 7s cubic-bezier(0.45,0,0.55,1) infinite' }}/>
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'9px 16px 11px', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span>TAG · 2F19 · MTR</span>
+        <span>levamcorp.com</span>
+      </div>
+    </div>
+  )
+}
+
+// Dashed connector between the metrics ticket and the process ticket
+function ManifestConnector() {
+  return (
+    <div style={{ position:'relative', height:'clamp(56px,8vh,92px)' }}>
+      <div style={{ position:'absolute', left:0, right:0, top:'50%', height:1, backgroundImage:'repeating-linear-gradient(to right, rgba(245,241,232,0.26) 0 5px, rgba(245,241,232,0) 5px 12px)' }}/>
+      <div style={{ position:'absolute', left:'50%', top:'50%', width:26, height:26, margin:'-13px 0 0 -13px', background:'#14120E', border:'1px solid rgba(245,241,232,0.2)', borderRadius:'50%' }}/>
+      <div style={{ position:'absolute', left:'50%', top:'50%', width:8, height:8, margin:'-4px 0 0 -4px', background:'#F2B705' }}/>
+    </div>
+  )
+}
+
+const STEP_DATA = [
+  { title:'Apply online',       code:'APP', body:'Submit your business info — EIN, resale certificate, and a brief description of what you sell and where.', fields:[['REQUIRES','EIN · RESALE CERT'],['TIME','5 MIN']] },
+  { title:'Get approved',       code:'REV', body:'We review every application personally and respond within one to two business days.', fields:[['REVIEW','HUMAN'],['TURNAROUND','1–2 DAYS']] },
+  { title:'Access your portal', code:'PRT', body:'Once approved you get private access to the full catalog — live pricing, stock levels, order tracking.', fields:[['PRICING','LIVE'],['INVENTORY','REAL-TIME']] },
+  { title:'Order & receive',    code:'SHP', body:'Place orders through your portal. We dispatch from Doral, FL with an average 48-hour turnaround.', fields:[['ORIGIN','DORAL, FL'],['SHIPPING','FCL / LCL']] },
+]
+const STEP_TAGS = ['7DF6','B705','8A54','C41D']
+const STEP_DWELL_MS = 5000
+
+// ── PROCESS STEPPER — auto-advancing tabs, hover/click/arrow-keys override ────
+function ProcessStepper() {
+  const [active, setActive]   = useState(0)
+  const [hovered, setHovered] = useState(-1)
+  const fillRef = useRef(null)
+
+  useEffect(() => {
+    let raf, lastSwitch = performance.now()
+    const loop = now => {
+      if (hovered === -1) {
+        const t = Math.min(1, (now - lastSwitch) / STEP_DWELL_MS)
+        if (fillRef.current) fillRef.current.style.width = (t * 100) + '%'
+        if (t >= 1) { setActive(a => (a + 1) % STEP_DATA.length); lastSwitch = now }
+      } else if (fillRef.current) {
+        fillRef.current.style.width = '100%'
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [hovered])
+
+  const onKeyDown = e => {
+    const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    setActive(a => (a + d + STEP_DATA.length) % STEP_DATA.length)
+  }
+
+  const current = hovered >= 0 ? hovered : active
+  const barRow = (color, opacity) => (
+    <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:34, padding:'0 16px' }}>
+      {TIMER_BARS.map((b, i) => <div key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 24 : 18, background:color, opacity }}/>)}
+    </div>
+  )
+
+  return (
+    <div style={{ border:'1px solid rgba(245,241,232,0.16)' }}>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'12px 16px', borderBottom:'1px solid rgba(245,241,232,0.16)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#B7B2A2' }}>
+        <span>PROCEDURE / PROCESO</span>
+        <span style={{ display:'flex', alignItems:'center', gap:8, color:'#7C7A73' }}>
+          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>0{current + 1} OF 04
+        </span>
+      </div>
+
+      <div role="tablist" aria-label="How it works" onKeyDown={onKeyDown}>
+        {STEP_DATA.map((st, i) => {
+          const on = i === current
+          return (
+            <div key={st.title} role="tab" tabIndex={on ? 0 : -1} aria-selected={on}
+              onMouseEnter={() => setHovered(i)} onFocus={() => setHovered(i)} onMouseLeave={() => setHovered(-1)} onClick={() => setActive(i)}
+              style={{ position:'relative', padding:'20px 16px 22px', cursor:'pointer',
+                borderTop: i === 0 ? '1px solid transparent' : '1px solid rgba(245,241,232,0.12)',
+                opacity: on ? 1 : 0.42, background: on ? 'rgba(245,241,232,0.04)' : 'transparent',
+                transition:'opacity 0.5s ease, background 0.4s ease' }}>
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:12, color: on ? '#C9C5BA' : '#6F6D67' }}>
+                <span>STEP 0{i + 1} / 04</span>
+                <span style={{ color: on ? '#F2B705' : '#6F6D67' }}>CODE {st.code}</span>
+              </div>
+              <div style={{ fontSize:18, fontWeight:600, letterSpacing:'-0.02em', marginBottom:8, color: on ? '#fff' : '#C9C5BA' }}>{st.title}</div>
+              <div style={{ fontSize:14.5, lineHeight:1.68, color:'#8F8C85', maxWidth:'46ch' }}>{st.body}</div>
+              <div style={{ display:'grid', gridTemplateRows: on ? '1fr' : '0fr', transition:'grid-template-rows 0.5s cubic-bezier(0.22,0.61,0.36,1), opacity 0.4s', opacity: on ? 1 : 0 }}>
+                <div style={{ overflow:'hidden' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', marginTop:16, borderTop:'1px solid rgba(245,241,232,0.1)' }}>
+                    {st.fields.map(([k, v]) => (
+                      <div key={k} className="lc-mono" style={{ padding:'11px 14px 2px 0' }}>
+                        <div style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>{k}</div>
+                        <div style={{ marginTop:5, fontSize:11.5, letterSpacing:'0.08em', color:'#D9D5CA' }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ position:'relative', overflow:'hidden', borderTop:'1px solid rgba(245,241,232,0.16)', background:'rgba(245,241,232,0.03)' }}>
+        {barRow('#F5F1E8', 0.14)}
+        <div ref={fillRef} style={{ position:'absolute', inset:0, overflow:'hidden', width:'0%' }}>
+          {barRow('#F2B705', 0.95)}
+        </div>
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'9px 16px 11px', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span>TAG · {STEP_TAGS[current]} · {STEP_DATA[current].code}</span>
+        <span>levamcorp.com</span>
+      </div>
     </div>
   )
 }
@@ -954,6 +1105,7 @@ export default function Home() {
         @keyframes heroLine  { from{transform:translateY(105%) rotate(1.4deg)} to{transform:translateY(0) rotate(0)} }
         @keyframes heroWipe  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
         @keyframes scrollCue { 0%{transform:translateY(0);opacity:0} 30%{opacity:1} 100%{transform:translateY(14px);opacity:0} }
+        @keyframes manifestScan { 0%{transform:translateX(-40%);opacity:0} 18%{opacity:1} 82%{opacity:1} 100%{transform:translateX(140%);opacity:0} }
         @keyframes flashOut  { 0%{opacity:1} 100%{opacity:0} }
         @keyframes heroGlow  { 0%{opacity:0;transform:scale(0.8)} 100%{opacity:1;transform:scale(1)} }
         @keyframes stripeMove { from{background-position:0 0} to{background-position:56px 0} }
@@ -1178,72 +1330,33 @@ export default function Home() {
         </div>
       </section>
 
-      <Wave/>
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── STATS + PROCESS — one continuous manifest/procedure ticket ── */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="lc-section" id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5 }}>
+        <div style={{ maxWidth:1180, margin:'0 auto' }}>
+          <Reveal>
+            <ManifestMetrics/>
+          </Reveal>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── STATS ───────────────────────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="stats" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, background:'rgba(29,26,21,0.6)', borderTop:'1px solid rgba(245,241,232,0.05)', borderBottom:'1px solid rgba(245,241,232,0.05)' }}>
-        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(47,125,246,0.05) 1px, transparent 1px)', backgroundSize:'38px 38px', pointerEvents:'none' }}/>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
-          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'2rem', textAlign:'center' }}>
-            {[
-              { to:500, s:'+', label:'Active SKUs',      sub:'across all brands' },
-              { to:48,  s:'h', label:'Avg. dispatch',    sub:'from Doral, FL' },
-              { to:7,   s:'+', label:'Premium brands',   sub:'direct wholesale' },
-            ].map((stat, i) => (
-              <Reveal key={stat.label} delay={i*0.12}>
-                <div style={{ padding:'2rem 1rem' }}>
-                  <div style={{ fontSize:'clamp(48px,6vw,80px)', fontWeight:900, letterSpacing:'-0.03em', color:'#fff', lineHeight:1, textShadow:'0 0 40px rgba(47,125,246,0.35)' }}>
-                    <SlotCounter to={stat.to} suffix={stat.s}/>
-                  </div>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#2F7DF6', marginTop:10, letterSpacing:'0.06em' }}>{stat.label}</div>
-                  <div style={{ fontSize:11, color:'rgba(167,160,144,0.5)', marginTop:4 }}>{stat.sub}</div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+          <ManifestConnector/>
 
-      <Wave flip color="47,125,246"/>
-
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── PROCESS ─────────────────────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="process" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
-          <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5rem', alignItems:'start' }}>
+          <div id="process" className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4.5rem', alignItems:'start' }}>
             <Reveal>
-              <div style={{ position:'sticky', top:100 }}>
-                <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', margin:'0 0 1.25rem', lineHeight:1.1 }}>Simple process.<br/>Real results.</h2>
-                <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85, maxWidth:360, marginBottom:'2rem' }}>
+              <div style={{ position:'sticky', top:100, paddingTop:8 }}>
+                <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.22em', textTransform:'uppercase', color:'#7C7A73', marginBottom:20 }}>PROCEDURE — 04 STEPS</div>
+                <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1 }}>
+                  Simple process.<br/><span style={{ color:'#A7A090' }}>Real results.</span>
+                </h2>
+                <p style={{ margin:'24px 0 0', maxWidth:360, fontSize:13.5, color:'#A7A090', lineHeight:1.85 }}>
                   We review every application personally. We work with a select group of serious distributors, resellers, and retailers — not a marketplace.
                 </p>
-                <Link href="/apply" className="lc-btn">Start your application {IC.arrow}</Link>
+                <Link href="/apply" className="lc-btn" style={{ marginTop:32 }}>Start your application {IC.arrow}</Link>
               </div>
             </Reveal>
-            <div>
-              {[
-                { n:'01', title:'Apply online',      desc:'Submit your business info — EIN, resale certificate, and a brief description of what you sell and where.' },
-                { n:'02', title:'Get approved',      desc:'We review every application personally and respond within 1–2 business days.' },
-                { n:'03', title:'Access your portal',desc:'Once approved you get private access to our full catalog — live pricing, stock levels, and order tracking.' },
-                { n:'04', title:'Order & receive',   desc:'Place orders through your portal. We dispatch from Doral, FL with an average 48-hour turnaround.' },
-              ].map((step, i) => (
-                <Reveal key={step.n} delay={i*0.1}>
-                  <div style={{ display:'flex', gap:'1.25rem', padding:'1.75rem 0', borderBottom:i<3?'1px solid rgba(255,255,255,0.04)':'none', position:'relative' }}>
-                    {i < 3 && <DrawLine height={110} delay={i * 0.15}/>}
-                    <div style={{ width:40, height:40, borderRadius:'50%', border:'1px solid rgba(47,125,246,0.3)', background:'rgba(47,125,246,0.06)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative', zIndex:1 }}>
-                      <span style={{ fontSize:9, fontWeight:900, color:'#2F7DF6', letterSpacing:'0.05em' }}>{step.n}</span>
-                    </div>
-                    <div style={{ paddingTop:6 }}>
-                      <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:5 }}>{step.title}</div>
-                      <div style={{ fontSize:12.5, color:'#A7A090', lineHeight:1.7 }}>{step.desc}</div>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
+            <Reveal delay={0.1}>
+              <ProcessStepper/>
+            </Reveal>
           </div>
         </div>
       </section>
