@@ -1070,6 +1070,188 @@ function CompanyRecord() {
   )
 }
 
+const LANG_TABS_DATA = [ { key:'en', label:'English' }, { key:'es', label:'Español' } ]
+const LANG_SHEETS = [
+  { key:'en', lang:'ENGLISH · EN', copy:'COPY 1 OF 2', stamp:'VERIFIED COPY', signature:'REP ASSIGNED · NAMED CONTACT', hours:'MON–FRI 9AM–5PM ET',
+    rows:[
+      ['SUPPORT','Full support in English, start to finish.'],
+      ['ORDERS & QUOTES','Placed, confirmed and revised in English.'],
+      ['INVOICING','Invoices and shipping documents in English.'],
+      ['DIRECT REP','The same person every time — no ticket queue.'],
+    ] },
+  { key:'es', lang:'ESPAÑOL · ES', copy:'COPIA 2 DE 2', stamp:'COPIA VERIFICADA', signature:'REPRESENTANTE ASIGNADO · CONTACTO DIRECTO', hours:'LUN–VIE 9AM–5PM ET',
+    rows:[
+      ['ATENCIÓN','Atención completa en español, de principio a fin.'],
+      ['PEDIDOS Y COTIZACIONES','Pedidos y cotizaciones gestionados en español.'],
+      ['FACTURACIÓN','Facturas y documentos de envío en español.'],
+      ['REPRESENTANTE','La misma persona siempre — sin fila de tickets.'],
+    ] },
+]
+const LANG_STAMP_BARS = seededBars(4471, 60)
+
+// ── LANGUAGE DECLARATION — carbon-copy service form, cream on dark ────────────
+function LanguageDeclaration() {
+  const [lang, setLang] = useState('en')
+  return (
+    <div style={{ background:'#F2EFE6', color:'#08090B', padding:'clamp(18px,2.6vh,26px) clamp(20px,3vw,40px) clamp(22px,3.4vh,34px)' }}>
+      <div style={{ display:'flex', gap:'clamp(28px,5vw,60px)', justifyContent:'center', paddingBottom:'clamp(16px,2.4vh,24px)' }}>
+        {[0,1,2,3,4].map(i => (
+          <div key={i} style={{ width:13, height:13, borderRadius:'50%', background: i===2 ? '#F2B705' : '#08090B', opacity: i===2 ? 0.9 : 0.16 }}/>
+        ))}
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', paddingBottom:12, borderBottom:'1px solid rgba(8,9,11,0.9)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ display:'inline-block', width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #F2B705' }}/>
+          Service declaration · Declaración de servicio
+        </span>
+        <span style={{ color:'#5C5A55' }}>Form 03 · Duplicate copy</span>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(24px,3.5vw,54px)', padding:'clamp(24px,3.6vh,40px) 0 clamp(22px,3.2vh,34px)' }}>
+        <div>
+          <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(32px,4vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:0.98, color:'#08090B' }}>
+            English &amp; Español<span style={{ color:'#F2B705' }}>.</span>
+          </h2>
+          <div style={{ marginTop:8, fontSize:'clamp(18px,2vw,26px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1.12, color:'#6D6A64' }}>A dedicated rep for every partner.</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', justifyContent:'flex-end', gap:16 }}>
+          <p style={{ margin:0, maxWidth:'46ch', fontSize:14.5, lineHeight:1.68, color:'#3F3D39' }}>
+            Whether you communicate in English or Spanish, you get a dedicated rep — the right products, the right quantities, the right price. Two copies of the same commitment.
+          </p>
+          <div style={{ display:'flex', alignSelf:'flex-start', border:'1px solid #08090B' }}>
+            {LANG_TABS_DATA.map((t,i) => (
+              <button key={t.key} onClick={()=>setLang(t.key)} className="lc-mono"
+                style={{ border:'none', borderLeft: i===0 ? 'none' : '1px solid #08090B', cursor:'pointer', padding:'9px 18px',
+                  fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase',
+                  background: lang===t.key ? '#08090B' : 'transparent', color: lang===t.key ? '#F2EFE6' : '#08090B' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', paddingRight:'clamp(10px,1.6vw,20px)', paddingBottom:'clamp(14px,2.2vw,28px)' }}>
+        {LANG_SHEETS.map(s => {
+          const on = lang === s.key
+          const rule = on ? 'rgba(8,9,11,0.16)' : 'rgba(8,9,11,0.14)'
+          return (
+            <div key={s.key} tabIndex={0} role="button" aria-pressed={on} onClick={()=>setLang(s.key)}
+              onKeyDown={e=>{ if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setLang(s.key) } }}
+              style={{ gridArea:'1 / 1', alignSelf:'start', boxSizing:'border-box', position:'relative',
+                padding:'clamp(16px,2.4vh,22px) clamp(16px,2vw,24px) clamp(18px,2.6vh,24px)',
+                border:'1px solid #08090B', borderTop:`4px solid ${on ? '#F2B705' : 'transparent'}`,
+                cursor:'pointer', background: on ? '#FFFDF7' : '#DED9CC',
+                boxShadow: on ? '12px 14px 0 rgba(8,9,11,0.16)' : 'none',
+                transform: on ? 'translate(0,0)' : 'translate(clamp(10px,1.6vw,20px), clamp(14px,2.2vw,28px))',
+                zIndex: on ? 2 : 1, transition:'transform 0.35s cubic-bezier(0.22,0.61,0.36,1), box-shadow 0.35s ease, background 0.35s ease' }}>
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, paddingBottom:11, borderBottom:`1px solid ${rule}` }}>
+                <span style={{ fontWeight:700, letterSpacing:'0.22em', fontSize:9.5, textTransform:'uppercase', color: on ? '#08090B' : '#3A3833' }}>{s.lang}</span>
+                <span style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>{s.copy}</span>
+              </div>
+
+              <div style={{ position:'absolute', right:'clamp(14px,3vw,42px)', bottom:'clamp(52px,8vh,86px)', pointerEvents:'none',
+                transform:'rotate(-11deg)', border:`2px solid ${on ? '#F2B705' : '#8A6A5C'}`, padding:'7px 13px 8px', opacity: on ? 0.85 : 0.4 }}>
+                <div className="lc-mono" style={{ fontWeight:700, fontSize:11, letterSpacing:'0.26em', textTransform:'uppercase', color: on ? '#F2B705' : '#8A6A5C' }}>{s.stamp}</div>
+                <div className="lc-mono" style={{ marginTop:3, fontSize:8, letterSpacing:'0.22em', textTransform:'uppercase', textAlign:'center', color: on ? '#F2B705' : '#8A6A5C' }}>Levam Corp · Doral FL</div>
+              </div>
+
+              {s.rows.map(([k,v],i) => (
+                <div key={k} style={{ display:'grid', gridTemplateColumns:'26px clamp(104px,13vw,158px) 1fr', gap:'4px 14px', alignItems:'baseline', padding:'clamp(11px,1.7vh,15px) 0', borderBottom:`1px solid ${rule}` }}>
+                  <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.14em', color: on ? '#6F6C66' : '#5F5C56' }}>0{i+1}</div>
+                  <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', borderRight:`1px solid ${rule}`, paddingRight:14, color:'#5C5A55' }}>{k}</div>
+                  <div style={{ fontSize:14.5, lineHeight:1.55, color: on ? '#22211F' : '#4A4741' }}>{v}</div>
+                </div>
+              ))}
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:'12px clamp(18px,3vw,40px)', paddingTop:'clamp(16px,2.4vh,22px)' }}>
+                <div>
+                  <div style={{ height:1, background: on ? '#08090B' : '#3A3833', opacity:0.55 }}/>
+                  <div className="lc-mono" style={{ paddingTop:7, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>{s.signature}</div>
+                </div>
+                <div>
+                  <div style={{ height:1, background: on ? '#08090B' : '#3A3833', opacity:0.55 }}/>
+                  <div className="lc-mono" style={{ paddingTop:7, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>{s.hours}</div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', marginTop:'clamp(26px,4vh,42px)', paddingTop:12, borderTop:'1px solid rgba(8,9,11,0.9)' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5C5A55' }}>
+          Direct line · WhatsApp
+          <a href="https://wa.me/17864909005" style={{ fontSize:13, letterSpacing:'0.06em', color:'#08090B', borderBottom:'1px solid rgba(8,9,11,0.4)', paddingBottom:2, textDecoration:'none' }}>(786) 490-9005</a>
+        </span>
+        <span style={{ display:'flex', alignItems:'flex-end', gap:2, height:20, width:'clamp(120px,20vw,220px)' }}>
+          {LANG_STAMP_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 16 : 12, background:'#08090B', opacity:0.8 }}/>)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const BULLETIN_BARS = seededBars(20260828, 96)
+
+// ── BULLETIN GRID — "Stay ahead of the market" insights teaser, ticket style ──
+function BulletinGrid() {
+  const [hovered, setHovered] = useState(-1)
+  const cut = hovered >= 0 ? Math.round(((hovered + 1) / insightItems.length) * BULLETIN_BARS.length) : 0
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, flexWrap:'wrap', paddingBottom:12 }}>
+        <div>
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:10, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', marginBottom:14 }}>
+            <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+            Market bulletin · Issue 08 · 2026
+          </div>
+          <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
+            Stay ahead of the market<span style={{ color:'#F2B705' }}>.</span>
+          </h2>
+        </div>
+        <Link href="/insights" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:12, padding:'11px 18px', border:'1px solid rgba(245,241,232,0.3)', fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F5F1E8', textDecoration:'none' }}>
+          View all insights <span style={{ fontSize:12 }}>→</span>
+        </Link>
+      </div>
+      <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))', gap:1, background:'rgba(245,241,232,0.16)' }}>
+        {insightItems.map((ins,i) => {
+          const on = hovered === i
+          return (
+            <Link key={ins.title} href="/insights"
+              onMouseEnter={()=>setHovered(i)} onMouseLeave={()=>setHovered(-1)} onFocus={()=>setHovered(i)} onBlur={()=>setHovered(-1)}
+              style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', minHeight:'clamp(220px,30vh,280px)',
+                padding:'clamp(20px,3vh,28px) clamp(16px,2vw,22px) clamp(18px,2.6vh,24px)', background: on ? '#F2EFE6' : '#14120E', color: on ? '#08090B' : '#E4E0D6', textDecoration:'none' }}>
+              <div style={{ position:'absolute', right:-6, bottom:-26, pointerEvents:'none', fontSize:100, fontWeight:400, letterSpacing:'-0.06em', lineHeight:1, color: on ? '#08090B' : '#F2B705', opacity: on ? 0.07 : 0.14 }}>0{i+1}</div>
+              <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: on ? '#08090B' : '#F2B705' }}/>
+              <div className="lc-mono" style={{ position:'relative', display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12 }}>
+                <span style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#5C5A55' : '#8F8C85' }}>No. 0{i+1}</span>
+                <span style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#5C5A55' : '#8F8C85' }}>{ins.date}</span>
+              </div>
+              <div style={{ position:'relative', marginTop:'clamp(16px,2.4vh,22px)', fontSize:'clamp(18px,2vw,24px)', fontWeight:400, letterSpacing:'-0.02em', lineHeight:1.14, color: on ? '#08090B' : '#E4E0D6' }}>{ins.title}</div>
+              <div style={{ flex:1 }}/>
+              <div className="lc-mono" style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:'clamp(18px,2.6vh,26px)', paddingTop:12,
+                borderTop:`1px solid ${on ? 'rgba(8,9,11,0.2)' : 'rgba(245,241,232,0.12)'}` }}>
+                <span style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#08090B' : '#F2B705' }}>{ins.tag}</span>
+                <span style={{ display:'flex', alignItems:'center', gap: on ? 14 : 8, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase' }}>Read <span style={{ fontSize:11 }}>→</span></span>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+      <div style={{ height:1, background:'rgba(245,241,232,0.16)' }}/>
+      <div style={{ position:'relative', display:'flex', alignItems:'flex-end', gap:2, height:32, padding:'8px 0', overflow:'hidden' }}>
+        {BULLETIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#F2B705' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>)}
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:6, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span>{hovered >= 0 ? `Bulletin 0${hovered + 1} · ${insightItems[hovered].tag.toUpperCase()}` : 'Bulletin · 03 entries'}</span>
+        <span>Levamcorp · Doral · FL</span>
+      </div>
+    </div>
+  )
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
@@ -1583,76 +1765,17 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── LANGUAGE ────────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" style={{ padding:'5rem 2rem', position:'relative', zIndex:5, background:'rgba(47,125,246,0.02)', borderTop:'1px solid rgba(47,125,246,0.06)', borderBottom:'1px solid rgba(47,125,246,0.06)', overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', alignItems:'center', gap:'3rem', flexWrap:'wrap', justifyContent:'space-between', position:'relative' }}>
+      <section className="lc-section" style={{ padding:'7rem 2rem', position:'relative', zIndex:5 }}>
+        <div style={{ maxWidth:1180, margin:'0 auto' }}>
           <Reveal>
-            <div style={{ flex:1, minWidth:280 }}>
-              <h2 className="lc-display" style={{ fontSize:'clamp(22px,3vw,36px)', fontWeight:700, letterSpacing:'-0.02em', margin:'0 0 1rem', lineHeight:1.15 }}>
-                English & Español.<br/>
-                <span style={{ color:'#A7A090', fontWeight:500, fontSize:'0.75em' }}>A dedicated rep for every partner.</span>
-              </h2>
-              <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85, maxWidth:440 }}>
-                Whether you communicate in English or Spanish, we have dedicated team members ready to assist you. We'll help you find exactly what you need — the right products, the right quantities, the right price. You are never left searching alone.
-              </p>
-            </div>
+            <LanguageDeclaration/>
           </Reveal>
-          <Reveal delay={0.12}>
-            <div style={{ display:'flex', flexDirection:'column', gap:10, minWidth:260 }}>
-              {[['🇺🇸','English','Full support in English — orders, quotes, invoices, and communication.'],['🌎','Español','Atención completa en español — pedidos, cotizaciones y comunicación.']].map(([flag,lang,desc]) => (
-                <TiltCard key={lang} glow="#2F7DF6">
-                  <div style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'1rem 1.25rem', background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, backdropFilter:'blur(16px)' }}>
-                    <span style={{ fontSize:22, lineHeight:1, flexShrink:0 }}>{flag}</span>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>{lang}</div>
-                      <div style={{ fontSize:11.5, color:'#A7A090', lineHeight:1.55 }}>{desc}</div>
-                    </div>
-                  </div>
-                </TiltCard>
-              ))}
-              <div style={{ padding:'0.875rem 1.25rem', background:'rgba(47,125,246,0.05)', border:'1px solid rgba(47,125,246,0.14)', borderRadius:10, fontSize:12, color:'rgba(255,255,255,0.4)', lineHeight:1.6, backdropFilter:'blur(12px)' }}>
-                WhatsApp: <a href="https://wa.me/17864909005" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>(786) 490-9005</a> · Mon–Fri 9AM–5PM ET
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── MARKET INSIGHTS PREVIEW ─────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
-          <Reveal>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:'3rem', flexWrap:'wrap', gap:12 }}>
-              <div>
-                <h2 className="lc-display" style={{ fontSize:'clamp(22px,3vw,38px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1, display:'flex', alignItems:'center', gap:12 }}>
-                  <span style={{ width:8, height:8, background:'#12B76A', borderRadius:'50%', animation:'pulseDot 2s infinite', boxShadow:'0 0 6px rgba(18,183,106,0.8)', flexShrink:0 }}/>
-                  Stay ahead of the market.
-                </h2>
-              </div>
-              <Link href="/insights" style={{ fontSize:12, color:'#2F7DF6', textDecoration:'none', fontWeight:600, display:'flex', alignItems:'center', gap:6, padding:'8px 16px', border:'1px solid rgba(47,125,246,0.2)', borderRadius:20, background:'rgba(47,125,246,0.04)', backdropFilter:'blur(8px)' }}>
-                View all insights {IC.arrow}
-              </Link>
-            </div>
+          {/* ── MARKET INSIGHTS PREVIEW ─────────────────────────────────── */}
+          <div style={{ height:'clamp(70px,11vh,130px)' }}/>
+          <Reveal delay={0.1}>
+            <BulletinGrid/>
           </Reveal>
-          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-            {insightItems.map((ins, i) => (
-              <Reveal key={ins.title} delay={i*0.1}>
-                <TiltCard glow="#2F7DF6">
-                  <Link href="/insights" style={{ textDecoration:'none', display:'block' }}>
-                    <Card style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <span style={{ fontSize:9, padding:'3px 10px', background:'rgba(47,125,246,0.1)', color:'#2F7DF6', borderRadius:10, fontWeight:700, border:'0.5px solid rgba(47,125,246,0.2)', textTransform:'uppercase', letterSpacing:'0.1em' }}>{ins.tag}</span>
-                        <span style={{ fontSize:9, color:'rgba(167,160,144,0.5)' }}>{ins.date}</span>
-                      </div>
-                      <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', lineHeight:1.5, flex:1 }}>{ins.title}</div>
-                      <div style={{ fontSize:11, color:'#2F7DF6', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>Read insight {IC.arrow}</div>
-                    </Card>
-                  </Link>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
 
