@@ -16,8 +16,9 @@ const money = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFract
 const inp = { width:'100%', background:'#f0f1f3', border:'0.5px solid rgba(0,0,0,0.1)', color:'#888', fontSize:12, padding:'8px 10px', borderRadius:4, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
 
 export default function AdminOrders() {
-  const [orders,  setOrders]  = useState([])
-  const [clients, setClients] = useState([])
+  const [orders,   setOrders]   = useState([])
+  const [clients,  setClients]  = useState([])
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [sel,     setSel]     = useState(null)
   const [search,  setSearch]  = useState('')
@@ -27,9 +28,11 @@ export default function AdminOrders() {
   const [showETA,      setShowETA]      = useState(false)
   const [showPayment,  setShowPayment]  = useState(false)
   const [showUnits,    setShowUnits]    = useState(false)
+  const [showAddItem,  setShowAddItem]  = useState(false)
   const [etaForm,      setEtaForm]      = useState({eta:'',eta_notes:''})
   const [payForm,      setPayForm]      = useState({amount:'',notes:''})
   const [unitItems,    setUnitItems]    = useState([])
+  const [addItemForm,  setAddItemForm]  = useState({productId:'',search:'',quantity:'1',unitPrice:''})
   const [saving,       setSaving]       = useState(false)
   const [showDone,     setShowDone]     = useState(false)
 
@@ -43,13 +46,65 @@ export default function AdminOrders() {
 
   const reload = async (sb) => {
     sb = sb || createClient()
-    const [{ data: o }, { data: c }] = await Promise.all([
+    const [{ data: o }, { data: c }, { data: p }] = await Promise.all([
       sb.from('orders').select('*, order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('clients').select('*'),
+      sb.from('products').select('id,name,sku,price').order('name'),
     ])
     setOrders(o||[])
     setClients(c||[])
+    setProducts(p||[])
     setLoading(false)
+  }
+
+  const addOrderItem = async () => {
+    const product = products.find(p => p.id === addItemForm.productId)
+    if (!product) { alert('Pick a product first'); return }
+    const quantity  = parseInt(addItemForm.quantity) || 1
+    const unitPrice = parseFloat(addItemForm.unitPrice)
+    if (!(unitPrice >= 0)) { alert('Enter a unit price'); return }
+    setSaving(true)
+    const sb = createClient()
+    const { data: newItem, error } = await sb.from('order_items').insert([{
+      order_id: sel.id,
+      product_id: product.id,
+      product_name: product.name,
+      product_sku: product.sku || '—',
+      quantity,
+      unit_price: unitPrice,
+    }]).select().single()
+    if (error || !newItem) {
+      console.error('add order item failed', error)
+      alert(`Couldn't add the item: ${error?.message || 'unknown error'}${error?.details ? '\n' + error.details : ''}`)
+      setSaving(false)
+      return
+    }
+    const updatedItems = [...(sel.order_items || []), newItem]
+    const newTotal = updatedItems.reduce((s,i)=>s+(i.unit_price*i.quantity),0)
+    await sb.from('orders').update({total:newTotal}).eq('id',sel.id)
+    setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:updatedItems} : o))
+    setSel(prev => ({...prev, total:newTotal, order_items:updatedItems}))
+    setAddItemForm({productId:'',search:'',quantity:'1',unitPrice:''})
+    setSaving(false)
+  }
+
+  const removeOrderItem = async (itemId) => {
+    if (!confirm('Remove this item from the order?')) return
+    setSaving(true)
+    const sb = createClient()
+    const { error } = await sb.from('order_items').delete().eq('id', itemId)
+    if (error) {
+      console.error('remove order item failed', error)
+      alert(`Couldn't remove the item: ${error.message}`)
+      setSaving(false)
+      return
+    }
+    const updatedItems = (sel.order_items || []).filter(i => i.id !== itemId)
+    const newTotal = updatedItems.reduce((s,i)=>s+(i.unit_price*i.quantity),0)
+    await sb.from('orders').update({total:newTotal}).eq('id',sel.id)
+    setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:updatedItems} : o))
+    setSel(prev => ({...prev, total:newTotal, order_items:updatedItems}))
+    setSaving(false)
   }
 
   const logout = async () => { await createClient().auth.signOut(); window.location.href='/admin' }
@@ -473,10 +528,52 @@ export default function AdminOrders() {
                     {/* Items */}
                     <div style={{fontSize:9,color:'#666',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                       <span>Items · {sel.order_items?.length} products · {sel.order_items?.reduce((s,i)=>s+i.quantity,0)} units</span>
-                      {sel.order_items?.length > 0 && (
-                        <button onClick={()=>{setShowUnits(!showUnits);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
-                      )}
+                      <div style={{display:'flex',gap:6}}>
+                        <button onClick={()=>{setShowAddItem(!showAddItem);setShowUnits(false);setAddItemForm({productId:'',search:'',quantity:'1',unitPrice:''})}} style={{fontSize:10,color:'#2a7d4f',background:'rgba(42,125,79,0.1)',border:'0.5px solid rgba(42,125,79,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>+ Add item</button>
+                        {sel.order_items?.length > 0 && (
+                          <button onClick={()=>{setShowUnits(!showUnits);setShowAddItem(false);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
+                        )}
+                      </div>
                     </div>
+                    {showAddItem && (
+                      <div style={{background:'rgba(42,125,79,0.04)',border:'0.5px solid rgba(42,125,79,0.15)',borderRadius:4,padding:'0.875rem',marginBottom:12}}>
+                        <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Product</label>
+                        <input value={addItemForm.search} onChange={e=>setAddItemForm(f=>({...f,search:e.target.value,productId:''}))}
+                          placeholder="Search product name or SKU..." style={{...inp,marginBottom:6}}/>
+                        {addItemForm.search && !addItemForm.productId && (
+                          <div style={{maxHeight:150,overflowY:'auto',border:'0.5px solid rgba(0,0,0,0.08)',borderRadius:3,marginBottom:8,background:'#fff'}}>
+                            {products.filter(p =>
+                              p.name?.toLowerCase().includes(addItemForm.search.toLowerCase()) ||
+                              p.sku?.toLowerCase().includes(addItemForm.search.toLowerCase())
+                            ).slice(0,20).map(p => (
+                              <div key={p.id} onClick={()=>setAddItemForm(f=>({...f,productId:p.id,search:p.name,unitPrice:String(p.price||0)}))}
+                                style={{padding:'7px 10px',fontSize:12,color:'#333',cursor:'pointer',borderBottom:'0.5px solid rgba(0,0,0,0.04)'}}>
+                                {p.name} <span style={{color:'#999'}}>· {p.sku||'no sku'} · {money(p.price)}</span>
+                              </div>
+                            ))}
+                            {products.filter(p => p.name?.toLowerCase().includes(addItemForm.search.toLowerCase()) || p.sku?.toLowerCase().includes(addItemForm.search.toLowerCase())).length===0 && (
+                              <div style={{padding:'7px 10px',fontSize:12,color:'#999'}}>No matching products</div>
+                            )}
+                          </div>
+                        )}
+                        {addItemForm.productId && (
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                            <div>
+                              <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Quantity</label>
+                              <input type="number" min="1" value={addItemForm.quantity} onChange={e=>setAddItemForm(f=>({...f,quantity:e.target.value}))} style={inp}/>
+                            </div>
+                            <div>
+                              <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Unit price ($)</label>
+                              <input type="number" step="0.01" value={addItemForm.unitPrice} onChange={e=>setAddItemForm(f=>({...f,unitPrice:e.target.value}))} style={inp}/>
+                            </div>
+                          </div>
+                        )}
+                        <div style={{display:'flex',gap:6}}>
+                          <button onClick={addOrderItem} disabled={saving || !addItemForm.productId} style={{flex:1,padding:8,background:!addItemForm.productId?'#ccc':'#2a7d4f',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:!addItemForm.productId?'not-allowed':'pointer',borderRadius:3}}>{saving?'Adding...':'✓ Add to order'}</button>
+                          <button onClick={()=>setShowAddItem(false)} style={{padding:'8px 12px',background:'transparent',color:'#999',fontSize:11,border:'0.5px solid rgba(0,0,0,0.08)',cursor:'pointer',borderRadius:3}}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                     {showUnits ? (
                       <div style={{background:'rgba(196,154,0,0.04)',border:'0.5px solid rgba(196,154,0,0.15)',borderRadius:4,padding:'0.875rem',marginBottom:12}}>
                         {unitItems.map((item,i)=>(
@@ -517,7 +614,10 @@ export default function AdminOrders() {
                               <div style={{fontSize:13,fontWeight:600,color:'#333',marginBottom:1}}>{item.product_name}</div>
                               <div style={{fontSize:10,color:'#999'}}>{item.quantity} units × {money(item.unit_price)}</div>
                             </div>
-                            <div style={{fontSize:14,fontWeight:700,color:'#111'}}>{money(item.unit_price*item.quantity)}</div>
+                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                              <div style={{fontSize:14,fontWeight:700,color:'#111'}}>{money(item.unit_price*item.quantity)}</div>
+                              <button onClick={()=>removeOrderItem(item.id)} disabled={saving} title="Remove item" style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:16,padding:0,lineHeight:1}}>×</button>
+                            </div>
                           </div>
                         ))}
                         <div style={{marginTop:10,padding:'12px 14px',background:`${sc}15`,border:`0.5px solid ${sc}30`,borderRadius:4,display:'flex',justifyContent:'space-between'}}>
