@@ -373,6 +373,9 @@ export default function AdminOrders() {
                     </div>
                   </div>
                   <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                    {!order.order_items?.length && (
+                      <span style={{fontSize:9,padding:'2px 7px',background:'rgba(231,76,60,0.1)',color:'#e74c3c',borderRadius:8,fontWeight:700}}>⚠ No items</span>
+                    )}
                     {order.order_items?.slice(0,3).map((i,idx)=>(
                       <span key={idx} style={{fontSize:9,padding:'2px 7px',background:'rgba(0,0,0,0.04)',color:'#666',borderRadius:8}}>{i.product_name} ×{i.quantity}</span>
                     ))}
@@ -495,6 +498,16 @@ export default function AdminOrders() {
                       </div>
                     ) : (
                       <>
+                        {!sel.order_items?.length && (
+                          <div style={{padding:'10px 14px',background:'rgba(231,76,60,0.06)',border:'0.5px solid rgba(231,76,60,0.2)',borderRadius:4,marginBottom:10}}>
+                            <div style={{fontSize:11,fontWeight:700,color:'#e74c3c',marginBottom:4}}>⚠️ No items were recorded for this order</div>
+                            <div style={{fontSize:11,color:'#888',lineHeight:1.6}}>
+                              The order total saved, but the line items didn't — likely a save error on checkout. {(sel.notes||'').includes('Items: ')
+                                ? <>Recovered from the order notes: <strong style={{color:'#555'}}>{(sel.notes||'').split('Items: ')[1]}</strong></>
+                                : 'Contact the client to confirm what was ordered.'}
+                            </div>
+                          </div>
+                        )}
                         {sel.order_items?.map((item,i)=>(
                           <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i<sel.order_items.length-1?'0.5px solid rgba(0,0,0,0.05)':'none'}}>
                             <div>
