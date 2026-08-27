@@ -144,15 +144,33 @@ export default function AdminOrders() {
     if (!unitItems.length) return // no items recorded — nothing to edit, and saving would zero the total
     setSaving(true)
     const sb = createClient()
-    const newTotal = unitItems.reduce((s,i)=>s+(parseFloat(i.unit_price)*parseInt(i.quantity||1)),0)
-    for (const item of unitItems) {
-      await sb.from('order_items').update({quantity:parseInt(item.quantity)||1}).eq('id',item.id)
+    const cleaned = unitItems.map(i => ({
+      id: i.id,
+      product_id: i.product_id,
+      product_name: i.product_name,
+      product_sku: i.product_sku || '—',
+      quantity: parseInt(i.quantity) || 1,
+      unit_price: parseFloat(i.unit_price) || 0,
+    }))
+    for (const item of cleaned) {
+      const { error } = await sb.from('order_items').update({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_sku: item.product_sku,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      }).eq('id', item.id)
+      if (error) {
+        console.error('update order item failed', error)
+        alert(`Couldn't save "${item.product_name}": ${error.message}`)
+        setSaving(false)
+        return
+      }
     }
+    const newTotal = cleaned.reduce((s,i)=>s+(i.unit_price*i.quantity),0)
     await sb.from('orders').update({total:newTotal}).eq('id',sel.id)
-    // Update local state immediately without full reload
-    const updatedItems = unitItems.map(i=>({...i,quantity:parseInt(i.quantity)||1}))
-    setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:updatedItems} : o))
-    setSel(prev => ({...prev, total:newTotal, order_items:updatedItems}))
+    setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:cleaned} : o))
+    setSel(prev => ({...prev, total:newTotal, order_items:cleaned}))
     setShowUnits(false)
     setSaving(false)
   }
@@ -531,7 +549,7 @@ export default function AdminOrders() {
                       <div style={{display:'flex',gap:6}}>
                         <button onClick={()=>{setShowAddItem(!showAddItem);setShowUnits(false);setAddItemForm({productId:'',search:'',quantity:'1',unitPrice:''})}} style={{fontSize:10,color:'#2a7d4f',background:'rgba(42,125,79,0.1)',border:'0.5px solid rgba(42,125,79,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>+ Add item</button>
                         {sel.order_items?.length > 0 && (
-                          <button onClick={()=>{setShowUnits(!showUnits);setShowAddItem(false);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
+                          <button onClick={()=>{setShowUnits(!showUnits);setShowAddItem(false);setUnitItems(sel.order_items?.map(i=>({...i,_search:''}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit items</button>
                         )}
                       </div>
                     </div>
@@ -576,20 +594,49 @@ export default function AdminOrders() {
                     )}
                     {showUnits ? (
                       <div style={{background:'rgba(196,154,0,0.04)',border:'0.5px solid rgba(196,154,0,0.15)',borderRadius:4,padding:'0.875rem',marginBottom:12}}>
-                        {unitItems.map((item,i)=>(
-                          <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:i<unitItems.length-1?'0.5px solid rgba(0,0,0,0.04)':'none'}}>
-                            <span style={{fontSize:12,color:'#333',flex:1}}>{item.product_name}</span>
+                        {unitItems.map((item,i)=>{
+                          const matches = item._search
+                            ? products.filter(p => p.name?.toLowerCase().includes(item._search.toLowerCase()) || p.sku?.toLowerCase().includes(item._search.toLowerCase())).slice(0,20)
+                            : []
+                          return (
+                          <div key={item.id} style={{padding:'8px 0',borderBottom:i<unitItems.length-1?'0.5px solid rgba(0,0,0,0.06)':'none'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                              <input value={item._search || item.product_name} onFocus={()=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,_search:''}:it))}
+                                onChange={e=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,_search:e.target.value}:it))}
+                                placeholder="Search to change product..."
+                                style={{flex:1,background:'#fff',border:'0.5px solid rgba(0,0,0,0.1)',color:'#333',fontSize:12,padding:'6px 8px',borderRadius:3,outline:'none'}}/>
+                              <button onClick={()=>{removeOrderItem(item.id);setUnitItems(prev=>prev.filter(it=>it.id!==item.id))}} disabled={saving} title="Remove item" style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:16,padding:'0 4px',lineHeight:1}}>×</button>
+                            </div>
+                            {matches.length > 0 && (
+                              <div style={{maxHeight:130,overflowY:'auto',border:'0.5px solid rgba(0,0,0,0.08)',borderRadius:3,marginBottom:6,background:'#fff'}}>
+                                {matches.map(p => (
+                                  <div key={p.id} onClick={()=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,_search:'',product_id:p.id,product_name:p.name,product_sku:p.sku||'—',unit_price:p.price||0}:it))}
+                                    style={{padding:'6px 10px',fontSize:12,color:'#333',cursor:'pointer',borderBottom:'0.5px solid rgba(0,0,0,0.04)'}}>
+                                    {p.name} <span style={{color:'#999'}}>· {p.sku||'no sku'} · {money(p.price)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div style={{display:'flex',alignItems:'center',gap:8}}>
-                              <input type="number" min="1" value={item.quantity}
-                                onChange={e=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,quantity:parseInt(e.target.value)||1}:it))}
-                                style={{width:60,background:'#f0f1f3',border:'0.5px solid rgba(0,0,0,0.1)',color:'#888',fontSize:12,padding:'5px 8px',borderRadius:3,outline:'none',textAlign:'center'}}/>
-                              <span style={{fontSize:11,color:'#999'}}>${(item.unit_price*(unitItems[i].quantity||1)).toLocaleString()}</span>
+                              <div style={{flex:1}}>
+                                <label style={{fontSize:8,color:'#999',textTransform:'uppercase',letterSpacing:'0.08em'}}>Qty</label>
+                                <input type="number" min="1" value={item.quantity}
+                                  onChange={e=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,quantity:e.target.value}:it))}
+                                  style={{width:'100%',background:'#f0f1f3',border:'0.5px solid rgba(0,0,0,0.1)',color:'#888',fontSize:12,padding:'5px 8px',borderRadius:3,outline:'none',textAlign:'center',boxSizing:'border-box'}}/>
+                              </div>
+                              <div style={{flex:1}}>
+                                <label style={{fontSize:8,color:'#999',textTransform:'uppercase',letterSpacing:'0.08em'}}>Unit price</label>
+                                <input type="number" step="0.01" min="0" value={item.unit_price}
+                                  onChange={e=>setUnitItems(prev=>prev.map((it,idx)=>idx===i?{...it,unit_price:e.target.value}:it))}
+                                  style={{width:'100%',background:'#f0f1f3',border:'0.5px solid rgba(0,0,0,0.1)',color:'#888',fontSize:12,padding:'5px 8px',borderRadius:3,outline:'none',textAlign:'center',boxSizing:'border-box'}}/>
+                              </div>
+                              <div style={{fontSize:12,fontWeight:700,color:'#333',whiteSpace:'nowrap',paddingTop:12}}>${((parseFloat(item.unit_price)||0)*(parseInt(item.quantity)||1)).toLocaleString()}</div>
                             </div>
                           </div>
-                        ))}
+                        )})}
                         <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',marginTop:4,borderTop:'0.5px solid rgba(0,0,0,0.08)'}}>
                           <span style={{fontSize:11,color:'#666'}}>New total</span>
-                          <span style={{fontSize:14,fontWeight:700,color:'#111'}}>${unitItems.reduce((s,i)=>s+(i.unit_price*(parseInt(i.quantity)||1)),0).toLocaleString()}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:'#111'}}>${unitItems.reduce((s,i)=>s+((parseFloat(i.unit_price)||0)*(parseInt(i.quantity)||1)),0).toLocaleString()}</span>
                         </div>
                         <div style={{display:'flex',gap:6,marginTop:8}}>
                           <button onClick={saveUnits} disabled={saving} style={{flex:1,padding:8,background:'#c49a00',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:'pointer',borderRadius:3}}>{saving?'Saving...':'✓ Save'}</button>
