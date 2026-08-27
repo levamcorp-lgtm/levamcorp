@@ -129,7 +129,7 @@ const addToCart = (product, qty, variation) => {
           order_id: order.id,
           product_id: item.id,
           product_name: item.name,
-          product_sku: item.sku,
+          product_sku: item.sku || '—',
           quantity: item.qty,
           unit_price: item.price,
         }))
