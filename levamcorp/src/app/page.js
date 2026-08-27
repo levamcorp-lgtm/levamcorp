@@ -158,22 +158,63 @@ function TiltCard({ children, style = {}, glow = '#2F7DF6' }) {
   )
 }
 
-// ── BRAND TICKER ──────────────────────────────────────────────────────────────
-function BrandTicker() {
-  const brands = ['HISENSE','SAMSUNG','BRENTWOOD','PROCTOR SILEX','HAMILTON BEACH','AVANTI','MAGIC BULLET']
-  const row    = [...brands, ...brands, ...brands]
+// ── LIVE CLOCK — Doral, FL (America/New_York) time, ticks in the hero badge ────
+function LiveClock() {
+  const [time, setTime] = useState('')
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: true,
+    }))
+    tick()
+    const iv = setInterval(tick, 15000)
+    return () => clearInterval(iv)
+  }, [])
+  return <span>{time}</span>
+}
+
+// ── BRAND MARQUEE — real logos, pinned to the foot of the hero video ───────────
+const BRAND_LOGOS = [
+  { name: 'SharkNinja',    file: 'sharkninja.png' },
+  { name: 'JBL',           file: 'jbl.png',           tall: true },
+  { name: 'Logitech',      file: 'logitech.png' },
+  { name: 'Harman Kardon', file: 'harman-kardon.png' },
+  { name: 'DJI',           file: 'dji.png',           tall: true },
+  { name: 'Anker',         file: 'anker.png' },
+  { name: 'Amazon',        file: 'amazon.png' },
+  { name: 'Hisense',       file: 'hisense.png' },
+  { name: 'Samsung',       file: 'samsung.png' },
+  { name: 'KitchenAid',    file: 'kitchenaid.png' },
+  { name: 'Nintendo',      file: 'nintendo.png' },
+  { name: 'nutribullet',   file: 'nutribullet.png' },
+  { name: 'PlayStation',   file: 'playstation.png',   tall: true },
+]
+
+function BrandMarquee() {
+  const row = [...BRAND_LOGOS, ...BRAND_LOGOS, ...BRAND_LOGOS]
   return (
-    <div style={{ overflow:'hidden', position:'relative', padding:'1.25rem 0' }}>
-      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:100, background:'linear-gradient(90deg,#14120E,transparent)', zIndex:2, pointerEvents:'none' }}/>
-      <div style={{ position:'absolute', right:0, top:0, bottom:0, width:100, background:'linear-gradient(-90deg,#14120E,transparent)', zIndex:2, pointerEvents:'none' }}/>
-      <div className="lc-mono" style={{ display:'flex', gap:'3rem', animation:'ticker 30s linear infinite', width:'max-content' }}>
-        {row.map((b, i) => (
-          <span key={i} style={{
-            fontSize:9, fontWeight:800, letterSpacing:'0.28em',
-            color: i%3===0 ? 'rgba(245,241,232,0.18)' : i%3===1 ? 'rgba(242,183,5,0.5)' : 'rgba(245,241,232,0.1)',
-            whiteSpace:'nowrap',
-          }}>◆ {b}</span>
-        ))}
+    <div style={{ position:'absolute', left:0, right:0, bottom:0, zIndex:4,
+      borderTop:'1px solid rgba(255,255,255,0.09)',
+      background:'linear-gradient(180deg, rgba(20,18,14,0.72), rgba(20,18,14,0.95))',
+      backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)' }}>
+      <div style={{ display:'flex', alignItems:'center', height:84 }}>
+        <div className="lc-mono" style={{ flex:'0 0 auto', display:'flex', alignItems:'center', gap:10,
+          padding:'0 22px 0 32px', fontSize:9.5, letterSpacing:'0.22em', color:'rgba(245,241,232,0.45)',
+          whiteSpace:'nowrap', borderRight:'1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ width:5, height:5, borderRadius:'50%', background:'#F2B705' }}/>
+          AUTHORIZED BRANDS
+        </div>
+        <div style={{ position:'relative', flex:'1 1 auto', overflow:'hidden',
+          maskImage:'linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)',
+          WebkitMaskImage:'linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)' }}>
+          <div style={{ display:'flex', width:'max-content', animation:'ticker 34s linear infinite' }}>
+            {row.map((b, i) => (
+              <div key={i} className="brand-logo-item" style={{ display:'flex', alignItems:'center', justifyContent:'center',
+                width:150, height:84, padding: b.tall ? '16px 20px' : '10px 20px', flexShrink:0, opacity:0.72 }}>
+                <img src={`/brands/${b.file}`} alt={b.name} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -528,50 +569,66 @@ function HeroVideoBackground() {
 
 // ── INLINE CINEMATIC COMPONENTS ──────────────────────────────────────────────
 
-function TypewriterText({ phase }) {
-  const lines  = ['Premium brands.', 'Wholesale pricing.', 'Built for resellers.']
-  const styles = [
-    { color: '#F5F1E8', fontWeight:400 },
-    { color:'#F5F1E8', fontWeight:900 },
-    { color:'#A7A090', fontWeight:400, fontStyle:'italic' },
-  ]
-  const [lineIdx, setLineIdx] = useState(0)
-  const [chars,   setChars]   = useState(0)
-  const [done,    setDone]    = useState(false)
-  const timer = useRef(null)
-
+// Subtle cursor-follow tilt on the hero copy block — tracks mouse position over
+// the whole hero section (sectionRef), not just this element, matching the
+// imported design's whole-hero tilt rather than a per-card one.
+function HeroTiltGroup({ children, sectionRef, maxRy = 3, maxRx = 2 }) {
+  const ref = useRef(null)
   useEffect(() => {
-    if (done) return
-    const text = lines[lineIdx] || ''
-    const startDelay = lineIdx === 0 ? 100 : 150
-    timer.current = setTimeout(() => {
-      const iv = setInterval(() => {
-        setChars(c => {
-          if (c >= text.length) {
-            clearInterval(iv)
-            if (lineIdx < lines.length - 1) {
-              setTimeout(() => { setLineIdx(l => l + 1); setChars(0) }, 200)
-            } else setDone(true)
-            return c
-          }
-          return c + 1
-        })
-      }, 36)
-    }, startDelay)
-    return () => { clearTimeout(timer.current) }
-  }, [lineIdx, done])
+    const section = sectionRef.current
+    const el = ref.current
+    if (!section || !el) return
+    let raf = null
+    const move = e => {
+      const r = section.getBoundingClientRect()
+      const mx = (e.clientX - r.left) / r.width - 0.5
+      const my = (e.clientY - r.top) / r.height - 0.5
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = null
+        el.style.transform = `perspective(1400px) rotateY(${(mx * maxRy).toFixed(2)}deg) rotateX(${(-my * maxRx).toFixed(2)}deg)`
+      })
+    }
+    const leave = () => { el.style.transform = 'perspective(1400px) rotateY(0deg) rotateX(0deg)' }
+    section.addEventListener('mousemove', move)
+    section.addEventListener('mouseleave', leave)
+    return () => {
+      section.removeEventListener('mousemove', move)
+      section.removeEventListener('mouseleave', leave)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [sectionRef, maxRx, maxRy])
+  return <div ref={ref} style={{ transformStyle:'preserve-3d', transition:'transform 0.45s cubic-bezier(0.2,0.8,0.2,1)' }}>{children}</div>
+}
 
+// Single-row, dot-separated hero stats that count up from 0 on mount
+function HeroStats() {
+  const [p, setP] = useState(0)
+  useEffect(() => {
+    const t0 = performance.now(), dur = 1400
+    let raf
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur)
+      setP(1 - Math.pow(1 - k, 3))
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  const stats = [
+    [Math.round(48 * p) + 'h', 'DISPATCH'],
+    [Math.round(500 * p) + '+', 'SKUS'],
+    [Math.round(100 * p) + '%', 'B2B ONLY'],
+  ]
   return (
-    <>
-      {lines.map((line, i) => (
-        <span key={i} style={{ display:'block', ...styles[i] }}>
-          {i < lineIdx ? line : i === lineIdx ? line.slice(0, chars) : null}
-          {i === lineIdx && !done && (
-            <span style={{ display:'inline-block', width:2, height:'0.8em', background:'#2F7DF6', marginLeft:2, verticalAlign:'middle', animation:'blink 0.7s step-end infinite' }}/>
-          )}
-        </span>
+    <div className="lc-mono" style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:16, fontSize:11, letterSpacing:'0.16em', color:'rgba(255,255,255,0.5)' }}>
+      {stats.map(([n, l], i) => (
+        <React.Fragment key={l}>
+          {i > 0 && <span style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,0.25)', flexShrink:0 }}/>}
+          <span style={{ whiteSpace:'nowrap' }}><span style={{ color:'rgba(255,255,255,0.86)', fontVariantNumeric:'tabular-nums' }}>{n}</span> {l}</span>
+        </React.Fragment>
       ))}
-    </>
+    </div>
   )
 }
 
@@ -849,16 +906,10 @@ function FooterAsk() {
 // FORM: user-directed pivot from two dealt directions (assigned "Margin Ledger", pick "Margin Board") to their own concrete brief — literal warehouse/box/forklift/big-brand-tech world — after seeing both cards; this direction is the user's brief, not the roll's card.
 // FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 export default function Home() {
-  const [loaded,    setLoaded]    = useState(false)
-  const [heroPhase, setHeroPhase] = useState(0)
+  const [loaded, setLoaded] = useState(false)
+  const heroSectionRef = useRef(null)
 
-  useEffect(() => {
-    setLoaded(true)
-    // Hero entrance orchestration
-    const timings = [150, 500, 800, 950, 1350]
-    const timers  = timings.map((t, i) => setTimeout(() => setHeroPhase(i + 1), t))
-    return () => timers.forEach(clearTimeout)
-  }, [])
+  useEffect(() => { setLoaded(true) }, [])
 
   return (
     <div style={{ background:'transparent', color:'#fff', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', overflowX:'hidden' }}>
@@ -900,7 +951,9 @@ export default function Home() {
         @keyframes float1   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-28px)} }
         @keyframes float2   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
         @keyframes scanline  { 0%{transform:translateY(-100vh)} 100%{transform:translateY(100vh)} }
-        @keyframes blink     { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes heroLine  { from{transform:translateY(105%) rotate(1.4deg)} to{transform:translateY(0) rotate(0)} }
+        @keyframes heroWipe  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+        @keyframes scrollCue { 0%{transform:translateY(0);opacity:0} 30%{opacity:1} 100%{transform:translateY(14px);opacity:0} }
         @keyframes flashOut  { 0%{opacity:1} 100%{opacity:0} }
         @keyframes heroGlow  { 0%{opacity:0;transform:scale(0.8)} 100%{opacity:1;transform:scale(1)} }
         @keyframes stripeMove { from{background-position:0 0} to{background-position:56px 0} }
@@ -945,9 +998,17 @@ export default function Home() {
         .step-line { position:absolute; left:20px; top:44px; bottom:-8px; width:1px;
           background:linear-gradient(180deg,rgba(47,125,246,0.5),transparent); }
 
+        /* Hero brand marquee logo hover */
+        .brand-logo-item { transition:opacity 0.3s ease, transform 0.35s cubic-bezier(0.2,0.8,0.2,1); }
+        .brand-logo-item:hover { opacity:1 !important; transform:scale(1.08); }
+
         /* Responsive */
         .lc-ham  { display:none !important; }
         .lc-links { display:flex; }
+
+        @media(max-width:900px) {
+          .hero-scroll-cue { display:none !important; }
+        }
 
         @media(max-width:768px) {
           .lc-ham   { display:flex !important; }
@@ -1018,60 +1079,79 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── HERO — the shipping journey, autoplaying behind the pitch ─── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 5rem', position:'relative', overflow:'hidden' }}>
+      <section ref={heroSectionRef} style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 11rem', position:'relative', overflow:'hidden' }}>
 
         {/* Real footage of the shipment's own journey — label to delivered, on a loop */}
         <HeroVideoBackground/>
 
-        {/* Content — single column, left-weighted, so the video reads as the hero */}
-        <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5 }}>
+        {/* Content — copy left, scroll cue right, both tilt gently toward the cursor */}
+        <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', position:'relative', zIndex:5,
+          display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:40 }}>
 
-          <div style={{ maxWidth:640 }}>
-            {/* Badge — shipping label */}
-            <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
-              border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(20,18,14,0.45)', backdropFilter:'blur(6px)',
-              marginBottom:'1.75rem', animation:'fadeUp 0.6s ease both' }}>
-              <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#F2B705', textTransform:'uppercase' }}>MANIFEST · B2B WHOLESALE · DORAL FL</span>
-              <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#F2B705', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+          <HeroTiltGroup sectionRef={heroSectionRef}>
+            <div style={{ maxWidth:640 }}>
+              {/* Badge — shipping label, with a live Doral-time clock */}
+              <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
+                border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(20,18,14,0.45)', backdropFilter:'blur(6px)',
+                marginBottom:'1.75rem', animation:'fadeUp 0.6s 0.1s ease both' }}>
+                <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#F2B705', textTransform:'uppercase' }}>
+                  B2B WHOLESALE · DORAL FL · <LiveClock/> ET
+                </span>
+                <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#F2B705', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+              </div>
+
+              {/* Headline — masked line-reveal, heavy weight for contrast against the footage */}
+              <h1 className="hero-h lc-display" style={{ fontSize:'clamp(38px,5.4vw,74px)', fontWeight:800, lineHeight:0.98, letterSpacing:'-0.035em', margin:0,
+                textShadow:'0 2px 24px rgba(0,0,0,0.5)' }}>
+                <span style={{ display:'block', overflow:'hidden', paddingBottom:'0.02em' }}>
+                  <span style={{ display:'block', animation:'heroLine 0.9s cubic-bezier(0.16,0.9,0.2,1) 0.18s both' }}>Premium brands.</span>
+                </span>
+                <span style={{ display:'block', overflow:'hidden', paddingBottom:'0.02em' }}>
+                  <span style={{ display:'block', fontWeight:900, animation:'heroLine 0.9s cubic-bezier(0.16,0.9,0.2,1) 0.3s both' }}>Wholesale pricing.</span>
+                </span>
+                <span style={{ display:'block', overflow:'hidden', paddingBottom:'0.06em' }}>
+                  <span style={{ display:'block', fontWeight:400, fontStyle:'italic', color:'#A7A090', animation:'heroLine 0.9s cubic-bezier(0.16,0.9,0.2,1) 0.42s both' }}>Built for resellers.</span>
+                </span>
+              </h1>
+
+              <div style={{ width:86, height:2, margin:'22px 0 22px', background:'#F2B705', transformOrigin:'left', animation:'heroWipe 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.68s both' }}/>
+
+              <p style={{ fontSize:16, color:'#A7A090', lineHeight:1.85, maxWidth:480, marginBottom:'1.5rem', animation:'fadeUp 0.7s 0.78s ease both' }}>
+                Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
+              </p>
+
+              <div className="lc-mono" style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:'2.25rem', fontSize:10, letterSpacing:'0.18em', color:'rgba(255,255,255,0.55)', animation:'fadeUp 1s 0.86s ease both' }}>
+                {['APPLIANCES','AUDIO','TV & DISPLAY','GAMING'].map((t, i, arr) => (
+                  <React.Fragment key={t}>
+                    <span>{t}</span>
+                    {i < arr.length - 1 && <span style={{ color:'rgba(255,255,255,0.24)' }}>/</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', animation:'fadeUp 0.7s 0.92s ease both', marginBottom:'2.75rem' }}>
+                <Link href="/apply" className="lc-btn">Apply for wholesale access {IC.arrow}</Link>
+                <Link href="/portal" className="lc-ghost">Partner portal login</Link>
+              </div>
+
+              <div style={{ animation:'fadeUp 1.1s 1.1s ease both' }}>
+                <HeroStats/>
+              </div>
             </div>
+          </HeroTiltGroup>
 
-            {/* Headline — typewriter entrance, heavy weight for contrast against the footage */}
-            <h1 className="hero-h lc-display" style={{ fontSize:'clamp(38px,5.4vw,74px)', fontWeight:800, lineHeight:0.98, letterSpacing:'-0.035em', margin:'0 0 1.5rem',
-              textShadow:'0 2px 24px rgba(0,0,0,0.5)',
-              opacity: heroPhase >= 2 ? 1 : 0, transform: heroPhase >= 2 ? 'translateY(0)' : 'translateY(20px)',
-              transition:'opacity 0.7s ease, transform 0.7s ease' }}>
-              {heroPhase >= 2 && <TypewriterText phase={heroPhase}/>}
-            </h1>
-
-            <p style={{ fontSize:16, color:'#A7A090', lineHeight:1.85, maxWidth:480, marginBottom:'2.5rem', animation:'fadeUp 0.7s 0.2s ease both' }}>
-              Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
-            </p>
-
-            <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', animation:'fadeUp 0.7s 0.3s ease both', marginBottom:'4rem' }}>
-              <Link href="/apply" className="lc-btn">Apply for wholesale access {IC.arrow}</Link>
-              <Link href="/portal" className="lc-ghost">Partner portal login</Link>
-            </div>
-
-            {/* Stats */}
-            <div className="g4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1.5rem', maxWidth:520, animation:'fadeUp 0.7s 0.4s ease both' }}>
-              {[['48h','Avg. dispatch'],['7+','Premium brands'],['500+','Active SKUs'],['100%','B2B only']].map(([n,l]) => (
-                <div key={l} style={{ paddingLeft:'1rem', borderLeft:'1px solid rgba(242,183,5,0.3)', position:'relative' }}>
-                  <div style={{ position:'absolute', left:-1, top:0, bottom:0, width:1, background:'linear-gradient(180deg,#F2B705,transparent)', borderRadius:1 }}/>
-                  <div className="lc-display" style={{ fontSize:19, fontWeight:700, color:'#F5F1E8', letterSpacing:'-0.02em', lineHeight:1 }}>{n}</div>
-                  <div style={{ fontSize:9, color:'#A7A090', textTransform:'uppercase', letterSpacing:'0.14em', marginTop:4, fontWeight:600 }}>{l}</div>
-                </div>
-              ))}
-            </div>
+          <div className="hero-scroll-cue lc-mono" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, flexShrink:0, paddingBottom:6,
+            fontSize:9, letterSpacing:'0.24em', color:'rgba(255,255,255,0.4)', animation:'fadeUp 1.2s 1.4s ease both' }}>
+            SCROLL
+            <span style={{ width:1, height:26, background:'linear-gradient(180deg,rgba(255,255,255,0.55),rgba(255,255,255,0))', animation:'scrollCue 2.2s ease-in-out infinite' }}/>
           </div>
         </div>
+
+        {/* Authorized-brand logo marquee, pinned to the foot of the video */}
+        <BrandMarquee/>
       </section>
 
       <div className="hazard-strip"/>
-
-      {/* ── BRAND TICKER ──────────────────────────────────────────────── */}
-      <div style={{ borderTop:'1px solid rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.04)', background:'rgba(47,125,246,0.015)', position:'relative', zIndex:5 }}>
-        <BrandTicker/>
-      </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CATEGORIES ──────────────────────────────────────────────── */}
