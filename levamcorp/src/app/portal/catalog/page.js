@@ -48,8 +48,14 @@ export default function CatalogPage() {
   }, [search, category, products])
 
   // Analytics tracked in addToCart
-const addToCart = (product, qty) => {
-  setCart(c => ({ ...c, [product.id]: { ...product, qty: parseInt(qty) || product.moq || 1 } }))
+const addToCart = (product, qty, variation) => {
+  const price = product.price + (variation?.price_diff || 0)
+  const name  = variation ? `${product.name} — ${variation.color || variation.name}` : product.name
+  setCart(c => ({ ...c, [product.id]: {
+    ...product, qty: parseInt(qty) || product.moq || 1, price, name,
+    image_url: variation?.image_url || product.image_url,
+    variation_name: variation?.color || variation?.name || null,
+  } }))
   trackProductClick(product, 'add_to_quote')
 }
   const removeFromCart = (id) => setCart(c => { const n = { ...c }; delete n[id]; return n })
@@ -275,7 +281,7 @@ const addToCart = (product, qty) => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, padding: '4px' }}>
                     {topPicks.map(product => (
                       <div key={product.id} style={{ filter: 'drop-shadow(0 4px 12px rgba(255,215,0,0.12))' }}>
-                        <ProductCard product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
+                        <ProductCard product={product} inCart={!!cart[product.id]} onAdd={(qty, variation) => addToCart(product, qty, variation)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
                       </div>
                     ))}
                   </div>
@@ -294,7 +300,7 @@ const addToCart = (product, qty) => {
                   )}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
                     {regular.map(product => (
-                      <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty) => addToCart(product, qty)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
+                      <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty, variation) => addToCart(product, qty, variation)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
                     ))}
                   </div>
                 </div>
@@ -536,7 +542,7 @@ function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover 
   const displayStock = activeVar?.stock != null ? activeVar.stock : (product.stock || 0)
   const outOfStock = displayStock === 0
   const moq = product.moq || 1
-  const handleAdd = () => { if (outOfStock) return; onAdd(qty); setAdded(true) }
+  const handleAdd = () => { if (outOfStock) return; onAdd(qty, activeVar); setAdded(true) }
 
   return (
     <div onMouseEnter={() => onHover(product.id)} onMouseLeave={() => onHover(null)}

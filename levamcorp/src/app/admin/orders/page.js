@@ -86,6 +86,7 @@ export default function AdminOrders() {
   }
 
   const saveUnits = async () => {
+    if (!unitItems.length) return // no items recorded — nothing to edit, and saving would zero the total
     setSaving(true)
     const sb = createClient()
     const newTotal = unitItems.reduce((s,i)=>s+(parseFloat(i.unit_price)*parseInt(i.quantity||1)),0)
@@ -472,7 +473,9 @@ export default function AdminOrders() {
                     {/* Items */}
                     <div style={{fontSize:9,color:'#666',letterSpacing:'0.15em',textTransform:'uppercase',fontWeight:700,marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                       <span>Items · {sel.order_items?.length} products · {sel.order_items?.reduce((s,i)=>s+i.quantity,0)} units</span>
-                      <button onClick={()=>{setShowUnits(!showUnits);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
+                      {sel.order_items?.length > 0 && (
+                        <button onClick={()=>{setShowUnits(!showUnits);setUnitItems(sel.order_items?.map(i=>({...i}))||[])}} style={{fontSize:10,color:'#c49a00',background:'rgba(196,154,0,0.1)',border:'0.5px solid rgba(196,154,0,0.25)',padding:'4px 10px',borderRadius:3,cursor:'pointer',fontWeight:600}}>✏️ Edit qty</button>
+                      )}
                     </div>
                     {showUnits ? (
                       <div style={{background:'rgba(196,154,0,0.04)',border:'0.5px solid rgba(196,154,0,0.15)',borderRadius:4,padding:'0.875rem',marginBottom:12}}>
