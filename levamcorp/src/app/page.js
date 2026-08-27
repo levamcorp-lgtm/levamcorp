@@ -849,6 +849,97 @@ function ProcessStepper() {
   )
 }
 
+const PACKING_BARS = seededBars(20260827, 150)
+const PACKING_LIST_ROWS = [
+  { title:'Wholesale pricing',       body:'Direct access to competitive wholesale rates — not inflated reseller prices.',   k:'TERMS',     v:'NET / PREPAID',  accent:'#12B76A' },
+  { title:'Verified partners only',  body:'Every partner is vetted personally. This protects your margins.',                 k:'SCREENING', v:'MANUAL',         accent:'#2F7DF6' },
+  { title:'48h dispatch average',    body:'Orders ship from our Doral, FL warehouse with full tracking.',                    k:'LEAD TIME', v:'48 H',           accent:'#F2B705' },
+  { title:'Live catalog access',     body:'Your private portal shows real-time pricing and stock. No guessing.',             k:'SYNC',      v:'REAL-TIME',      accent:'#6B7280' },
+  { title:'U.S. based operation',    body:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',                 k:'ORIGIN',    v:'DORAL, FL',      accent:'#2F7DF6' },
+  { title:'Dedicated support',       body:'Mon–Fri 9AM–5PM ET. English and Spanish. You talk to us directly.',               k:'HOURS',     v:'9–5 ET',         accent:'#12B76A' },
+]
+
+// ── PACKING LIST — "Built for serious business" as a manifest line-item table ──
+function PackingList() {
+  const [active, setActive]   = useState(-1)
+  const [hoverIdx, setHoverIdx] = useState(-1)
+  const current = hoverIdx >= 0 ? hoverIdx : active
+  const cut = current >= 0 ? Math.round(((current + 1) / PACKING_LIST_ROWS.length) * PACKING_BARS.length) : 0
+  const litColor = current >= 0 ? PACKING_LIST_ROWS[current].accent : '#F2B705'
+
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:28, flexWrap:'wrap', marginBottom:'2rem' }}>
+        <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(38px,5.2vw,68px)', fontWeight:400, letterSpacing:'-0.045em', lineHeight:1, color:'#F5F2E9' }}>Built for serious business.</h2>
+        <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', textAlign:'right', lineHeight:1.9 }}>
+          PACKING LIST<br/>REV. 08 · 2026
+        </div>
+      </div>
+
+      <div style={{ borderTop:'1px solid rgba(245,241,232,0.3)', borderBottom:'1px solid rgba(245,241,232,0.3)' }}>
+        <div className="lc-mono" style={{ display:'grid', gridTemplateColumns:'56px 1fr', gap:'0 24px', padding:'11px 4px 12px', borderBottom:'1px solid rgba(245,241,232,0.14)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+          <span>ITEM</span>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+            <span>CAPABILITY / CAPACIDAD</span>
+            <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:6, height:6, background:litColor, display:'inline-block' }}/>
+              {current >= 0 ? `0${current + 1} OF 06` : '06 ITEMS'}
+            </span>
+          </span>
+        </div>
+
+        {PACKING_LIST_ROWS.map((r, i) => {
+          const on = current === i
+          const code = r.accent.replace('#', '').toUpperCase().slice(-4)
+          return (
+            <div key={r.title} tabIndex={0}
+              onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(-1)}
+              onFocus={() => setHoverIdx(i)} onBlur={() => setHoverIdx(-1)}
+              onClick={() => setActive(a => a === i ? -1 : i)}
+              style={{ position:'relative', padding:'22px 4px', cursor:'pointer',
+                borderBottom: i === PACKING_LIST_ROWS.length - 1 ? '1px solid rgba(245,241,232,0.14)' : '1px solid rgba(245,241,232,0.1)',
+                background: on ? 'rgba(245,241,232,0.035)' : 'transparent',
+                transition:'background 0.35s ease' }}>
+              <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:r.accent, transformOrigin:'top', transform: on ? 'scaleY(1)' : 'scaleY(0)', transition:'transform 0.45s cubic-bezier(0.22,0.61,0.36,1)' }}/>
+              <div style={{ display:'grid', gridTemplateColumns:'56px 1fr', gap:'0 24px', alignItems:'start',
+                transform: on ? 'translateX(14px)' : 'translateX(0)', transition:'transform 0.45s cubic-bezier(0.22,0.61,0.36,1)' }}>
+                <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.14em', paddingTop:5, color: on ? r.accent : '#6F6D67', transition:'color 0.35s' }}>0{i + 1}</div>
+                <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) clamp(120px,16vw,190px)', gap:'6px 24px', alignItems:'start' }}>
+                  <div>
+                    <div style={{ fontSize:'clamp(19px,2vw,24px)', fontWeight:400, letterSpacing:'-0.025em', color: on ? '#fff' : '#DDD8CD', transition:'color 0.35s' }}>{r.title}</div>
+                    <div style={{ display:'grid', gridTemplateRows: on ? '1fr' : '0fr', transition:'grid-template-rows 0.5s cubic-bezier(0.22,0.61,0.36,1), opacity 0.4s', opacity: on ? 1 : 0 }}>
+                      <div style={{ overflow:'hidden' }}>
+                        <div style={{ paddingTop:9, fontSize:14.5, lineHeight:1.62, color:'#8F8C85', maxWidth:'56ch' }}>{r.body}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lc-mono" style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>{r.k}</div>
+                    <div style={{ marginTop:5, fontSize:12, letterSpacing:'0.1em', textTransform:'uppercase', color: on ? '#F2EFE6' : '#8F8C85', transition:'color 0.35s' }}>{r.v}</div>
+                    <div style={{ marginTop:7, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? r.accent : '#5F5D58', transition:'color 0.35s' }}>TAG · {code}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        <div style={{ position:'relative', boxSizing:'border-box', display:'flex', alignItems:'flex-end', gap:2, height:34, padding:'8px 4px', overflow:'hidden' }}>
+          {PACKING_BARS.map((b, i) => (
+            <div key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 22 : 16, background: i < cut ? litColor : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14, transition:'background 0.3s ease, opacity 0.3s ease' }}/>
+          ))}
+          <div style={{ position:'absolute', top:0, bottom:0, width:'18%', pointerEvents:'none', background:'linear-gradient(90deg,transparent,rgba(245,241,232,0.09),transparent)', animation:'manifestScan 7s cubic-bezier(0.45,0,0.55,1) infinite' }}/>
+        </div>
+      </div>
+
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'11px 4px 0', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span>{current >= 0 ? `LINE 0${current + 1} · ${PACKING_LIST_ROWS[current].accent.replace('#', '').toUpperCase().slice(-4)} · SELECTED` : 'MANIFEST COMPLETE · 06 LINES'}</span>
+        <span>LEVAMCORP · DORAL · FL</span>
+      </div>
+    </div>
+  )
+}
+
 // ── STAMP SEAL — ink-stamp reveal on scroll ──────────────────────────────────
 function StampSeal({ label, sub, color = '#2F7DF6', delay = 0 }) {
   const ref = useRef(null)
@@ -1365,33 +1456,10 @@ export default function Home() {
       {/* ── WHY LEVAM ───────────────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="lc-section" id="features" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, background:'transparent', borderTop:'1px solid rgba(255,255,255,0.03)' }}>
-        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 70% 50% at 0% 50%,rgba(47,125,246,0.03),transparent), radial-gradient(ellipse 70% 50% at 100% 50%,rgba(107,114,128,0.03),transparent)', pointerEvents:'none' }}/>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
+        <div style={{ maxWidth:1180, margin:'0 auto', position:'relative' }}>
           <Reveal>
-            <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
-              <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1 }}>Built for serious business.</h2>
-            </div>
+            <PackingList/>
           </Reveal>
-          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-            {[
-              { icon:IC.dollar, title:'Wholesale pricing',       desc:'Direct access to competitive wholesale rates — not inflated reseller prices.',  color:'#12B76A' },
-              { icon:IC.shield, title:'Verified partners only',  desc:'Every partner is vetted personally. This protects your margins.',                color:'#2F7DF6' },
-              { icon:IC.zap,    title:'48h dispatch average',    desc:'Orders ship from our Doral, FL warehouse with full tracking.',                   color:'#F2B705' },
-              { icon:IC.box,    title:'Live catalog access',     desc:'Your private portal shows real-time pricing and stock. No guessing.',            color:'#6B7280' },
-              { icon:IC.globe,  title:'U.S. based operation',    desc:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',               color:'#2F7DF6' },
-              { icon:IC.users,  title:'Dedicated support',       desc:'Mon–Fri 9AM–5PM ET. We speak English and Spanish. You talk to us directly.',    color:'#12B76A' },
-            ].map((f, i) => (
-              <Reveal key={f.title} delay={i*0.07}>
-                <TiltCard glow={f.color} style={{ height:'100%' }}>
-                  <Card style={{ height:'100%' }} accent={f.color}>
-                    <div style={{ color:f.color, marginBottom:'1rem' }}>{f.icon}</div>
-                    <div style={{ fontSize:13.5, fontWeight:700, color:'#fff', marginBottom:7 }}>{f.title}</div>
-                    <div style={{ fontSize:12, color:'#A7A090', lineHeight:1.7 }}>{f.desc}</div>
-                  </Card>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
 
