@@ -48,11 +48,12 @@ export default function AdminApplications() {
       ein_document_url: app.ein_document_url,
       resale_tax_document_url: app.resale_tax_document_url,
     }])
-    await fetch('/api/send-approval-email', {
+    const emailRes = await fetch('/api/send-approval-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientEmail: app.email, clientName: app.contact_name, businessName: app.business_name })
+      body: JSON.stringify({ email: app.email, contactName: app.contact_name, businessName: app.business_name })
     })
+    if (!emailRes.ok) alert('Client approved, but the approval email failed to send. Please notify them manually.')
     await loadApps(supabase)
     setApproving(null)
   }
