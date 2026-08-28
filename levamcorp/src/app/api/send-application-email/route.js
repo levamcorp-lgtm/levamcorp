@@ -51,7 +51,7 @@ export async function POST(request) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td width="60%" style="width: 60%; mso-line-height-rule: exactly; line-height: 16px;">
-          <img src="https://levamcorp.com/levamcorp-logo_1.png" width="132" height="86" alt="LEVAM CORP — Distributors" style="display: block; width: 132px; height: 86px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
+          <img src="https://www.levamcorp.com/levamcorp-logo_1.png" width="132" height="86" alt="LEVAM CORP — Distributors" style="display: block; width: 132px; height: 86px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
         </td>
         <td width="40%" class="lvm-right" style="width: 40%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #5c5a55; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
           DORAL &middot; FL 33178
@@ -231,7 +231,7 @@ export async function POST(request) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td bgcolor="#08090b" style="background-color: #08090b; padding: 15px 20px; text-align: center;">
-          <a href="https://levamcorp.com/#brands" style="display: block; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: bold; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; text-decoration: none; mso-line-height-rule: exactly; line-height: 16px;">Browse the catalog &nbsp;&rarr;</a>
+          <a href="https://www.levamcorp.com/#brands" style="display: block; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: bold; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; text-decoration: none; mso-line-height-rule: exactly; line-height: 16px;">Browse the catalog &nbsp;&rarr;</a>
         </td>
       </tr>
       </table>
@@ -261,7 +261,7 @@ export async function POST(request) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td width="55%" class="lvm-stack" style="width: 55%; mso-line-height-rule: exactly; line-height: 18px;">
-          <img src="https://levamcorp.com/levamcorp-logo-white.png" width="112" height="73" alt="LEVAM CORP — Distributors" style="display: block; width: 112px; height: 73px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
+          <img src="https://www.levamcorp.com/levamcorp-logo-white.png" width="112" height="73" alt="LEVAM CORP — Distributors" style="display: block; width: 112px; height: 73px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
         </td>
         <td width="45%" class="lvm-right" style="width: 45%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #7c7a73; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 18px;">
           B2B wholesale only
