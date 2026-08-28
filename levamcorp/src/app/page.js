@@ -1557,6 +1557,121 @@ function FooterAsk() {
   )
 }
 
+// ── MANIFEST BACKDROP — ambient 3D grid tunnel + drifting cargo tags, sitewide fixed background ──
+function fieldBars(seedInit, count) {
+  let seed = seedInit
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff }
+  const out = []
+  for (let i = 0; i < count; i++) {
+    const r = rnd()
+    out.push({ grow: r > 0.8 ? 3 : r > 0.5 ? 2 : 1, h: r > 0.9 ? 11 : 8 })
+  }
+  return out
+}
+
+const BACKDROP_TAG_DEFS = [
+  { code:'SKU · 7DF6', label:'Wholesale price',  left:'7%',  top:'16%', w:160, z:-260, ry:26,  rz:-7, dur:19, amp:22 },
+  { code:'ETA · B705', label:'48h dispatch',     left:'74%', top:'10%', w:150, z:-190, ry:-24, rz:6,  dur:23, amp:26 },
+  { code:'ORG · C41D', label:'Doral · FL 33178', left:'18%', top:'64%', w:168, z:-110, ry:16,  rz:5,  dur:26, amp:18 },
+  { code:'BRD · 7280', label:'Verified partner', left:'80%', top:'58%', w:146, z:-300, ry:-30, rz:-9, dur:21, amp:30 },
+  { code:'MOQ · 8A54', label:'50 units min.',    left:'45%', top:'82%', w:140, z:-360, ry:12,  rz:-4, dur:29, amp:24 },
+  { code:'REF · 2F19', label:'Live catalog',     left:'56%', top:'6%',  w:138, z:-420, ry:-18, rz:8,  dur:25, amp:20 },
+  { code:'LOT · 4471', label:'Manifest closed',  left:'34%', top:'38%', w:152, z:-520, ry:22,  rz:-6, dur:31, amp:16 },
+]
+const BACKDROP_TAG_BARS = BACKDROP_TAG_DEFS.map((_, i) => fieldBars(3000 + i * 97, 22))
+
+function ManifestBackdrop() {
+  const floorRef = useRef(null)
+  const ceilRef = useRef(null)
+  const fieldRef = useRef(null)
+  const tagRefs = useRef([])
+
+  useEffect(() => {
+    const mouse = { x: 0, y: 0 }
+    let mx = 0, my = 0
+    const onMove = e => {
+      mouse.x = e.clientX / (window.innerWidth || 1) - 0.5
+      mouse.y = e.clientY / (window.innerHeight || 1) - 0.5
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+
+    const start = performance.now()
+    const depth = 34
+    let raf
+
+    const loop = () => {
+      const t = (performance.now() - start) / 1000
+      mx += (mouse.x - mx) * 0.06
+      my += (mouse.y - my) * 0.06
+
+      if (floorRef.current) floorRef.current.style.transform = `rotateX(72deg) translateY(${((t*14)%120).toFixed(1)}px) translateZ(-190px)`
+      if (ceilRef.current) ceilRef.current.style.transform = `rotateX(-72deg) translateY(${(120-((t*9)%120)).toFixed(1)}px) translateZ(-190px)`
+      if (fieldRef.current) fieldRef.current.style.transform = `translate3d(${(-mx*depth).toFixed(1)}px,${(-my*depth*0.6).toFixed(1)}px,0)`
+
+      BACKDROP_TAG_DEFS.forEach((d, i) => {
+        const el = tagRefs.current[i]
+        if (!el) return
+        const ph = (t / d.dur) * Math.PI * 2 + i
+        const bob = Math.sin(ph) * d.amp
+        const sway = Math.cos(ph * 0.7) * (d.amp * 0.5)
+        const wob = Math.sin(ph * 0.9) * 5
+        el.style.transform = `translate3d(${sway.toFixed(1)}px,${bob.toFixed(1)}px,${d.z}px) rotateY(${(d.ry+wob).toFixed(1)}deg) rotateZ(${d.rz}deg) rotateX(${(wob*0.5).toFixed(1)}deg)`
+      })
+
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:-2, overflow:'hidden', pointerEvents:'none', perspective:900, perspectiveOrigin:'50% 46%' }}>
+      <div ref={floorRef} style={{ position:'absolute', inset:'-20%', transformStyle:'preserve-3d' }}>
+        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(to right, rgba(245,241,232,0.13) 1px, transparent 1px), linear-gradient(to bottom, rgba(245,241,232,0.13) 1px, transparent 1px)', backgroundSize:'120px 120px' }}/>
+        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle at center, #F2B705 1.4px, transparent 2px)', backgroundSize:'480px 480px', backgroundPosition:'240px 240px', opacity:0.55 }}/>
+      </div>
+
+      <div ref={ceilRef} style={{ position:'absolute', inset:'-20%', transformStyle:'preserve-3d' }}>
+        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(to right, rgba(245,241,232,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(245,241,232,0.07) 1px, transparent 1px)', backgroundSize:'120px 120px' }}/>
+      </div>
+
+      <div ref={fieldRef} style={{ position:'absolute', inset:0, transformStyle:'preserve-3d' }}>
+        {BACKDROP_TAG_DEFS.map((d, i) => {
+          const far = Math.min(1, -d.z / 520)
+          const opacity = ((0.9 - far * 0.55) * 0.4).toFixed(2)
+          const blur = far > 0.55 ? `blur(${(far*1.6).toFixed(1)}px)` : 'none'
+          return (
+            <div key={d.code} ref={el => tagRefs.current[i] = el}
+              style={{ position:'absolute', left:d.left, top:d.top, width:d.w, transformStyle:'preserve-3d', opacity, filter:blur, willChange:'transform' }}>
+              <div style={{ border:'1px solid rgba(8,9,11,0.85)', background:'rgba(245,241,232,0.94)', padding:'9px 11px 10px' }}>
+                <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingBottom:7, borderBottom:'1px solid rgba(8,9,11,0.2)', fontSize:7.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
+                  <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ display:'inline-block', width:7, height:7, border:'1px solid #5C5A55', borderLeft:'2px solid #F2B705' }}/>
+                    {d.code}
+                  </span>
+                  <span>0{i+1}</span>
+                </div>
+                <div className="lc-mono" style={{ paddingTop:8, fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase', color:'#08090B' }}>{d.label}</div>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:1.5, height:11, marginTop:9 }}>
+                  {BACKDROP_TAG_BARS[i].map((b,j) => <div key={j} style={{ flex:`${b.grow} 1 0`, minWidth:1, height:b.h, background:'#08090B', opacity:0.55 }}/>)}
+                </div>
+              </div>
+              <div style={{ height:1, background:'rgba(8,9,11,0.85)', margin:'0 14%', opacity:0.5 }}/>
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ position:'absolute', inset:0, background:'radial-gradient(120% 70% at 50% 46%, rgba(242,183,5,0.055), transparent 55%)' }}/>
+      <div style={{ position:'absolute', inset:0, background:'radial-gradient(105% 78% at 50% 48%, rgba(20,18,14,0) 22%, rgba(20,18,14,0.86) 100%)' }}/>
+    </div>
+  )
+}
+
 // impeccable:direction seed=90ffee00 (concept-seed --scope direction --mode persuade, degraded/no-network — index 7 of 7 grounded candidates assigned)
 // THESIS: Levam Corp is a real distribution operation, not another dark-SaaS dashboard wearing a wholesale label — the site proves that by rendering the one object every reseller already trusts: a shipping box.
 // OWN-WORLD: warehouse charcoal ground (#14120E, warm brown-black, not blue-black), kraft cardboard (#B98A54/#C79A5E), safety-hazard yellow (#F2B705) as the committed accent, steel-gray (#6B7280) secondary, brand blue (#2F7DF6) reserved for CTAs/links only. Space Grotesk/Inter preserved as the confirmed cross-site type system (7+ pages already ship it).
@@ -1697,8 +1812,7 @@ export default function Home() {
 
       {/* ── FIXED DARK BASE ───────────────────────────────────────────── */}
       <div style={{ position:'fixed', inset:0, background:'#14120E', zIndex:-3 }}/>
-      <div style={{ position:'fixed', inset:0, zIndex:-2, opacity:0.5, pointerEvents:'none',
-        backgroundImage:'repeating-linear-gradient(rgba(245,241,232,0.025) 0 1px, transparent 1px 96px), repeating-linear-gradient(90deg, rgba(245,241,232,0.025) 0 1px, transparent 1px 96px)' }}/>
+      <ManifestBackdrop/>
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px) saturate(180%)', background:'rgba(20,18,14,0.95)', borderBottom:'1px solid rgba(245,241,232,0.06)' }}>
@@ -1741,7 +1855,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── HERO — the shipping journey, autoplaying behind the pitch ─── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <section ref={heroSectionRef} style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 11rem', position:'relative', overflow:'hidden' }}>
+      <section ref={heroSectionRef} style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'8rem 2rem 11rem', position:'relative', overflow:'hidden', background:'#14120E' }}>
 
         {/* Real footage of the shipment's own journey — label to delivered, on a loop */}
         <HeroVideoBackground/>
