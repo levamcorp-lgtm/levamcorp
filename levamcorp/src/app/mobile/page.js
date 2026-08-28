@@ -186,9 +186,14 @@ export default function MobileAdmin() {
       ein_number: app.ein_number, resale_tax_number: app.resale_tax_number,
       ein_document_url: app.ein_document_url, resale_tax_document_url: app.resale_tax_document_url,
     }])
+    const emailRes = await fetch('/api/send-approval-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: app.email, contactName: app.contact_name, businessName: app.business_name })
+    })
     setApplications(prev => prev.map(a => a.id === app.id ? {...a, status:'approved'} : a))
     setSelectedApp(null)
-    showToast('✓ Application approved!')
+    showToast(emailRes.ok ? '✓ Application approved!' : 'Approved, but the email failed to send', emailRes.ok ? undefined : 'error')
   }
 
   const rejectApp = async (app) => {
