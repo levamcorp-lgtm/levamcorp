@@ -51,8 +51,7 @@ export async function POST(request) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td width="60%" style="width: 60%; mso-line-height-rule: exactly; line-height: 16px;">
-          <div style="font-family: Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 2px; color: #08090b; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 21px;">LEVAM<span style="color: #2F7DF6;">CORP</span></div>
-          <div style="padding-top: 4px; font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #6d6a64; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 14px;">Distributors &middot; Doral, FL</div>
+          <img src="https://levamcorp.com/levamcorp-logo_1.png" width="132" height="86" alt="LEVAM CORP — Distributors" style="display: block; width: 132px; height: 86px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
         </td>
         <td width="40%" class="lvm-right" style="width: 40%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #5c5a55; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
           DORAL &middot; FL 33178
@@ -262,7 +261,7 @@ export async function POST(request) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td width="55%" class="lvm-stack" style="width: 55%; mso-line-height-rule: exactly; line-height: 18px;">
-          <div style="font-family: Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 19px;">LEVAM<span style="color: #2F7DF6;">CORP</span></div>
+          <img src="https://levamcorp.com/levamcorp-logo-white.png" width="112" height="73" alt="LEVAM CORP — Distributors" style="display: block; width: 112px; height: 73px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
         </td>
         <td width="45%" class="lvm-right" style="width: 45%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #7c7a73; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 18px;">
           B2B wholesale only
