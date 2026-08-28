@@ -65,20 +65,20 @@ export default function PortalPage() {
     : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 
   return (
-    <div style={{ minHeight:'100vh', background:'#000000', color:'#F5F1E8', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
+    <div style={{ minHeight:'100vh', background:'#FFFFFF', color:'#08090B', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulseDot { 0%,100%{opacity:.5} 50%{opacity:1} }
         .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.02em; }
         .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; }
-        input::placeholder { color: rgba(8,9,11,0.35); }
+        input::placeholder { color: rgba(8,9,11,0.3); }
         input:focus { border-color: rgba(47,125,246,0.6) !important; }
         .portal-submit:hover:not(:disabled) { background:#2F7DF6 !important; color:#08090B !important; }
         @media(max-width:768px) { .portal-grid { grid-template-columns:1fr !important; } .portal-left { display:none !important; } }
       `}</style>
 
       {/* ── LEFT PANEL — ticket ledger ───────────────────────────────────── */}
-      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'clamp(32px,4vw,56px)', borderRight:'1px solid rgba(245,241,232,0.12)' }}>
+      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'clamp(32px,4vw,56px)', background:'#08090B', color:'#F5F1E8' }}>
 
         <div>
           <Link href="/" style={{ textDecoration:'none', display:'inline-flex', alignItems:'center', gap:10 }}>
@@ -91,14 +91,14 @@ export default function PortalPage() {
             </div>
           </Link>
 
-          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, marginTop:'clamp(28px,4vh,44px)', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, marginTop:'clamp(28px,4vh,44px)', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#8A8780' }}>
             <span style={{ display:'flex', alignItems:'center', gap:10 }}>
               <span style={{ width:6, height:6, background:'#2F7DF6', display:'inline-block' }}/>
               Access point · Form 09
             </span>
             <span>Partner portal</span>
           </div>
-          <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+          <div style={{ height:1, background:'rgba(245,241,232,0.25)' }}/>
         </div>
 
         <div>
@@ -112,7 +112,7 @@ export default function PortalPage() {
           <div style={{ borderTop:'1px solid rgba(245,241,232,0.16)' }}>
             {PORTAL_FEATURES.map((f, i) => (
               <div key={f.k} style={{ display:'grid', gridTemplateColumns:'28px 1fr', gap:14, alignItems:'baseline', padding:'12px 0', borderBottom:'1px solid rgba(245,241,232,0.09)' }}>
-                <span className="lc-mono" style={{ fontSize:10, letterSpacing:'0.14em', color:'#6F6D67' }}>0{i+1}</span>
+                <span className="lc-mono" style={{ fontSize:10, letterSpacing:'0.14em', color:'#8A8780' }}>0{i+1}</span>
                 <span style={{ fontSize:13.5, color:'#DDD8CD' }}>{f.v}</span>
               </div>
             ))}
@@ -121,9 +121,9 @@ export default function PortalPage() {
 
         <div>
           <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:20, marginBottom:16 }}>
-            {LOGIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 18 : 12, background:'#F5F1E8', opacity:0.16 }}/>)}
+            {LOGIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 18 : 12, background:'#F5F1E8', opacity:0.2 }}/>)}
           </div>
-          <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5F5D58', lineHeight:1.8 }}>
+          <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67', lineHeight:1.8 }}>
             © {new Date().getFullYear()} Levam Corp Distributors<br/>6315 NW 99th Ave, Doral, FL 33178
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function PortalPage() {
 
       {/* ── RIGHT PANEL — sign-in slip ─────────────────────────────────── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'3rem 2rem' }}>
-        <div style={{ maxWidth:420, width:'100%', background:'#F2EFE6', color:'#08090B', padding:'clamp(26px,3.6vw,40px)', animation:'fadeUp 0.5s ease' }}>
+        <div style={{ maxWidth:420, width:'100%', background:'#FFFFFF', border:'1px solid rgba(8,9,11,0.1)', color:'#08090B', padding:'clamp(26px,3.6vw,40px)', animation:'fadeUp 0.5s ease' }}>
 
           <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
             <span style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -148,20 +148,20 @@ export default function PortalPage() {
             Don&rsquo;t have access? <Link href="/apply" style={{ color:'#2F7DF6', fontWeight:600, textDecoration:'none' }}>Apply to become a partner →</Link>
           </p>
 
-          <div style={{ display:'grid', gap:1, background:'rgba(8,9,11,0.85)', border:'1px solid #08090B' }}>
-            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#F2EFE6' }}>
+          <div style={{ display:'grid', gap:1, background:'rgba(8,9,11,0.16)', border:'1px solid #08090B' }}>
+            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#FFFFFF' }}>
               <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Email</span>
               <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&handleLogin()}
                 placeholder="you@yourbusiness.com"
-                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
+                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.16)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
             </label>
-            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#F2EFE6', position:'relative' }}>
+            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#FFFFFF', position:'relative' }}>
               <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Password</span>
               <input type={showPass?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&handleLogin()}
                 placeholder="••••••••••"
-                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 40px 13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
+                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.16)', background:'transparent', padding:'13px 40px 13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
               <button type="button" onClick={()=>setShowPass(s=>!s)}
                 style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#6D6A64', padding:0, display:'flex' }}>
                 {eyeIcon}
@@ -180,7 +180,7 @@ export default function PortalPage() {
           </div>
 
           {error && (
-            <div style={{ padding:'10px 14px', background:'rgba(231,76,60,0.08)', border:'1px solid rgba(231,76,60,0.35)', fontSize:12, color:'#C0392B', marginBottom:14 }}>
+            <div style={{ padding:'10px 14px', background:'rgba(231,76,60,0.06)', border:'1px solid rgba(231,76,60,0.35)', fontSize:12, color:'#C0392B', marginBottom:14 }}>
               {error}
             </div>
           )}
