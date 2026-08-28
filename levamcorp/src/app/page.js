@@ -1252,82 +1252,213 @@ function BulletinGrid() {
   )
 }
 
+const REDACTED_WIDTHS = [18, 10, 24, 13]
+const CATALOG_STAMP_BARS = seededBars(51199, 60)
+
+// One "contact sheet" frame — cursor-tracked 3D tilt + sheen, real product data
+function CatalogCell({ product, index }) {
+  const ref = useRef(null)
+  const [hover, setHover] = useState(false)
+  const [tf, setTf] = useState({ ry: 0, rx: 0, sx: 50, sy: 50 })
+  const on = hover
+  const code = (product.id || '').toString().replace(/-/g, '').slice(-6).toUpperCase()
+
+  const onMove = e => {
+    const r = ref.current.getBoundingClientRect()
+    const mx = (e.clientX - r.left) / r.width - 0.5
+    const my = (e.clientY - r.top) / r.height - 0.5
+    setTf({ ry: (mx * 13).toFixed(2), rx: (-my * 10).toFixed(2), sx: (50 + mx * 120).toFixed(0), sy: (50 + my * 120).toFixed(0) })
+  }
+
+  return (
+    <Link href="/apply" ref={ref}
+      onMouseEnter={() => setHover(true)} onMouseMove={onMove} onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)} onBlur={() => setHover(false)}
+      style={{ display:'block', padding:'clamp(10px,1.4vw,14px)', textDecoration:'none',
+        background: on ? '#08090B' : '#F2EFE6', color: on ? '#F2EFE6' : '#08090B',
+        transformStyle:'preserve-3d',
+        transform: on ? `translateZ(46px) rotateX(${tf.rx}deg) rotateY(${tf.ry}deg)` : 'translateZ(0) rotateX(0deg) rotateY(0deg)',
+        boxShadow: on ? '0 34px 60px -24px rgba(0,0,0,0.85), 0 8px 18px -10px rgba(0,0,0,0.6)' : 'none',
+        zIndex: on ? 3 : 1, position:'relative', transition: on ? 'none' : 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingBottom:9, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#8F8C85' : '#5C5A55' }}>
+        <span>0{index + 1}</span>
+        <span style={{ color: on ? '#F2B705' : '#08090B' }}>{product.brand || '—'}</span>
+      </div>
+      <div style={{ position:'relative', width:'100%', aspectRatio:'1/1', background:'#101114', overflow:'hidden',
+        transformStyle:'preserve-3d', transform: on ? 'translateZ(34px) scale(1.05)' : 'translateZ(0) scale(1)', transition: on ? 'none' : 'transform 0.3s ease' }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:10 }}/>
+          : <div className="lc-mono" style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#F2EFE6', opacity:0.15, fontSize:11, textAlign:'center', padding:8 }}>Drop {product.brand || 'product'} photo</div>
+        }
+        {on && <div style={{ position:'absolute', inset:0, pointerEvents:'none', background:`radial-gradient(120% 90% at ${tf.sx}% ${tf.sy}%, rgba(242,239,230,0.22), rgba(242,239,230,0) 62%)` }}/>}
+        <div style={{ position:'absolute', left:7, top:7, width:11, height:11, borderTop:'1px solid rgba(242,239,230,0.5)', borderLeft:'1px solid rgba(242,239,230,0.5)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', right:7, bottom:7, width:11, height:11, borderBottom:'1px solid rgba(242,239,230,0.5)', borderRight:'1px solid rgba(242,239,230,0.5)', pointerEvents:'none' }}/>
+      </div>
+      <div style={{ paddingTop:10, fontSize:13.5, lineHeight:1.42, letterSpacing:'-0.005em', minHeight:'3.1em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{product.name}</div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:9, paddingTop:9, borderTop:`1px solid ${on ? 'rgba(242,239,230,0.18)' : 'rgba(8,9,11,0.16)'}`, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#8F8C85' : '#5C5A55' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+          {REDACTED_WIDTHS.map((w,i) => <span key={i} style={{ display:'inline-block', width:w, height:11, background:'#F2B705', opacity:0.6 }}/>)}
+        </span>
+        <span>MOQ {product.moq || 1}</span>
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:9, padding:'10px 11px', border:`1px solid ${on ? '#F2B705' : 'rgba(8,9,11,0.4)'}`, background: on ? '#F2B705' : 'transparent', color:'#08090B', fontWeight:700, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase' }}>
+        <span>Apply to see pricing</span>
+        <span style={{ fontSize:11, fontWeight:400 }}>→</span>
+      </div>
+    </Link>
+  )
+}
+
+// ── CATALOG SHEET — gated product preview, styled as a photo contact sheet ────
+function CatalogSheet() {
+  const [products, setProducts] = useState([])
+  useEffect(() => {
+    fetch('/api/public-products').then(r => r.json()).then(d => setProducts(d.products || [])).catch(() => {})
+  }, [])
+  if (!products.length) return null
+
+  return (
+    <div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+          Contact sheet · Sheet 04 · {products.length} of 500+
+        </span>
+        <span>Pricing restricted · Partners only</span>
+      </div>
+      <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+        <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
+          Premium brands at wholesale prices<span style={{ color:'#F2B705' }}>.</span>
+        </h2>
+        <p style={{ margin:0, alignSelf:'end', maxWidth:'46ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
+          Approved partners get full pricing, live stock levels and ordering. Every unit ships from our Doral, FL warehouse — apply to unlock the full catalog.
+        </p>
+      </div>
+
+      <div style={{ background:'#F2EFE6', padding:'clamp(14px,2vw,22px)' }}>
+        <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', padding:'0 2px clamp(12px,1.8vh,16px)', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
+          <span style={{ display:'flex', alignItems:'center', gap:9 }}>
+            <span style={{ display:'inline-block', width:11, height:11, border:'1px solid #08090B', borderLeft:'3px solid #F2B705' }}/>
+            Levamcorp · Catálogo
+          </span>
+          <span>Doral · FL 33178</span>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))', gap:1, background:'rgba(8,9,11,0.9)', perspective:1100, perspectiveOrigin:'50% 40%' }}>
+          {products.map((p,i) => <CatalogCell key={p.id} product={p} index={i}/>)}
+        </div>
+
+        <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', padding:'clamp(12px,1.8vh,16px) 2px 0', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
+          <span>Frames 01–0{products.length} · pricing restricted</span>
+          <span style={{ display:'flex', alignItems:'flex-end', gap:2, height:18, width:'clamp(110px,18vw,200px)' }}>
+            {CATALOG_STAMP_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 15 : 11, background:'#08090B', opacity:0.75 }}/>)}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', marginTop:'clamp(24px,3.6vh,40px)' }}>
+        <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#7C7A73', lineHeight:1.9 }}>500+ products available<br/>Approved partners only · Response in 48h</div>
+        <Link href="/apply" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:14, padding:'16px 22px', background:'#F2B705', color:'#08090B', fontWeight:700, fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
+          Apply for wholesale access <span style={{ fontSize:13 }}>→</span>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+const FOUNDERS_PEOPLE = [
+  { name:'Victor Mendoza', role:'Co-founder & Partner', index:'01 / 02', initials:'VM',
+    fields:[['Focus','Sales & Sourcing'],['Based','Doral, FL'],['Languages','EN · ES']],
+    bio:'Victor brings hands-on experience in B2B sales and product sourcing. His focus is on building direct relationships with brand suppliers and making sure every partner gets consistent access to the right products at the right price.',
+    quote:'“We started Levam Corp because we saw how hard it was for serious resellers to find a distributor they could actually trust. We wanted to be that company.”',
+    signature:'V. Mendoza' },
+  { name:'Leopoldo Espinoza', role:'Co-founder & Partner', index:'02 / 02', initials:'LE',
+    fields:[['Focus','Operations & Logistics'],['Based','Doral, FL'],['Languages','EN · ES']],
+    bio:'Leopoldo oversees operations and logistics, making sure orders move fast and partners are always taken care of. With a background in business operations and client management, he keeps the Levam Corp machine running smoothly every day.',
+    quote:'“Our partners are not just customers. They are businesses we’re invested in helping grow. When they win, we win.”',
+    signature:'L. Espinoza' },
+]
+
+// ── FOUNDERS RECORD — "Signatories" ledger, ticket style ──────────────────────
+function FoundersRecord() {
+  return (
+    <div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+          Signatories · Form 05
+        </span>
+        <span>02 partners on record</span>
+      </div>
+      <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(26px,4vh,42px)' }}>
+        <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
+          Built by people who know the business<span style={{ color:'#F2B705' }}>.</span>
+        </h2>
+        <p style={{ margin:0, alignSelf:'end', maxWidth:'44ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
+          Levam Corp was founded by two entrepreneurs who understand what resellers and distributors actually need — reliable supply, real pricing, and a partner who picks up the phone.
+        </p>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))', gap:1, background:'rgba(245,241,232,0.16)', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
+        {FOUNDERS_PEOPLE.map(p => (
+          <div key={p.name} style={{ background:'#14120E', padding:'clamp(20px,3vh,28px) clamp(18px,2.4vw,26px) clamp(20px,3vh,26px)' }}>
+            <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, paddingBottom:'clamp(16px,2.4vh,22px)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>
+              <span style={{ color:'#F2B705' }}>{p.role}</span>
+              <span>{p.index}</span>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'clamp(104px,13vw,132px) 1fr', gap:'clamp(16px,2.2vw,24px)', alignItems:'start' }}>
+              <div style={{ position:'relative', aspectRatio:'3/4', background:'#F2EFE6', color:'#08090B', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span className="lc-display" style={{ fontSize:30, fontWeight:700, letterSpacing:'-0.02em', opacity:0.85 }}>{p.initials}</span>
+                <div style={{ position:'absolute', left:7, top:7, width:11, height:11, borderTop:'1px solid rgba(8,9,11,0.45)', borderLeft:'1px solid rgba(8,9,11,0.45)' }}/>
+                <div style={{ position:'absolute', right:7, bottom:7, width:11, height:11, borderBottom:'1px solid rgba(8,9,11,0.45)', borderRight:'1px solid rgba(8,9,11,0.45)' }}/>
+              </div>
+
+              <div>
+                <div style={{ fontSize:'clamp(24px,2.6vw,32px)', fontWeight:400, letterSpacing:'-0.035em', lineHeight:1.06, color:'#F5F2E9' }}>{p.name}</div>
+                <div style={{ marginTop:'clamp(12px,1.8vh,16px)', borderTop:'1px solid rgba(245,241,232,0.12)' }}>
+                  {p.fields.map(([k,v]) => (
+                    <div key={k} style={{ display:'grid', gridTemplateColumns:'clamp(74px,8vw,96px) 1fr', gap:10, alignItems:'baseline', padding:'9px 0 10px', borderBottom:'1px solid rgba(245,241,232,0.09)' }}>
+                      <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>{k}</span>
+                      <span className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#DDD8CD' }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p style={{ margin:'clamp(18px,2.6vh,24px) 0 0', fontSize:15, lineHeight:1.68, color:'#9A968E' }}>{p.bio}</p>
+
+            <div style={{ marginTop:'clamp(18px,2.6vh,24px)', padding:'clamp(14px,2vh,18px) 0 0', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
+              <div style={{ fontSize:'clamp(16px,1.7vw,19px)', lineHeight:1.5, letterSpacing:'-0.015em', color:'#F2EFE6' }}>{p.quote}</div>
+              <div style={{ marginTop:12, display:'flex', alignItems:'center', gap:12 }}>
+                <span style={{ flexShrink:0, width:'clamp(52px,7vw,78px)', height:1, background:'#F2B705' }}/>
+                <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>{p.signature}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'16px 28px', flexWrap:'wrap', padding:'clamp(16px,2.4vh,22px) 0 0', borderTop:'1px solid rgba(245,241,232,0.3)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'#86837C' }}>
+        <span>Doral, FL · English &amp; Español · Mon–Fri 9AM–5PM ET</span>
+        <span style={{ display:'flex', alignItems:'center', gap:22, flexWrap:'wrap' }}>
+          <a href="mailto:partners@levamcorp.com" style={{ fontSize:12, letterSpacing:'0.06em', textTransform:'none', color:'#F2EFE6', borderBottom:'1px solid rgba(245,241,232,0.3)', paddingBottom:2, textDecoration:'none' }}>partners@levamcorp.com</a>
+          <a href="https://wa.me/17864909005" style={{ fontSize:12, letterSpacing:'0.06em', color:'#F2EFE6', borderBottom:'1px solid #F2B705', paddingBottom:2, textDecoration:'none' }}>(786) 490-9005</a>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
-// ── PRODUCT PREVIEW ──────────────────────────────────────────────────────────
-function ProductPreview() {
-  const [products, setProducts] = useState([])
-
-  useEffect(() => {
-    fetch('/api/public-products')
-      .then(r => r.json())
-      .then(d => setProducts(d.products || []))
-      .catch(() => {})
-  }, [])
-
-  if (!products.length) return null
-
-  return (
-    <section className="lc-section" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-      <div style={{ maxWidth:1200, margin:'0 auto' }}>
-        <Reveal>
-          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
-            <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
-              Premium brands at wholesale prices.
-            </h2>
-            <p style={{ fontSize:14, color:'#A7A090', maxWidth:440, margin:'0 auto' }}>
-              Approved partners get access to full pricing, stock levels, and ordering. Apply to unlock the full catalog.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="lc-products-grid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(230px,1fr))', gap:14, marginBottom:'2.5rem' }}>
-          {products.map((p, i) => (
-            <Reveal key={p.id} delay={i * 0.06}>
-              <TiltCard glow="#2F7DF6" style={{ height:'100%' }}>
-                <div style={{ background:'#1D1A15', border:'1px solid rgba(245,241,232,0.07)', borderRadius:12, overflow:'hidden', height:'100%', display:'flex', flexDirection:'column' }}>
-                  <div style={{ position:'relative', aspectRatio:'4 / 3', background:'rgba(245,241,232,0.03)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    {p.image_url
-                      ? <img src={p.image_url} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:18 }}
-                          onError={e => e.target.style.display='none'}/>
-                      : <div style={{ fontSize:44, opacity:0.1 }}>◻</div>
-                    }
-                  </div>
-                  <div style={{ padding:'1rem', display:'flex', flexDirection:'column', gap:10, flex:1 }}>
-                    <div>
-                      {p.brand && <div style={{ fontSize:9, fontWeight:700, color:'#2F7DF6', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:5 }}>{p.brand}</div>}
-                      <div style={{ fontSize:13, fontWeight:600, color:'#fff', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.name}</div>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:'auto', flexWrap:'wrap' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', background:'rgba(47,125,246,0.08)', border:'1px solid rgba(47,125,246,0.15)', borderRadius:6 }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2F7DF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        <span style={{ fontSize:10, fontWeight:700, color:'#2F7DF6' }}>Apply to see pricing</span>
-                      </div>
-                      {p.moq && <div style={{ fontSize:9, color:'rgba(167,160,144,0.5)' }}>MOQ: {p.moq}</div>}
-                    </div>
-                  </div>
-                </div>
-              </TiltCard>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal>
-          <div style={{ textAlign:'center' }}>
-            <Link href="/apply" className="lc-btn" style={{ fontSize:13, padding:'14px 36px' }}>
-              Apply for wholesale access {IC.arrow}
-            </Link>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:12 }}>
-              500+ products available · Approved partners only · Response in 48h
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
 
 // ── FAQ ───────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
@@ -1780,94 +1911,21 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── PRODUCT PREVIEW ─────────────────────────────────────────────── */}
-      <ProductPreview/>
-
+      {/* ── PRODUCT PREVIEW / CATALOG SHEET ─────────────────────────────── */}
+      <section className="lc-section" style={{ padding:'clamp(56px,9vh,110px) 2rem clamp(70px,11vh,130px)', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ maxWidth:1180, margin:'0 auto' }}>
+          <Reveal>
+            <CatalogSheet/>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── FOUNDERS ────────────────────────────────────────────────── */}
-      <section className="lc-section" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
+      <section className="lc-section" style={{ padding:'clamp(56px,9vh,110px) 2rem clamp(70px,11vh,130px)', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ maxWidth:1180, margin:'0 auto' }}>
           <Reveal>
-            <div style={{ textAlign:'center', marginBottom:'4rem' }}>
-              <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,46px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
-                Built by people who know<br/>the business.
-              </h2>
-              <p style={{ fontSize:14, color:'#A7A090', maxWidth:480, margin:'0 auto', lineHeight:1.8 }}>
-                Levam Corp was founded by two entrepreneurs who understand what resellers and distributors actually need — reliable supply, real pricing, and a partner who picks up the phone.
-              </p>
-            </div>
-          </Reveal>
-
-          <div className="g2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-            {/* Victor */}
-            <Reveal delay={0.05}>
-              <TiltCard glow="#2F7DF6" style={{ height:'100%' }}>
-                <Card style={{ height:'100%' }} accent="#2F7DF6">
-                  {/* Avatar */}
-                  <div style={{ width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,rgba(47,125,246,0.3),rgba(107,114,128,0.2))', border:'2px solid rgba(47,125,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.25rem', fontSize:28, fontWeight:900, color:'#2F7DF6', letterSpacing:'-0.02em' }}>
-                    VM
-                  </div>
-                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#2F7DF6', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
-                  <h3 className="lc-display" style={{ fontSize:22, fontWeight:700, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Victor Mendoza</h3>
-                  <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85, marginBottom:'1.25rem' }}>
-                    Victor brings hands-on experience in B2B sales and product sourcing. His focus is on building direct relationships with brand suppliers and making sure every partner we work with gets consistent access to the right products at the right price.
-                  </p>
-                  <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85 }}>
-                    "We started Levam Corp because we saw how hard it was for serious resellers to find a distributor they could actually trust. We wanted to be that company."
-                  </p>
-                  <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
-                    <a href="mailto:partners@levamcorp.com" style={{ fontSize:11, color:'#2F7DF6', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(47,125,246,0.25)', borderRadius:20, background:'rgba(47,125,246,0.06)' }}>
-                      Get in touch
-                    </a>
-                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20 }}>
-                      WhatsApp
-                    </a>
-                  </div>
-                </Card>
-              </TiltCard>
-            </Reveal>
-
-            {/* Leopoldo */}
-            <Reveal delay={0.12}>
-              <TiltCard glow="#6B7280" style={{ height:'100%' }}>
-                <Card style={{ height:'100%' }} accent="#6B7280">
-                  {/* Avatar */}
-                  <div style={{ width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,rgba(107,114,128,0.3),rgba(47,125,246,0.2))', border:'2px solid rgba(107,114,128,0.3)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.25rem', fontSize:28, fontWeight:900, color:'#6B7280', letterSpacing:'-0.02em' }}>
-                    LE
-                  </div>
-                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.2em', color:'#6B7280', textTransform:'uppercase', marginBottom:6 }}>Co-founder & Partner</div>
-                  <h3 className="lc-display" style={{ fontSize:22, fontWeight:700, color:'#fff', marginBottom:'1rem', letterSpacing:'-0.01em' }}>Leopoldo Espinoza</h3>
-                  <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85, marginBottom:'1.25rem' }}>
-                    Leopoldo oversees operations and logistics, making sure orders move fast and partners are always taken care of. With a background in business operations and client management, he keeps the Levam Corp machine running smoothly every day.
-                  </p>
-                  <p style={{ fontSize:13.5, color:'#A7A090', lineHeight:1.85 }}>
-                    "Our partners are not just customers. They are businesses we're invested in helping grow. When they win, we win."
-                  </p>
-                  <div style={{ marginTop:'1.5rem', display:'flex', gap:10 }}>
-                    <a href="mailto:leopoldo@levamcorp.com" style={{ fontSize:11, color:'#6B7280', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(107,114,128,0.25)', borderRadius:20, background:'rgba(107,114,128,0.06)' }}>
-                      Get in touch
-                    </a>
-                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textDecoration:'none', fontWeight:600, padding:'7px 14px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20 }}>
-                      WhatsApp
-                    </a>
-                  </div>
-                </Card>
-              </TiltCard>
-            </Reveal>
-          </div>
-
-          {/* Bottom note */}
-          <Reveal delay={0.2}>
-            <div style={{ textAlign:'center', marginTop:'3rem', padding:'1.5rem 2rem', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10 }}>
-              <div style={{ fontSize:13, color:'#A7A090', lineHeight:1.8 }}>
-                Based in <strong style={{ color:'rgba(255,255,255,0.6)' }}>Doral, FL</strong> · English & Spanish · Mon–Fri 9AM–5PM ET
-                <span style={{ margin:'0 12px', opacity:0.3 }}>·</span>
-                <a href="mailto:partners@levamcorp.com" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>partners@levamcorp.com</a>
-                <span style={{ margin:'0 12px', opacity:0.3 }}>·</span>
-                <a href="https://wa.me/17864909005" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>(786) 490-9005</a>
-              </div>
-            </div>
+            <FoundersRecord/>
           </Reveal>
         </div>
       </section>
