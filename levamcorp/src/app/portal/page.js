@@ -3,6 +3,23 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../lib/supabase'
 
+function seededBars(seed, count) {
+  let s = seed
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
+  return Array.from({ length: count }, () => {
+    const r = rnd()
+    return { w: r > 0.82 ? 3 : r > 0.5 ? 2 : 1, tall: r > 0.94 }
+  })
+}
+const LOGIN_BARS = seededBars(51001, 70)
+
+const PORTAL_FEATURES = [
+  { k: 'Catalog', v: 'Full product catalog with live pricing' },
+  { k: 'Billing', v: 'Automatic quote & invoice generation' },
+  { k: 'Stock', v: 'Real-time availability & dispatch times' },
+  { k: 'Orders', v: 'Full order history & tracking' },
+]
+
 export default function PortalPage() {
   const [email,       setEmail]       = useState('')
   const [password,    setPassword]    = useState('')
@@ -48,151 +65,139 @@ export default function PortalPage() {
     : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 
   return (
-    <div style={{ minHeight:'100vh', background:'#080B14', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
+    <div style={{ minHeight:'100vh', background:'#000000', color:'#F5F1E8', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', display:'grid', gridTemplateColumns:'1fr 1fr' }} className="portal-grid">
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulseDot { 0%,100%{opacity:.5} 50%{opacity:1} }
-        @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
         .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.02em; }
-        input::placeholder { color: rgba(255,255,255,0.2); }
-        input:focus { border-color: rgba(47,125,246,0.5) !important; background: rgba(47,125,246,0.04) !important; outline: none; }
+        .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; }
+        input::placeholder { color: rgba(8,9,11,0.35); }
+        input:focus { border-color: rgba(47,125,246,0.6) !important; }
+        .portal-submit:hover:not(:disabled) { background:#2F7DF6 !important; color:#08090B !important; }
         @media(max-width:768px) { .portal-grid { grid-template-columns:1fr !important; } .portal-left { display:none !important; } }
       `}</style>
 
-      {/* ── LEFT PANEL ────────────────────────────────────────────────── */}
-      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'3rem', background:'rgba(8,11,20,0.8)' }}>
+      {/* ── LEFT PANEL — ticket ledger ───────────────────────────────────── */}
+      <div className="portal-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'clamp(32px,4vw,56px)', borderRight:'1px solid rgba(245,241,232,0.12)' }}>
 
-        {/* Dot grid */}
-        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(47,125,246,0.12) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }}/>
-        {/* Blue glow */}
-        <div style={{ position:'absolute', top:'-20%', left:'-10%', width:'70%', height:'70%', background:'radial-gradient(circle,rgba(47,125,246,0.07) 0%,transparent 70%)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', bottom:'-10%', right:'-10%', width:'50%', height:'50%', background:'radial-gradient(circle,rgba(139,124,246,0.06) 0%,transparent 70%)', pointerEvents:'none' }}/>
-        {/* Border right */}
-        <div style={{ position:'absolute', right:0, top:0, bottom:0, width:1, background:'linear-gradient(180deg,transparent,rgba(47,125,246,0.2),transparent)' }}/>
-
-        {/* LOGO */}
-        <div style={{ position:'relative', zIndex:1 }}>
+        <div>
           <Link href="/" style={{ textDecoration:'none', display:'inline-flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:32, height:32, border:'1.5px solid rgba(47,125,246,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(47,125,246,0.06)' }}>
-              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:18, height:'auto' }}/>
+            <div style={{ width:32, height:32, border:'1.5px solid rgba(245,241,232,0.35)', borderLeft:'3px solid #2F7DF6', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:16, height:'auto' }}/>
             </div>
             <div>
-              <div className="lc-display" style={{ fontSize:14, fontWeight:700, letterSpacing:'0.16em', color:'#fff', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>
-              <div style={{ fontSize:7, letterSpacing:'0.22em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2 }}>Distributors · Doral, FL</div>
+              <div className="lc-display" style={{ fontSize:14, fontWeight:700, letterSpacing:'0.16em', color:'#F5F1E8', textTransform:'uppercase', lineHeight:1 }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>
+              <div className="lc-mono" style={{ fontSize:7, letterSpacing:'0.22em', color:'#6F6D67', textTransform:'uppercase', marginTop:2 }}>Distributors · Doral, FL</div>
             </div>
           </Link>
+
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, marginTop:'clamp(28px,4vh,44px)', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+            <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ width:6, height:6, background:'#2F7DF6', display:'inline-block' }}/>
+              Access point · Form 09
+            </span>
+            <span>Partner portal</span>
+          </div>
+          <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
         </div>
 
-        {/* CENTER */}
-        <div style={{ position:'relative', zIndex:1 }}>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.25em', color:'#2F7DF6', textTransform:'uppercase', marginBottom:14 }}>Partner portal</div>
-          <h2 className="lc-display" style={{ fontSize:'clamp(28px,3.5vw,42px)', fontWeight:700, color:'#fff', lineHeight:1.1, marginBottom:'1rem', letterSpacing:'-0.02em' }}>
-            Your private<br/>
-            <span style={{ color:'transparent', backgroundImage:'linear-gradient(90deg,#2F7DF6,#5B93FA,#8FB8FF,#2F7DF6)', backgroundSize:'200% auto', WebkitBackgroundClip:'text', backgroundClip:'text', animation:'shimmer 4s linear infinite' }}>distribution hub.</span>
+        <div>
+          <h2 className="lc-display" style={{ fontSize:'clamp(28px,3.5vw,42px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.05, margin:'0 0 1rem', color:'#F5F2E9' }}>
+            Your private<br/>distribution hub<span style={{ color:'#2F7DF6' }}>.</span>
           </h2>
-          <p style={{ fontSize:13, color:'rgba(255,255,255,0.35)', lineHeight:1.85, marginBottom:'2.5rem', maxWidth:320 }}>
+          <p style={{ fontSize:14, lineHeight:1.75, color:'#9A968E', maxWidth:340, margin:'0 0 clamp(24px,3.4vh,36px)' }}>
             Access your full catalog, submit orders, generate quotes and invoices — all in one place.
           </p>
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            {[
-              { icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label:'Full product catalog with live pricing' },
-              { icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>, label:'Automatic quote & invoice generation' },
-              { icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label:'Real-time availability & dispatch times' },
-              { icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>, label:'Full order history & tracking' },
-            ].map(({ icon, label }) => (
-              <div key={label} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:'rgba(47,125,246,0.08)', border:'1px solid rgba(47,125,246,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color:'#2F7DF6', flexShrink:0 }}>
-                  {icon}
-                </div>
-                <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:500 }}>{label}</span>
+
+          <div style={{ borderTop:'1px solid rgba(245,241,232,0.16)' }}>
+            {PORTAL_FEATURES.map((f, i) => (
+              <div key={f.k} style={{ display:'grid', gridTemplateColumns:'28px 1fr', gap:14, alignItems:'baseline', padding:'12px 0', borderBottom:'1px solid rgba(245,241,232,0.09)' }}>
+                <span className="lc-mono" style={{ fontSize:10, letterSpacing:'0.14em', color:'#6F6D67' }}>0{i+1}</span>
+                <span style={{ fontSize:13.5, color:'#DDD8CD' }}>{f.v}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* FOOTER */}
-        <div style={{ fontSize:10, color:'rgba(255,255,255,0.15)', lineHeight:1.7, position:'relative', zIndex:1 }}>
-          © {new Date().getFullYear()} Levam Corp Distributors<br/>
-          6315 NW 99th Ave, Doral, FL 33178
+        <div>
+          <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:20, marginBottom:16 }}>
+            {LOGIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 18 : 12, background:'#F5F1E8', opacity:0.16 }}/>)}
+          </div>
+          <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5F5D58', lineHeight:1.8 }}>
+            © {new Date().getFullYear()} Levam Corp Distributors<br/>6315 NW 99th Ave, Doral, FL 33178
+          </div>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — LOGIN FORM ───────────────────────────────────── */}
-      <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', padding:'3rem 2.5rem', background:'rgba(17,26,46,0.95)', position:'relative' }}>
-        {/* Subtle gradient */}
-        <div style={{ position:'absolute', top:0, right:0, width:'60%', height:'40%', background:'radial-gradient(circle at 100% 0%,rgba(47,125,246,0.05),transparent)', pointerEvents:'none' }}/>
+      {/* ── RIGHT PANEL — sign-in slip ─────────────────────────────────── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'3rem 2rem' }}>
+        <div style={{ maxWidth:420, width:'100%', background:'#F2EFE6', color:'#08090B', padding:'clamp(26px,3.6vw,40px)', animation:'fadeUp 0.5s ease' }}>
 
-        <div style={{ maxWidth:380, width:'100%', margin:'0 auto', position:'relative', animation:'fadeUp 0.5s ease' }}>
-
-          {/* Header */}
-          <div style={{ marginBottom:'2.5rem' }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 12px', border:'1px solid rgba(47,125,246,0.2)', borderRadius:20, background:'rgba(47,125,246,0.05)', marginBottom:'1rem' }}>
-              <span style={{ width:5, height:5, borderRadius:'50%', background:'#12B76A', boxShadow:'0 0 6px #12B76A', animation:'pulseDot 2s infinite' }}/>
-              <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>Approved partners only</span>
-            </div>
-            <h3 className="lc-display" style={{ fontSize:'clamp(24px,3vw,32px)', fontWeight:700, color:'#fff', marginBottom:'0.5rem', letterSpacing:'-0.02em' }}>Sign in to your account</h3>
-            <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)' }}>
-              Don't have access? <Link href="/apply" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>Apply to become a partner →</Link>
-            </p>
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
+            <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:'#12B76A', boxShadow:'0 0 6px #12B76A', animation:'pulseDot 2s infinite', display:'inline-block' }}/>
+              Approved partners only
+            </span>
+            <span>Sign-in slip</span>
           </div>
 
-          {/* Email */}
-          <div style={{ marginBottom:'1rem' }}>
-            <label style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6, letterSpacing:'0.12em', textTransform:'uppercase' }}>Email address</label>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-              onKeyDown={e=>e.key==='Enter'&&handleLogin()}
-              placeholder="you@yourbusiness.com"
-              style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:13, padding:'12px 14px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box', transition:'all 0.2s' }}/>
-          </div>
+          <h3 className="lc-display" style={{ fontSize:'clamp(22px,2.8vw,30px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1.1, margin:'clamp(18px,2.6vh,24px) 0 8px', color:'#08090B' }}>
+            Sign in to your account<span style={{ color:'#2F7DF6' }}>.</span>
+          </h3>
+          <p style={{ fontSize:13, color:'#5C5A55', margin:'0 0 clamp(20px,2.8vh,28px)' }}>
+            Don&rsquo;t have access? <Link href="/apply" style={{ color:'#2F7DF6', fontWeight:600, textDecoration:'none' }}>Apply to become a partner →</Link>
+          </p>
 
-          {/* Password */}
-          <div style={{ marginBottom:'1rem' }}>
-            <label style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6, letterSpacing:'0.12em', textTransform:'uppercase' }}>Password</label>
-            <div style={{ position:'relative' }}>
+          <div style={{ display:'grid', gap:1, background:'rgba(8,9,11,0.85)', border:'1px solid #08090B' }}>
+            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#F2EFE6' }}>
+              <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Email</span>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleLogin()}
+                placeholder="you@yourbusiness.com"
+                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
+            </label>
+            <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,96px) 1fr', alignItems:'center', background:'#F2EFE6', position:'relative' }}>
+              <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Password</span>
               <input type={showPass?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&handleLogin()}
                 placeholder="••••••••••"
-                style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:13, padding:'12px 44px 12px 14px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box', transition:'all 0.2s' }}/>
+                className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 40px 13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
               <button type="button" onClick={()=>setShowPass(s=>!s)}
-                style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.3)', padding:0, display:'flex' }}>
+                style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#6D6A64', padding:0, display:'flex' }}>
                 {eyeIcon}
               </button>
-            </div>
+            </label>
           </div>
 
-          {/* Remember + Forgot */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
-            <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'rgba(255,255,255,0.35)', cursor:'pointer' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'14px 0 clamp(18px,2.6vh,24px)' }}>
+            <label className="lc-mono" style={{ display:'flex', alignItems:'center', gap:8, fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'#5C5A55', cursor:'pointer' }}>
               <input type="checkbox" style={{ accentColor:'#2F7DF6' }}/> Keep me signed in
             </label>
             <button onClick={handleForgotPassword} disabled={resetLoading}
-              style={{ fontSize:12, color:resetSent?'#12B76A':'#2F7DF6', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600, padding:0 }}>
+              className="lc-mono" style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:resetSent?'#12B76A':'#2F7DF6', background:'none', border:'none', cursor:'pointer', fontWeight:700, padding:0 }}>
               {resetLoading?'Sending…':resetSent?'✓ Email sent!':'Forgot password?'}
             </button>
           </div>
 
-          {/* Error */}
           {error && (
-            <div style={{ padding:'10px 14px', background:'rgba(231,76,60,0.08)', border:'1px solid rgba(231,76,60,0.25)', borderRadius:6, fontSize:12, color:'#e74c3c', marginBottom:'1rem' }}>
+            <div style={{ padding:'10px 14px', background:'rgba(231,76,60,0.08)', border:'1px solid rgba(231,76,60,0.35)', fontSize:12, color:'#C0392B', marginBottom:14 }}>
               {error}
             </div>
           )}
 
-          {/* Submit */}
           <button onClick={handleLogin} disabled={loading}
-            style={{ width:'100%', padding:'13px', background:loading?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#2F7DF6,#1B5FD1)', color:'#fff', fontSize:12, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', border:'none', borderRadius:6, cursor:loading?'not-allowed':'pointer', fontFamily:'inherit', marginBottom:'1.25rem', boxShadow:loading?'none':'0 4px 16px rgba(47,125,246,0.35)', transition:'all 0.2s' }}>
+            className="portal-submit lc-mono" style={{ width:'100%', padding:'15px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, background: loading?'rgba(8,9,11,0.4)':'#08090B', color:'#F2EFE6', fontWeight:700, fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', border:'none', cursor:loading?'not-allowed':'pointer', marginBottom:'1.25rem', transition:'background 0.2s, color 0.2s' }}>
             {loading?'Signing in…':'Sign in to portal'}
+            <span style={{ fontSize:13, fontWeight:400 }}>→</span>
           </button>
 
-          {/* Apply link */}
-          <div style={{ textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.25)' }}>
-            Not a partner yet? <Link href="/apply" style={{ color:'#2F7DF6', textDecoration:'none', fontWeight:600 }}>Apply for access</Link>
+          <div style={{ textAlign:'center', fontSize:12, color:'#5C5A55' }}>
+            Not a partner yet? <Link href="/apply" style={{ color:'#2F7DF6', fontWeight:600, textDecoration:'none' }}>Apply for access</Link>
           </div>
 
-          {/* Security note */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:10, color:'rgba(255,255,255,0.15)', marginTop:'2rem', paddingTop:'1.5rem', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'#8A8780', marginTop:'1.75rem', paddingTop:'1.25rem', borderTop:'1px dashed rgba(8,9,11,0.24)' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Secured connection · Approved partners only · Data encrypted
+            Secured connection · Data encrypted
           </div>
         </div>
       </div>
