@@ -1460,51 +1460,169 @@ function FoundersRecord() {
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── FAQ ───────────────────────────────────────────────────────────────────
-const FAQ_ITEMS = [
-  { q: 'Who can apply to become a partner?', a: 'We work with registered retailers, resellers, and distributors — a valid EIN and resale certificate are required. Apply and we’ll review your business personally.' },
-  { q: 'Is there a cost to apply?', a: 'No. Applying is free and takes about 5 minutes. You only pay for the products you order once approved.' },
-  { q: 'How long until I get approved?', a: 'We review every application personally and respond within 1–2 business days.' },
-  { q: 'Is there a minimum order quantity (MOQ)?', a: 'MOQ varies by product — no pressure. Exact minimums are shown in your portal once you have catalog access.' },
-  { q: 'How fast do you ship?', a: 'Orders dispatch from our Doral, FL warehouse with a 48-hour average turnaround.' },
-  { q: 'Do you support Spanish speakers?', a: 'Yes — our team supports English and Spanish, Monday–Friday 9AM–5PM ET.' },
+// ── FAQ RECORD — "Query log" accordion + boarding-pass / passenger-copy CTA ────
+const FAQ_DATA = [
+  { tag:'ELIG', q:'Who can apply to become a partner?', a:'We work with registered retailers, resellers, and distributors — a valid EIN and resale certificate are required. Apply and we’ll review your business personally.', fields:[['Requires','EIN · Resale cert']] },
+  { tag:'COST', q:'Is there a cost to apply?', a:'No. Applying is free and there are no membership or account fees. You only pay for the products you order.', fields:[['Fee','None'],['Minimum spend','None']] },
+  { tag:'TIME', q:'How long until I get approved?', a:'One to two business days. Every application is reviewed by a person, not an automated filter, so you’ll get a real answer either way.', fields:[['Turnaround','1–2 days'],['Review','Human']] },
+  { tag:'MOQ',  q:'Is there a minimum order quantity (MOQ)?', a:'MOQ varies by product — some lines start at a single unit, others at 50 or 100. Your portal shows the exact MOQ next to every SKU.', fields:[['Range','1–100 units'],['Shown in','Portal']] },
+  { tag:'SHIP', q:'How fast do you ship?', a:'Average 48-hour dispatch from our Doral, FL warehouse, with tracking on every order. We ship domestically and support freight for larger loads.', fields:[['Dispatch','48h avg'],['Origin','Doral, FL']] },
+  { tag:'LANG', q:'Do you support Spanish speakers?', a:'Yes — our team is fully bilingual. Orders, quotes, invoices and support all happen in English or Spanish, with the same rep every time.', fields:[['Languages','EN · ES'],['Hours','9–5 ET']] },
 ]
+const FAQ_PASS_FIELDS = [['Origin','Doral, FL'],['Dispatch','48h avg'],['Languages','EN · ES'],['Fee','None']]
+const FAQ_CHECKLIST = [['01','Business name and EIN','Required'],['02','Resale certificate','Required'],['03','What you sell and where','Brief']]
+const FAQ_STAMP_BARS = seededBars(60613, 60)
 
-function FAQSection() {
+function FAQRow({ item, index, isOpen, onToggle }) {
+  const toggle = () => onToggle(isOpen ? -1 : index)
+  return (
+    <div role="button" tabIndex={0} aria-expanded={isOpen} onClick={toggle}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
+      style={{ position:'relative', display:'grid', gridTemplateColumns:'clamp(52px,6vw,74px) 1fr clamp(74px,9vw,104px)', gap:'6px clamp(12px,2vw,22px)', alignItems:'start',
+        padding:'clamp(17px,2.5vh,23px) 0 clamp(18px,2.6vh,24px)', cursor:'pointer', borderBottom:'1px solid rgba(245,241,232,0.11)',
+        background: isOpen ? 'rgba(245,241,232,0.04)' : 'transparent' }}>
+      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background: isOpen ? '#F2B705' : 'transparent' }}/>
+      <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', paddingTop:5, color: isOpen ? '#F2B705' : '#6F6D67' }}>0{index+1}</div>
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontSize:'clamp(17px,1.9vw,22px)', fontWeight:400, letterSpacing:'-0.025em', lineHeight:1.3, color: isOpen ? '#ffffff' : '#DDD8CD' }}>{item.q}</div>
+        <div style={{ display:'grid', gridTemplateRows: isOpen ? '1fr' : '0fr', transition:'grid-template-rows 0.25s ease' }}>
+          <div style={{ overflow:'hidden' }}>
+            <div style={{ paddingTop:13, fontSize:15, lineHeight:1.7, color:'#9A968E', maxWidth:'62ch' }}>{item.a}</div>
+            <div className="lc-mono" style={{ display:'flex', gap:22, flexWrap:'wrap', paddingTop:14, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+              {item.fields.map(([k,v]) => (
+                <span key={k} style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+                  <span style={{ color:'#6F6D67' }}>{k}</span>
+                  <span style={{ color:'#F2B705' }}>{v}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:10, paddingTop:4, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color: isOpen ? '#C9C5BA' : '#6F6D67' }}>
+        <span>{item.tag}</span>
+        <span style={{ flexShrink:0, width:13, height:13, position:'relative' }}>
+          <span style={{ position:'absolute', left:0, right:0, top:6, height:1, background: isOpen ? '#F2B705' : '#8F8C85' }}/>
+          <span style={{ position:'absolute', top:0, bottom:0, left:6, width:1, background: isOpen ? '#F2B705' : '#8F8C85', opacity: isOpen ? 0 : 1, transition:'opacity 0.2s' }}/>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function FAQRecord() {
   const [open, setOpen] = useState(0)
   return (
-    <section className="lc-section" id="faq" style={{ padding:'7rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
-      <div style={{ maxWidth:760, margin:'0 auto', position:'relative' }}>
+    <section className="lc-section" id="faq" style={{ padding:'clamp(56px,9vh,110px) 2rem clamp(70px,11vh,130px)', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ maxWidth:1180, margin:'0 auto' }}>
         <Reveal>
-          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
-            <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', lineHeight:1.1, margin:'0 0 1rem' }}>
-              Frequently asked questions.
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+            <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+              Query log · Form 06
+            </span>
+            <span>{open >= 0 ? `Entry 0${open+1} of 06` : '06 entries on file'}</span>
+          </div>
+          <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+            <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
+              Frequently asked questions<span style={{ color:'#F2B705' }}>.</span>
             </h2>
-            <p style={{ fontSize:13.5, color:'#A7A090', maxWidth:440, margin:'0 auto' }}>
-              Haven&rsquo;t applied yet? Here&rsquo;s what most prospective partners ask us first.
+            <p style={{ margin:0, alignSelf:'end', maxWidth:'44ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
+              Haven&rsquo;t applied yet? Here&rsquo;s what most prospective partners ask us first. Anything else — write to us and we&rsquo;ll answer the same day.
             </p>
           </div>
+
+          <div style={{ borderTop:'1px solid rgba(245,241,232,0.3)' }}>
+            {FAQ_DATA.map((item, i) => (
+              <FAQRow key={item.q} item={item} index={i} isOpen={open === i} onToggle={setOpen}/>
+            ))}
+          </div>
         </Reveal>
-        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-          {FAQ_ITEMS.map((item, i) => {
-            const isOpen = open === i
-            return (
-              <Reveal key={item.q} delay={i*0.05}>
-                <div style={{ background:'rgba(255,255,255,0.025)', border:`1px solid ${isOpen?'rgba(47,125,246,0.3)':'rgba(255,255,255,0.07)'}`, borderRadius:10, overflow:'hidden', transition:'border-color 0.2s' }}>
-                  <button onClick={() => setOpen(isOpen ? -1 : i)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'1rem 1.25rem', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
-                    <span style={{ fontSize:14, fontWeight:700, color:'#fff' }}>{item.q}</span>
-                    <span style={{ color:'#2F7DF6', flexShrink:0, transition:'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>{IC.chevron}</span>
-                  </button>
-                  <div style={{ display:'grid', gridTemplateRows: isOpen ? '1fr' : '0fr', transition:'grid-template-rows 0.25s ease' }}>
-                    <div style={{ overflow:'hidden' }}>
-                      <div style={{ padding:'0 1.25rem 1.1rem', fontSize:13, color:'#A7A090', lineHeight:1.75 }}>{item.a}</div>
-                    </div>
+
+        <div style={{ height:'clamp(56px,9vh,100px)' }}/>
+
+        <Reveal delay={0.1}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,500px),1fr))', gap:'clamp(20px,3vw,36px)', alignItems:'stretch' }}>
+
+            {/* Boarding pass */}
+            <div style={{ position:'relative', display:'flex', flexDirection:'column', background:'#F2B705', color:'#08090B', padding:'clamp(22px,3.2vh,32px) clamp(20px,3vw,34px) clamp(20px,3vh,28px)' }}>
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9.5, fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase' }}>
+                <span>Boarding pass · Partner</span>
+                <span>Seq · 001</span>
+              </div>
+
+              <div style={{ padding:'clamp(22px,3.4vh,34px) 0 clamp(20px,3vh,28px)' }}>
+                <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', opacity:0.75 }}>Est. duration</div>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:22, flexWrap:'wrap', marginTop:10 }}>
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:4 }}>
+                    <span style={{ fontSize:'clamp(56px,8vw,96px)', fontWeight:400, letterSpacing:'-0.06em', lineHeight:0.84, fontVariantNumeric:'tabular-nums' }}>5</span>
+                    <span className="lc-mono" style={{ fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', paddingBottom:10 }}>min<br/>to apply</span>
+                  </div>
+                  <div style={{ width:1, alignSelf:'stretch', background:'rgba(8,9,11,0.35)' }}/>
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:4 }}>
+                    <span style={{ fontSize:'clamp(56px,8vw,96px)', fontWeight:400, letterSpacing:'-0.06em', lineHeight:0.84, fontVariantNumeric:'tabular-nums' }}>48</span>
+                    <span className="lc-mono" style={{ fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', paddingBottom:10 }}>hrs<br/>to answer</span>
                   </div>
                 </div>
-              </Reveal>
-            )
-          })}
-        </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:1, background:'rgba(8,9,11,0.5)', marginTop:'auto' }}>
+                {FAQ_PASS_FIELDS.map(([k,v]) => (
+                  <div key={k} style={{ background:'#F2B705', padding:'11px 12px 12px' }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', opacity:0.7 }}>{k}</div>
+                    <div className="lc-mono" style={{ marginTop:5, fontWeight:700, fontSize:11.5, letterSpacing:'0.1em', textTransform:'uppercase' }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:26, marginTop:'clamp(16px,2.4vh,22px)' }}>
+                {FAQ_STAMP_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 15 : 11, background:'#08090B', opacity:0.9 }}/>)}
+              </div>
+            </div>
+
+            {/* Passenger copy */}
+            <div style={{ display:'flex', flexDirection:'column', background:'#F2EFE6', color:'#08090B', padding:'clamp(22px,3.2vh,32px) clamp(20px,3vw,34px) clamp(20px,3vh,28px)' }}>
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', color:'#5C5A55' }}>
+                <span style={{ display:'flex', alignItems:'center', gap:10, color:'#08090B' }}>
+                  <span style={{ width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #F2B705', display:'inline-block' }}/>
+                  Passenger copy · Form 01
+                </span>
+                <span>Retain this stub</span>
+              </div>
+
+              <h3 className="lc-display" style={{ margin:'clamp(20px,3vh,28px) 0 0', fontSize:'clamp(24px,2.8vw,36px)', fontWeight:400, letterSpacing:'-0.045em', lineHeight:1.02, color:'#08090B' }}>
+                Bring three things<span style={{ color:'#F2B705' }}>.</span> We handle the rest.
+              </h3>
+
+              <div style={{ marginTop:'clamp(18px,2.6vh,24px)' }}>
+                {FAQ_CHECKLIST.map(([n,label,mark]) => (
+                  <div key={n} style={{ display:'grid', gridTemplateColumns:'20px 1fr auto', gap:12, alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px dashed rgba(8,9,11,0.28)' }}>
+                    <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', color:'#6D6A64' }}>{n}</span>
+                    <span style={{ fontSize:14.5, color:'#22211F' }}>{label}</span>
+                    <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2B705' }}>{mark}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display:'flex', gap:1, background:'#08090B', flexWrap:'wrap', marginTop:'auto', paddingTop:'clamp(20px,3vh,28px)' }}>
+                <Link href="/apply" className="faq-cta-primary lc-mono" style={{ flex:'1 1 auto', display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, minWidth:190, padding:'16px 18px', background:'#08090B', color:'#F2EFE6', fontWeight:700, fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
+                  Apply for a partner account
+                  <span style={{ fontSize:13, fontWeight:400 }}>→</span>
+                </Link>
+                <a href="mailto:partners@levamcorp.com" className="faq-cta-secondary lc-mono" style={{ flex:'0 1 auto', display:'flex', alignItems:'center', gap:12, padding:'16px 18px', border:'1px solid #08090B', background:'#F2EFE6', color:'#08090B', fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
+                  Contact us first
+                </a>
+              </div>
+
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingTop:'clamp(14px,2.2vh,20px)', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
+                <span>Levamcorp · Doral · FL 33178</span>
+                <span>Mon–Fri 9AM–5PM ET</span>
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -1766,6 +1884,12 @@ export default function Home() {
           box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
           transition:all 0.2s ease; }
         .lc-ghost:hover { border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.06); }
+
+        /* FAQ record CTA row */
+        .faq-cta-primary { transition:background 0.2s, color 0.2s; }
+        .faq-cta-primary:hover { background:#F2B705 !important; color:#08090B !important; }
+        .faq-cta-secondary { transition:background 0.2s, color 0.2s; }
+        .faq-cta-secondary:hover { background:#08090B !important; color:#F2EFE6 !important; }
 
         /* Feature card hover */
         .feat-card { transition:border-color 0.3s, transform 0.3s cubic-bezier(0.4,0,0.2,1); }
@@ -2046,7 +2170,7 @@ export default function Home() {
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── FAQ ─────────────────────────────────────────────────────── */}
-      <FAQSection/>
+      <FAQRecord/>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CTA ─────────────────────────────────────────────────────── */}
