@@ -2116,8 +2116,10 @@ export default function Home() {
       `}</style>
 
       {/* ── FIXED DARK BASE ───────────────────────────────────────────── */}
+      {/* ManifestBackdrop (drifting tags over a 3D grid) is temporarily unmounted per */}
+      {/* request — plain solid background until a preferred design is picked. The */}
+      {/* component itself is left defined below so it's ready to bring back or reuse. */}
       <div style={{ position:'fixed', inset:0, background:'#14120E', zIndex:-3 }}/>
-      <ManifestBackdrop/>
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px) saturate(180%)', background:'rgba(20,18,14,0.95)', borderBottom:'1px solid rgba(245,241,232,0.06)' }}>
