@@ -200,7 +200,7 @@ function BrandMarquee() {
         <div className="lc-mono" style={{ flex:'0 0 auto', display:'flex', alignItems:'center', gap:10,
           padding:'0 22px 0 32px', fontSize:9.5, letterSpacing:'0.22em', color:'rgba(245,241,232,0.45)',
           whiteSpace:'nowrap', borderRight:'1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ width:5, height:5, borderRadius:'50%', background:'#F2B705' }}/>
+          <span style={{ width:5, height:5, borderRadius:'50%', background:'#FF7A45' }}/>
           AUTHORIZED BRANDS
         </div>
         <div style={{ position:'relative', flex:'1 1 auto', overflow:'hidden',
@@ -546,7 +546,7 @@ function HeroVideoBackground() {
         <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', color:'#F5F1E8', transition:'opacity 0.3s ease' }}>{caption}</div>
         <div style={{ display:'flex', gap:6 }}>
           {JOURNEY_CLIPS.map((c, i) => (
-            <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === activeIdx ? '#F2B705' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
+            <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === activeIdx ? '#FF7A45' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
           ))}
         </div>
       </div>
@@ -699,7 +699,7 @@ function ManifestMetrics() {
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'10px 16px', borderBottom:'1px solid rgba(245,241,232,0.16)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>
         <span>MANIFEST / MÉTRICAS</span>
         <span style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>03 OF 03
+          <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>03 OF 03
         </span>
       </div>
 
@@ -712,7 +712,7 @@ function ManifestMetrics() {
               transition:'background 0.4s ease' }}>
             <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', marginBottom:'clamp(18px,2.6vh,26px)' }}>
               <span>{s.label}</span>
-              <span style={{ transition:'color 0.4s', color: hoverIdx === i ? '#F2B705' : '#5F5D58' }}>{s.code}</span>
+              <span style={{ transition:'color 0.4s', color: hoverIdx === i ? '#FF7A45' : '#5F5D58' }}>{s.code}</span>
             </div>
             <div style={{ display:'flex', alignItems:'flex-end', gap:1, fontSize:'clamp(46px,5.4vw,72px)', letterSpacing:'-0.045em', fontVariantNumeric:'tabular-nums', color:'#F5F2E9' }}>
               <OdometerNumber target={s.to} play={play}/>
@@ -743,7 +743,7 @@ function ManifestConnector() {
     <div style={{ position:'relative', height:'clamp(56px,8vh,92px)' }}>
       <div style={{ position:'absolute', left:0, right:0, top:'50%', height:1, backgroundImage:'repeating-linear-gradient(to right, rgba(245,241,232,0.26) 0 5px, rgba(245,241,232,0) 5px 12px)' }}/>
       <div style={{ position:'absolute', left:'50%', top:'50%', width:26, height:26, margin:'-13px 0 0 -13px', background:'#14120E', border:'1px solid rgba(245,241,232,0.2)', borderRadius:'50%' }}/>
-      <div style={{ position:'absolute', left:'50%', top:'50%', width:8, height:8, margin:'-4px 0 0 -4px', background:'#F2B705' }}/>
+      <div style={{ position:'absolute', left:'50%', top:'50%', width:8, height:8, margin:'-4px 0 0 -4px', background:'#FF7A45' }}/>
     </div>
   )
 }
@@ -798,7 +798,7 @@ function ProcessStepper() {
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'12px 16px', borderBottom:'1px solid rgba(245,241,232,0.16)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#B7B2A2' }}>
         <span>PROCEDURE / PROCESO</span>
         <span style={{ display:'flex', alignItems:'center', gap:8, color:'#7C7A73' }}>
-          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>0{current + 1} OF 04
+          <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>0{current + 1} OF 04
         </span>
       </div>
 
@@ -814,7 +814,7 @@ function ProcessStepper() {
                 transition:'opacity 0.5s ease, background 0.4s ease' }}>
               <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:12, color: on ? '#C9C5BA' : '#6F6D67' }}>
                 <span>STEP 0{i + 1} / 04</span>
-                <span style={{ color: on ? '#F2B705' : '#6F6D67' }}>CODE {st.code}</span>
+                <span style={{ color: on ? '#FF7A45' : '#6F6D67' }}>CODE {st.code}</span>
               </div>
               <div style={{ fontSize:18, fontWeight:600, letterSpacing:'-0.02em', marginBottom:8, color: on ? '#fff' : '#C9C5BA' }}>{st.title}</div>
               <div style={{ fontSize:14.5, lineHeight:1.68, color:'#8F8C85', maxWidth:'46ch' }}>{st.body}</div>
@@ -838,7 +838,7 @@ function ProcessStepper() {
       <div style={{ position:'relative', overflow:'hidden', borderTop:'1px solid rgba(245,241,232,0.16)', background:'rgba(245,241,232,0.03)' }}>
         {barRow('#F5F1E8', 0.14)}
         <div ref={fillRef} style={{ position:'absolute', inset:0, overflow:'hidden', width:'0%' }}>
-          {barRow('#F2B705', 0.95)}
+          {barRow('#FF7A45', 0.95)}
         </div>
       </div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'9px 16px 11px', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
@@ -853,7 +853,7 @@ const PACKING_BARS = seededBars(20260827, 150)
 const PACKING_LIST_ROWS = [
   { title:'Wholesale pricing',       body:'Direct access to competitive wholesale rates — not inflated reseller prices.',   k:'TERMS',     v:'NET / PREPAID',  accent:'#12B76A' },
   { title:'Verified partners only',  body:'Every partner is vetted personally. This protects your margins.',                 k:'SCREENING', v:'MANUAL',         accent:'#2F7DF6' },
-  { title:'48h dispatch average',    body:'Orders ship from our Doral, FL warehouse with full tracking.',                    k:'LEAD TIME', v:'48 H',           accent:'#F2B705' },
+  { title:'48h dispatch average',    body:'Orders ship from our Doral, FL warehouse with full tracking.',                    k:'LEAD TIME', v:'48 H',           accent:'#FF7A45' },
   { title:'Live catalog access',     body:'Your private portal shows real-time pricing and stock. No guessing.',             k:'SYNC',      v:'REAL-TIME',      accent:'#6B7280' },
   { title:'U.S. based operation',    body:'6315 NW 99th Ave, Doral, FL 33178. Registered Florida business.',                 k:'ORIGIN',    v:'DORAL, FL',      accent:'#2F7DF6' },
   { title:'Dedicated support',       body:'Mon–Fri 9AM–5PM ET. English and Spanish. You talk to us directly.',               k:'HOURS',     v:'9–5 ET',         accent:'#12B76A' },
@@ -865,7 +865,7 @@ function PackingList() {
   const [hoverIdx, setHoverIdx] = useState(-1)
   const current = hoverIdx >= 0 ? hoverIdx : active
   const cut = current >= 0 ? Math.round(((current + 1) / PACKING_LIST_ROWS.length) * PACKING_BARS.length) : 0
-  const litColor = current >= 0 ? PACKING_LIST_ROWS[current].accent : '#F2B705'
+  const litColor = current >= 0 ? PACKING_LIST_ROWS[current].accent : '#FF7A45'
 
   return (
     <div>
@@ -976,7 +976,7 @@ function CompanyRecord() {
     <div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
         <span style={{ display:'flex', alignItems:'center', gap:9 }}>
-          <span style={{ display:'inline-block', width:6, height:6, background:'#F2B705', borderRadius:'50%', animation:'blip 2.8s ease-in-out infinite' }}/>
+          <span style={{ display:'inline-block', width:6, height:6, background:'#FF7A45', borderRadius:'50%', animation:'blip 2.8s ease-in-out infinite' }}/>
           Certificate of record
         </span>
         <span>Form 02 · DBA on file</span>
@@ -1002,14 +1002,14 @@ function CompanyRecord() {
               <div key={f.label} style={{ display:'grid', gridTemplateColumns:'22px 1fr auto', gap:14, alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px solid rgba(245,241,232,0.09)' }}>
                 <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.14em', color:'#5F5D58' }}>0{i+1}</span>
                 <span style={{ fontSize:13.5, color:'#DDD8CD' }}>{f.label}</span>
-                <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2B705' }}>{f.mark}</span>
+                <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#FF7A45' }}>{f.mark}</span>
               </div>
             ))}
           </div>
 
           <div style={{ display:'flex', alignItems:'center', gap:'clamp(20px,3vw,32px)', marginTop:'clamp(26px,4vh,38px)', flexWrap:'wrap' }}>
             <SealRing l1="FLORIDA" l2="REGISTERED" l3="DBA ON FILE" ring="rgba(245,241,232,0.3)" color="#E4E0D6"/>
-            <SealRing l1="VERIFIED" l2="PARTNERS" l3="REVIEWED" ring="#F2B705" color="#F2B705"/>
+            <SealRing l1="VERIFIED" l2="PARTNERS" l3="REVIEWED" ring="#FF7A45" color="#FF7A45"/>
             <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67', lineHeight:2 }}>Seals verified<br/>on file · 2026</div>
           </div>
         </div>
@@ -1028,10 +1028,10 @@ function CompanyRecord() {
                 onMouseEnter={()=>setHovered(i)} onMouseLeave={()=>setHovered(-1)} onFocus={()=>setHovered(i)} onBlur={()=>setHovered(-1)}
                 style={{ position:'relative', padding:'15px 12px 16px 0', borderBottom:'1px solid rgba(245,241,232,0.09)',
                   background: on ? 'rgba(245,241,232,0.035)' : 'transparent', cursor:'default', transition:'background 0.35s ease' }}>
-                <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:'#F2B705', transformOrigin:'top', transform: on ? 'scaleY(1)' : 'scaleY(0)', transition:'transform 0.4s cubic-bezier(0.22,0.61,0.36,1)' }}/>
+                <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background:'#FF7A45', transformOrigin:'top', transform: on ? 'scaleY(1)' : 'scaleY(0)', transition:'transform 0.4s cubic-bezier(0.22,0.61,0.36,1)' }}/>
                 <div style={{ display:'grid', gridTemplateColumns:'clamp(96px,12vw,136px) 1fr', gap:'6px 18px', alignItems:'baseline',
                   transform: on ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.4s cubic-bezier(0.22,0.61,0.36,1)' }}>
-                  <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#F2B705' : '#6F6D67', transition:'color 0.35s' }}>{f.k}</div>
+                  <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#FF7A45' : '#6F6D67', transition:'color 0.35s' }}>{f.k}</div>
                   <div style={{ fontSize:15, letterSpacing:'-0.01em', lineHeight:1.5, color: on ? '#fff' : '#DDD8CD', transition:'color 0.35s' }}>{f.v}</div>
                 </div>
               </div>
@@ -1059,7 +1059,7 @@ function CompanyRecord() {
       <div style={{ height:1, background:'rgba(245,241,232,0.14)' }}/>
       <div style={{ position:'relative', display:'flex', alignItems:'flex-end', gap:2, height:32, padding:'8px 0', overflow:'hidden' }}>
         {COMPANY_RECORD_BARS.map((b,i) => (
-          <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#F2B705' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>
+          <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#FF7A45' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>
         ))}
       </div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:6, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
@@ -1096,12 +1096,12 @@ function LanguageDeclaration() {
     <div style={{ background:'#F2EFE6', color:'#08090B', padding:'clamp(18px,2.6vh,26px) clamp(20px,3vw,40px) clamp(22px,3.4vh,34px)' }}>
       <div style={{ display:'flex', gap:'clamp(28px,5vw,60px)', justifyContent:'center', paddingBottom:'clamp(16px,2.4vh,24px)' }}>
         {[0,1,2,3,4].map(i => (
-          <div key={i} style={{ width:13, height:13, borderRadius:'50%', background: i===2 ? '#F2B705' : '#08090B', opacity: i===2 ? 0.9 : 0.16 }}/>
+          <div key={i} style={{ width:13, height:13, borderRadius:'50%', background: i===2 ? '#FF7A45' : '#08090B', opacity: i===2 ? 0.9 : 0.16 }}/>
         ))}
       </div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', paddingBottom:12, borderBottom:'1px solid rgba(8,9,11,0.9)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase' }}>
         <span style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ display:'inline-block', width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #F2B705' }}/>
+          <span style={{ display:'inline-block', width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #FF7A45' }}/>
           Service declaration · Declaración de servicio
         </span>
         <span style={{ color:'#5C5A55' }}>Form 03 · Duplicate copy</span>
@@ -1110,7 +1110,7 @@ function LanguageDeclaration() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(24px,3.5vw,54px)', padding:'clamp(24px,3.6vh,40px) 0 clamp(22px,3.2vh,34px)' }}>
         <div>
           <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(32px,4vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:0.98, color:'#08090B' }}>
-            English &amp; Español<span style={{ color:'#F2B705' }}>.</span>
+            English &amp; Español<span style={{ color:'#FF7A45' }}>.</span>
           </h2>
           <div style={{ marginTop:8, fontSize:'clamp(18px,2vw,26px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1.12, color:'#6D6A64' }}>A dedicated rep for every partner.</div>
         </div>
@@ -1140,7 +1140,7 @@ function LanguageDeclaration() {
               onKeyDown={e=>{ if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setLang(s.key) } }}
               style={{ gridArea:'1 / 1', alignSelf:'start', boxSizing:'border-box', position:'relative',
                 padding:'clamp(16px,2.4vh,22px) clamp(16px,2vw,24px) clamp(18px,2.6vh,24px)',
-                border:'1px solid #08090B', borderTop:`4px solid ${on ? '#F2B705' : 'transparent'}`,
+                border:'1px solid #08090B', borderTop:`4px solid ${on ? '#FF7A45' : 'transparent'}`,
                 cursor:'pointer', background: on ? '#FFFDF7' : '#DED9CC',
                 boxShadow: on ? '12px 14px 0 rgba(8,9,11,0.16)' : 'none',
                 transform: on ? 'translate(0,0)' : 'translate(clamp(10px,1.6vw,20px), clamp(14px,2.2vw,28px))',
@@ -1151,9 +1151,9 @@ function LanguageDeclaration() {
               </div>
 
               <div style={{ position:'absolute', right:'clamp(14px,3vw,42px)', bottom:'clamp(52px,8vh,86px)', pointerEvents:'none',
-                transform:'rotate(-11deg)', border:`2px solid ${on ? '#F2B705' : '#8A6A5C'}`, padding:'7px 13px 8px', opacity: on ? 0.85 : 0.4 }}>
-                <div className="lc-mono" style={{ fontWeight:700, fontSize:11, letterSpacing:'0.26em', textTransform:'uppercase', color: on ? '#F2B705' : '#8A6A5C' }}>{s.stamp}</div>
-                <div className="lc-mono" style={{ marginTop:3, fontSize:8, letterSpacing:'0.22em', textTransform:'uppercase', textAlign:'center', color: on ? '#F2B705' : '#8A6A5C' }}>Levam Corp · Doral FL</div>
+                transform:'rotate(-11deg)', border:`2px solid ${on ? '#FF7A45' : '#8A6A5C'}`, padding:'7px 13px 8px', opacity: on ? 0.85 : 0.4 }}>
+                <div className="lc-mono" style={{ fontWeight:700, fontSize:11, letterSpacing:'0.26em', textTransform:'uppercase', color: on ? '#FF7A45' : '#8A6A5C' }}>{s.stamp}</div>
+                <div className="lc-mono" style={{ marginTop:3, fontSize:8, letterSpacing:'0.22em', textTransform:'uppercase', textAlign:'center', color: on ? '#FF7A45' : '#8A6A5C' }}>Levam Corp · Doral FL</div>
               </div>
 
               {s.rows.map(([k,v],i) => (
@@ -1203,11 +1203,11 @@ function BulletinGrid() {
       <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, flexWrap:'wrap', paddingBottom:12 }}>
         <div>
           <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:10, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73', marginBottom:14 }}>
-            <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+            <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>
             Market bulletin · Issue 08 · 2026
           </div>
           <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
-            Stay ahead of the market<span style={{ color:'#F2B705' }}>.</span>
+            Stay ahead of the market<span style={{ color:'#FF7A45' }}>.</span>
           </h2>
         </div>
         <Link href="/insights" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:12, padding:'11px 18px', border:'1px solid rgba(245,241,232,0.3)', fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F5F1E8', textDecoration:'none' }}>
@@ -1223,8 +1223,8 @@ function BulletinGrid() {
               onMouseEnter={()=>setHovered(i)} onMouseLeave={()=>setHovered(-1)} onFocus={()=>setHovered(i)} onBlur={()=>setHovered(-1)}
               style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', minHeight:'clamp(220px,30vh,280px)',
                 padding:'clamp(20px,3vh,28px) clamp(16px,2vw,22px) clamp(18px,2.6vh,24px)', background: on ? '#F2EFE6' : '#14120E', color: on ? '#08090B' : '#E4E0D6', textDecoration:'none' }}>
-              <div style={{ position:'absolute', right:-6, bottom:-26, pointerEvents:'none', fontSize:100, fontWeight:400, letterSpacing:'-0.06em', lineHeight:1, color: on ? '#08090B' : '#F2B705', opacity: on ? 0.07 : 0.14 }}>0{i+1}</div>
-              <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: on ? '#08090B' : '#F2B705' }}/>
+              <div style={{ position:'absolute', right:-6, bottom:-26, pointerEvents:'none', fontSize:100, fontWeight:400, letterSpacing:'-0.06em', lineHeight:1, color: on ? '#08090B' : '#FF7A45', opacity: on ? 0.07 : 0.14 }}>0{i+1}</div>
+              <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: on ? '#08090B' : '#FF7A45' }}/>
               <div className="lc-mono" style={{ position:'relative', display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12 }}>
                 <span style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#5C5A55' : '#8F8C85' }}>No. 0{i+1}</span>
                 <span style={{ fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#5C5A55' : '#8F8C85' }}>{ins.date}</span>
@@ -1233,7 +1233,7 @@ function BulletinGrid() {
               <div style={{ flex:1 }}/>
               <div className="lc-mono" style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:'clamp(18px,2.6vh,26px)', paddingTop:12,
                 borderTop:`1px solid ${on ? 'rgba(8,9,11,0.2)' : 'rgba(245,241,232,0.12)'}` }}>
-                <span style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#08090B' : '#F2B705' }}>{ins.tag}</span>
+                <span style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#08090B' : '#FF7A45' }}>{ins.tag}</span>
                 <span style={{ display:'flex', alignItems:'center', gap: on ? 14 : 8, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase' }}>Read <span style={{ fontSize:11 }}>→</span></span>
               </div>
             </Link>
@@ -1242,7 +1242,7 @@ function BulletinGrid() {
       </div>
       <div style={{ height:1, background:'rgba(245,241,232,0.16)' }}/>
       <div style={{ position:'relative', display:'flex', alignItems:'flex-end', gap:2, height:32, padding:'8px 0', overflow:'hidden' }}>
-        {BULLETIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#F2B705' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>)}
+        {BULLETIN_BARS.map((b,i) => <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 15, background: i < cut ? '#FF7A45' : '#F5F1E8', opacity: i < cut ? 0.95 : 0.14 }}/>)}
       </div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:6, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
         <span>{hovered >= 0 ? `Bulletin 0${hovered + 1} · ${insightItems[hovered].tag.toUpperCase()}` : 'Bulletin · 03 entries'}</span>
@@ -1282,7 +1282,7 @@ function CatalogCell({ product, index }) {
         zIndex: on ? 3 : 1, position:'relative', transition: on ? 'none' : 'transform 0.3s ease, box-shadow 0.3s ease' }}>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingBottom:9, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#8F8C85' : '#5C5A55' }}>
         <span>0{index + 1}</span>
-        <span style={{ color: on ? '#F2B705' : '#08090B' }}>{product.brand || '—'}</span>
+        <span style={{ color: on ? '#FF7A45' : '#08090B' }}>{product.brand || '—'}</span>
       </div>
       <div style={{ position:'relative', width:'100%', aspectRatio:'1/1', background:'#101114', overflow:'hidden',
         transformStyle:'preserve-3d', transform: on ? 'translateZ(34px) scale(1.05)' : 'translateZ(0) scale(1)', transition: on ? 'none' : 'transform 0.3s ease' }}>
@@ -1297,11 +1297,11 @@ function CatalogCell({ product, index }) {
       <div style={{ paddingTop:10, fontSize:13.5, lineHeight:1.42, letterSpacing:'-0.005em', minHeight:'3.1em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{product.name}</div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:9, paddingTop:9, borderTop:`1px solid ${on ? 'rgba(242,239,230,0.18)' : 'rgba(8,9,11,0.16)'}`, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color: on ? '#8F8C85' : '#5C5A55' }}>
         <span style={{ display:'flex', alignItems:'center', gap:5 }}>
-          {REDACTED_WIDTHS.map((w,i) => <span key={i} style={{ display:'inline-block', width:w, height:11, background:'#F2B705', opacity:0.6 }}/>)}
+          {REDACTED_WIDTHS.map((w,i) => <span key={i} style={{ display:'inline-block', width:w, height:11, background:'#FF7A45', opacity:0.6 }}/>)}
         </span>
         <span>MOQ {product.moq || 1}</span>
       </div>
-      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:9, padding:'10px 11px', border:`1px solid ${on ? '#F2B705' : 'rgba(8,9,11,0.4)'}`, background: on ? '#F2B705' : 'transparent', color:'#08090B', fontWeight:700, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase' }}>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:9, padding:'10px 11px', border:`1px solid ${on ? '#FF7A45' : 'rgba(8,9,11,0.4)'}`, background: on ? '#FF7A45' : 'transparent', color:'#08090B', fontWeight:700, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase' }}>
         <span>Apply to see pricing</span>
         <span style={{ fontSize:11, fontWeight:400 }}>→</span>
       </div>
@@ -1321,7 +1321,7 @@ function CatalogSheet() {
     <div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
         <span style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+          <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>
           Contact sheet · Sheet 04 · {products.length} of 500+
         </span>
         <span>Pricing restricted · Partners only</span>
@@ -1330,7 +1330,7 @@ function CatalogSheet() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
         <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
-          Premium brands at wholesale prices<span style={{ color:'#F2B705' }}>.</span>
+          Premium brands at wholesale prices<span style={{ color:'#FF7A45' }}>.</span>
         </h2>
         <p style={{ margin:0, alignSelf:'end', maxWidth:'46ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
           Approved partners get full pricing, live stock levels and ordering. Every unit ships from our Doral, FL warehouse — apply to unlock the full catalog.
@@ -1340,7 +1340,7 @@ function CatalogSheet() {
       <div style={{ background:'#F2EFE6', padding:'clamp(14px,2vw,22px)' }}>
         <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', padding:'0 2px clamp(12px,1.8vh,16px)', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
           <span style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <span style={{ display:'inline-block', width:11, height:11, border:'1px solid #08090B', borderLeft:'3px solid #F2B705' }}/>
+            <span style={{ display:'inline-block', width:11, height:11, border:'1px solid #08090B', borderLeft:'3px solid #FF7A45' }}/>
             Levamcorp · Catálogo
           </span>
           <span>Doral · FL 33178</span>
@@ -1360,7 +1360,7 @@ function CatalogSheet() {
 
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', marginTop:'clamp(24px,3.6vh,40px)' }}>
         <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#7C7A73', lineHeight:1.9 }}>500+ products available<br/>Approved partners only · Response in 48h</div>
-        <Link href="/apply" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:14, padding:'16px 22px', background:'#F2B705', color:'#08090B', fontWeight:700, fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
+        <Link href="/apply" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:14, padding:'16px 22px', background:'#FF7A45', color:'#08090B', fontWeight:700, fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
           Apply for wholesale access <span style={{ fontSize:13 }}>→</span>
         </Link>
       </div>
@@ -1387,7 +1387,7 @@ function FoundersRecord() {
     <div>
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
         <span style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+          <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>
           Signatories · Form 05
         </span>
         <span>02 partners on record</span>
@@ -1396,7 +1396,7 @@ function FoundersRecord() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(26px,4vh,42px)' }}>
         <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
-          Built by people who know the business<span style={{ color:'#F2B705' }}>.</span>
+          Built by people who know the business<span style={{ color:'#FF7A45' }}>.</span>
         </h2>
         <p style={{ margin:0, alignSelf:'end', maxWidth:'44ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
           Levam Corp was founded by two entrepreneurs who understand what resellers and distributors actually need — reliable supply, real pricing, and a partner who picks up the phone.
@@ -1407,7 +1407,7 @@ function FoundersRecord() {
         {FOUNDERS_PEOPLE.map(p => (
           <div key={p.name} style={{ background:'#14120E', padding:'clamp(20px,3vh,28px) clamp(18px,2.4vw,26px) clamp(20px,3vh,26px)' }}>
             <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, paddingBottom:'clamp(16px,2.4vh,22px)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>
-              <span style={{ color:'#F2B705' }}>{p.role}</span>
+              <span style={{ color:'#FF7A45' }}>{p.role}</span>
               <span>{p.index}</span>
             </div>
 
@@ -1436,7 +1436,7 @@ function FoundersRecord() {
             <div style={{ marginTop:'clamp(18px,2.6vh,24px)', padding:'clamp(14px,2vh,18px) 0 0', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
               <div style={{ fontSize:'clamp(16px,1.7vw,19px)', lineHeight:1.5, letterSpacing:'-0.015em', color:'#F2EFE6' }}>{p.quote}</div>
               <div style={{ marginTop:12, display:'flex', alignItems:'center', gap:12 }}>
-                <span style={{ flexShrink:0, width:'clamp(52px,7vw,78px)', height:1, background:'#F2B705' }}/>
+                <span style={{ flexShrink:0, width:'clamp(52px,7vw,78px)', height:1, background:'#FF7A45' }}/>
                 <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>{p.signature}</span>
               </div>
             </div>
@@ -1448,7 +1448,7 @@ function FoundersRecord() {
         <span>Doral, FL · English &amp; Español · Mon–Fri 9AM–5PM ET</span>
         <span style={{ display:'flex', alignItems:'center', gap:22, flexWrap:'wrap' }}>
           <a href="mailto:partners@levamcorp.com" style={{ fontSize:12, letterSpacing:'0.06em', textTransform:'none', color:'#F2EFE6', borderBottom:'1px solid rgba(245,241,232,0.3)', paddingBottom:2, textDecoration:'none' }}>partners@levamcorp.com</a>
-          <a href="https://wa.me/17864909005" style={{ fontSize:12, letterSpacing:'0.06em', color:'#F2EFE6', borderBottom:'1px solid #F2B705', paddingBottom:2, textDecoration:'none' }}>(786) 490-9005</a>
+          <a href="https://wa.me/17864909005" style={{ fontSize:12, letterSpacing:'0.06em', color:'#F2EFE6', borderBottom:'1px solid #FF7A45', paddingBottom:2, textDecoration:'none' }}>(786) 490-9005</a>
         </span>
       </div>
     </div>
@@ -1481,8 +1481,8 @@ function FAQRow({ item, index, isOpen, onToggle }) {
       style={{ position:'relative', display:'grid', gridTemplateColumns:'clamp(52px,6vw,74px) 1fr clamp(74px,9vw,104px)', gap:'6px clamp(12px,2vw,22px)', alignItems:'start',
         padding:'clamp(17px,2.5vh,23px) 0 clamp(18px,2.6vh,24px)', cursor:'pointer', borderBottom:'1px solid rgba(245,241,232,0.11)',
         background: isOpen ? 'rgba(245,241,232,0.04)' : 'transparent' }}>
-      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background: isOpen ? '#F2B705' : 'transparent' }}/>
-      <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', paddingTop:5, color: isOpen ? '#F2B705' : '#6F6D67' }}>0{index+1}</div>
+      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:2, background: isOpen ? '#FF7A45' : 'transparent' }}/>
+      <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', paddingTop:5, color: isOpen ? '#FF7A45' : '#6F6D67' }}>0{index+1}</div>
       <div style={{ minWidth:0 }}>
         <div style={{ fontSize:'clamp(17px,1.9vw,22px)', fontWeight:400, letterSpacing:'-0.025em', lineHeight:1.3, color: isOpen ? '#ffffff' : '#DDD8CD' }}>{item.q}</div>
         <div style={{ display:'grid', gridTemplateRows: isOpen ? '1fr' : '0fr', transition:'grid-template-rows 0.25s ease' }}>
@@ -1492,7 +1492,7 @@ function FAQRow({ item, index, isOpen, onToggle }) {
               {item.fields.map(([k,v]) => (
                 <span key={k} style={{ display:'flex', alignItems:'baseline', gap:8 }}>
                   <span style={{ color:'#6F6D67' }}>{k}</span>
-                  <span style={{ color:'#F2B705' }}>{v}</span>
+                  <span style={{ color:'#FF7A45' }}>{v}</span>
                 </span>
               ))}
             </div>
@@ -1502,8 +1502,8 @@ function FAQRow({ item, index, isOpen, onToggle }) {
       <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:10, paddingTop:4, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color: isOpen ? '#C9C5BA' : '#6F6D67' }}>
         <span>{item.tag}</span>
         <span style={{ flexShrink:0, width:13, height:13, position:'relative' }}>
-          <span style={{ position:'absolute', left:0, right:0, top:6, height:1, background: isOpen ? '#F2B705' : '#8F8C85' }}/>
-          <span style={{ position:'absolute', top:0, bottom:0, left:6, width:1, background: isOpen ? '#F2B705' : '#8F8C85', opacity: isOpen ? 0 : 1, transition:'opacity 0.2s' }}/>
+          <span style={{ position:'absolute', left:0, right:0, top:6, height:1, background: isOpen ? '#FF7A45' : '#8F8C85' }}/>
+          <span style={{ position:'absolute', top:0, bottom:0, left:6, width:1, background: isOpen ? '#FF7A45' : '#8F8C85', opacity: isOpen ? 0 : 1, transition:'opacity 0.2s' }}/>
         </span>
       </div>
     </div>
@@ -1518,7 +1518,7 @@ function FAQRecord() {
         <Reveal>
           <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
             <span style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ width:6, height:6, background:'#F2B705', display:'inline-block' }}/>
+              <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>
               Query log · Form 06
             </span>
             <span>{open >= 0 ? `Entry 0${open+1} of 06` : '06 entries on file'}</span>
@@ -1527,7 +1527,7 @@ function FAQRecord() {
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
             <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
-              Frequently asked questions<span style={{ color:'#F2B705' }}>.</span>
+              Frequently asked questions<span style={{ color:'#FF7A45' }}>.</span>
             </h2>
             <p style={{ margin:0, alignSelf:'end', maxWidth:'44ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
               Haven&rsquo;t applied yet? Here&rsquo;s what most prospective partners ask us first. Anything else — write to us and we&rsquo;ll answer the same day.
@@ -1547,7 +1547,7 @@ function FAQRecord() {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,500px),1fr))', gap:'clamp(20px,3vw,36px)', alignItems:'stretch' }}>
 
             {/* Boarding pass */}
-            <div style={{ position:'relative', display:'flex', flexDirection:'column', background:'#F2B705', color:'#08090B', padding:'clamp(22px,3.2vh,32px) clamp(20px,3vw,34px) clamp(20px,3vh,28px)' }}>
+            <div style={{ position:'relative', display:'flex', flexDirection:'column', background:'#FF7A45', color:'#08090B', padding:'clamp(22px,3.2vh,32px) clamp(20px,3vw,34px) clamp(20px,3vh,28px)' }}>
               <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9.5, fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase' }}>
                 <span>Boarding pass · Partner</span>
                 <span>Seq · 001</span>
@@ -1570,7 +1570,7 @@ function FAQRecord() {
 
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:1, background:'rgba(8,9,11,0.5)', marginTop:'auto' }}>
                 {FAQ_PASS_FIELDS.map(([k,v]) => (
-                  <div key={k} style={{ background:'#F2B705', padding:'11px 12px 12px' }}>
+                  <div key={k} style={{ background:'#FF7A45', padding:'11px 12px 12px' }}>
                     <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', opacity:0.7 }}>{k}</div>
                     <div className="lc-mono" style={{ marginTop:5, fontWeight:700, fontSize:11.5, letterSpacing:'0.1em', textTransform:'uppercase' }}>{v}</div>
                   </div>
@@ -1586,14 +1586,14 @@ function FAQRecord() {
             <div style={{ display:'flex', flexDirection:'column', background:'#F2EFE6', color:'#08090B', padding:'clamp(22px,3.2vh,32px) clamp(20px,3vw,34px) clamp(20px,3vh,28px)' }}>
               <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', color:'#5C5A55' }}>
                 <span style={{ display:'flex', alignItems:'center', gap:10, color:'#08090B' }}>
-                  <span style={{ width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #F2B705', display:'inline-block' }}/>
+                  <span style={{ width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #FF7A45', display:'inline-block' }}/>
                   Passenger copy · Form 01
                 </span>
                 <span>Retain this stub</span>
               </div>
 
               <h3 className="lc-display" style={{ margin:'clamp(20px,3vh,28px) 0 0', fontSize:'clamp(24px,2.8vw,36px)', fontWeight:400, letterSpacing:'-0.045em', lineHeight:1.02, color:'#08090B' }}>
-                Bring three things<span style={{ color:'#F2B705' }}>.</span> We handle the rest.
+                Bring three things<span style={{ color:'#FF7A45' }}>.</span> We handle the rest.
               </h3>
 
               <div style={{ marginTop:'clamp(18px,2.6vh,24px)' }}>
@@ -1601,7 +1601,7 @@ function FAQRecord() {
                   <div key={n} style={{ display:'grid', gridTemplateColumns:'20px 1fr auto', gap:12, alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px dashed rgba(8,9,11,0.28)' }}>
                     <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', color:'#6D6A64' }}>{n}</span>
                     <span style={{ fontSize:14.5, color:'#22211F' }}>{label}</span>
-                    <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2B705' }}>{mark}</span>
+                    <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#FF7A45' }}>{mark}</span>
                   </div>
                 ))}
               </div>
@@ -1628,50 +1628,228 @@ function FAQRecord() {
   )
 }
 
-// ── FOOTER "ASK US ANYTHING" WIDGET ─────────────────────────────────────────
-function FooterAsk() {
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
+// ── DISPATCH DESK — "Get in touch" channel grid + enquiry slip + footer ───────
+const CONTACT_CHANNELS = [
+  { k:'Email',     v:'partners@levamcorp.com',              tag:'24h',    note:'Quotes & accounts',   action:'Write', href:'mailto:partners@levamcorp.com' },
+  { k:'Phone',     v:'(786) 878-4122 · (786) 546-9476',      tag:'Direct', note:'Mon–Fri 9–5 ET',      action:'Call',  href:'tel:+17868784122' },
+  { k:'WhatsApp',  v:'(786) 490-9005',                       tag:'Fast',   note:'English & Español',   action:'Chat',  href:'https://wa.me/17864909005' },
+  { k:'Warehouse', v:'6315 NW 99th Ave\nDoral, FL 33178',    tag:'Pickup', note:'By appointment',      action:'Map',   href:'https://maps.google.com/?q=6315+NW+99th+Ave+Doral+FL+33178' },
+]
+const CONTACT_FACTS = [['Response','1–2 business days'],['Languages','English · Español'],['Desk','Doral, FL 33178']]
+const FOOTER_COLUMNS = [
+  { title:'Catalog', links:[['Products','#brands','SKU'],['Brands','#brands','BRD'],['Market insights','/insights','MKT'],['Client portal','/portal','PRT']] },
+  { title:'Company', links:[['About','#about','ABT'],['Process','#process','PRC'],['FAQ','#faq','FAQ'],['Contact','#contact','CTC']] },
+  { title:'Partners', links:[['Apply for access','/apply','APP'],['Terms of service','/terms','TOS'],['Privacy policy','/privacy','PRV'],['Shipping & returns','/rma','SHP']] },
+]
+const ENQUIRY_STAMP_BARS = seededBars(88117, 70)
+const FOOTER_STAMP_BARS = seededBars(99137, 120)
+
+function ChannelCell({ c, index, hovered, setHovered }) {
+  const on = hovered === index
+  const external = c.href.startsWith('http')
+  return (
+    <a href={c.href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+      onMouseEnter={() => setHovered(index)} onMouseLeave={() => setHovered(-1)} onFocus={() => setHovered(index)} onBlur={() => setHovered(-1)}
+      style={{ display:'flex', flexDirection:'column', minHeight:'clamp(160px,22vh,200px)', padding:'clamp(16px,2.4vh,22px) clamp(14px,2vw,20px) clamp(16px,2.4vh,20px)',
+        background: on ? '#F2EFE6' : '#08090B', color: on ? '#08090B' : '#E4E0D6', textDecoration:'none', transition:'background 0.2s, color 0.2s' }}>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color: on ? '#5C5A55' : '#7C7A73' }}>
+        <span>{c.k}</span>
+        <span style={{ color: on ? '#08090B' : '#FF7A45' }}>{c.tag}</span>
+      </div>
+      <div style={{ flex:1 }}/>
+      <div style={{ fontSize:'clamp(16px,1.7vw,19px)', letterSpacing:'-0.015em', lineHeight:1.38, whiteSpace:'pre-line' }}>{c.v}</div>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:12, paddingTop:11, borderTop:`1px solid ${on ? 'rgba(8,9,11,0.2)' : 'rgba(245,241,232,0.12)'}`, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase' }}>
+        <span>{c.note}</span>
+        <span style={{ display:'flex', alignItems:'center', gap: on ? 12 : 7 }}>{c.action} <span style={{ fontSize:11 }}>→</span></span>
+      </div>
+    </a>
+  )
+}
+
+function DispatchDesk() {
+  const [hovered, setHovered] = useState(-1)
+  const [form, setForm] = useState({ company:'', email:'', interest:'Electronics', message:'' })
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const [error, setError] = useState('')
 
   const submit = async () => {
-    if (!email || !message) { setError('Add your email and a question.'); return }
-    setSending(true); setError('')
+    if (!form.email || !form.message) { alert('Add your email and a message.'); return }
+    setSending(true)
     try {
       const res = await fetch('/api/send-contact-email', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ name:'Website visitor', email, company:'', phone:'', message }),
+        body: JSON.stringify({ name: form.company || 'Website visitor', email: form.email, company: form.company, phone:'', message: `Interested in: ${form.interest}\n\n${form.message}` }),
       })
       const data = await res.json()
-      if (data.success) { setSent(true); setEmail(''); setMessage('') }
-      else setError('Something went wrong. Please try again.')
-    } catch { setError('Something went wrong. Please try again.') }
+      if (data.success) { setSent(true); setForm({ company:'', email:'', interest:'Electronics', message:'' }) }
+      else alert('Something went wrong. Please try again.')
+    } catch { alert('Something went wrong. Please try again.') }
     setSending(false)
   }
 
-  if (sent) return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'#12B76A', fontWeight:600 }}>
-      {IC.check} Thanks — we&rsquo;ll reply within 1&ndash;2 business days.
-    </div>
-  )
+  const filled = [form.company, form.email, form.message].filter(Boolean).length
+  const cut = Math.round((filled/3) * ENQUIRY_STAMP_BARS.length)
+  const footCut = hovered >= 0 ? Math.round(((hovered+1)/4) * FOOTER_STAMP_BARS.length) : 0
 
   return (
-    <div style={{ width:'100%', maxWidth:520 }}>
-      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@yourbusiness.com"
-          onKeyDown={e=>e.key==='Enter' && submit()}
-          style={{ flex:'1 1 180px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:12, padding:'10px 12px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}/>
-        <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Ask us anything…"
-          onKeyDown={e=>e.key==='Enter' && submit()}
-          style={{ flex:'2 1 220px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, fontSize:12, padding:'10px 12px', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}/>
-        <button onClick={submit} disabled={sending} style={{ padding:'10px 20px', background: sending?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#2F7DF6,#1B5FD1)', color:'#fff', fontSize:11.5, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', border:'none', borderRadius:6, cursor: sending?'not-allowed':'pointer', flexShrink:0 }}>
-          {sending ? 'Sending…' : 'Ask'}
-        </button>
-      </div>
-      {error && <div style={{ fontSize:11, color:'#EF4444', marginTop:6 }}>{error}</div>}
-    </div>
+    <>
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── CONTACT — "Dispatch desk" channel grid + enquiry slip ──────── */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section className="lc-section" id="contact" style={{ padding:'clamp(56px,9vh,110px) 2rem 0', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ maxWidth:1240, margin:'0 auto' }}>
+          <Reveal>
+            <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap', paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ width:6, height:6, background:'#FF7A45', display:'inline-block' }}/>
+                Dispatch desk · Form 07
+              </span>
+              <span>Mon–Fri 9AM–5PM ET</span>
+            </div>
+            <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+              <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
+                Get in touch<span style={{ color:'#FF7A45' }}>.</span>
+              </h2>
+              <p style={{ margin:0, alignSelf:'end', maxWidth:'44ch', fontSize:14.5, lineHeight:1.68, color:'#9A968E' }}>
+                Talk to a person, not a ticket queue. Sales, logistics and account questions all reach the same bilingual desk in Doral.
+              </p>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))', gap:1, background:'rgba(245,241,232,0.16)', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
+              {CONTACT_CHANNELS.map((c,i) => <ChannelCell key={c.k} c={c} index={i} hovered={hovered} setHovered={setHovered}/>)}
+            </div>
+          </Reveal>
+
+          <div style={{ height:'clamp(40px,6vh,68px)' }}/>
+
+          <Reveal delay={0.1}>
+            <div style={{ background:'#F2EFE6', color:'#08090B', padding:'clamp(20px,3vh,30px) clamp(20px,3vw,36px) clamp(20px,3vh,28px)' }}>
+              <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', paddingBottom:12, borderBottom:'2px solid #08090B', fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', color:'#5C5A55' }}>
+                <span style={{ display:'flex', alignItems:'center', gap:10, color:'#08090B' }}>
+                  <span style={{ width:12, height:12, border:'1px solid #08090B', borderLeft:'3px solid #FF7A45', display:'inline-block' }}/>
+                  Enquiry slip · Form 08
+                </span>
+                <span>Reply in 1–2 business days</span>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap:'clamp(20px,3vw,44px)', paddingTop:'clamp(20px,3vh,28px)' }}>
+                <div>
+                  <h3 className="lc-display" style={{ margin:0, fontSize:'clamp(24px,2.9vw,36px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.04, color:'#08090B' }}>
+                    Haven&rsquo;t applied yet<span style={{ color:'#FF7A45' }}>?</span> Ask us anything.
+                  </h3>
+                  <p style={{ margin:'16px 0 0', maxWidth:'40ch', fontSize:14.5, lineHeight:1.66, color:'#3F3D39' }}>
+                    Tell us what you sell and what you&rsquo;re looking for. No obligation, no automated sequence — a real reply from the desk.
+                  </p>
+                  <div style={{ marginTop:'clamp(18px,2.6vh,24px)', borderTop:'1px solid rgba(8,9,11,0.2)' }}>
+                    {CONTACT_FACTS.map(([k,v]) => (
+                      <div key={k} className="lc-mono" style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, padding:'9px 0 10px', borderBottom:'1px dashed rgba(8,9,11,0.24)', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+                        <span style={{ color:'#6D6A64' }}>{k}</span>
+                        <span style={{ color:'#08090B' }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display:'grid', gap:1, background:'rgba(8,9,11,0.85)', border:'1px solid #08090B' }}>
+                    <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,104px) 1fr', alignItems:'center', background:'#F2EFE6' }}>
+                      <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Company</span>
+                      <input type="text" value={form.company} onChange={e => { setForm(f => ({ ...f, company:e.target.value })); setSent(false) }} placeholder="Your business name"
+                        className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
+                    </label>
+                    <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,104px) 1fr', alignItems:'center', background:'#F2EFE6' }}>
+                      <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Email</span>
+                      <input type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email:e.target.value })); setSent(false) }} placeholder="you@yourbusiness.com"
+                        className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box' }}/>
+                    </label>
+                    <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,104px) 1fr', alignItems:'center', background:'#F2EFE6' }}>
+                      <span className="lc-mono" style={{ padding:'0 12px', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Interest</span>
+                      <select value={form.interest} onChange={e => setForm(f => ({ ...f, interest:e.target.value }))}
+                        className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, letterSpacing:'0.04em', textTransform:'uppercase', color:'#08090B', width:'100%', boxSizing:'border-box', appearance:'none' }}>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Home appliances">Home appliances</option>
+                        <option value="Computing">Computing</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Mixed / everything">Mixed / everything</option>
+                      </select>
+                    </label>
+                    <label style={{ display:'grid', gridTemplateColumns:'clamp(78px,9vw,104px) 1fr', alignItems:'start', background:'#F2EFE6' }}>
+                      <span className="lc-mono" style={{ padding:'13px 12px 0', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6D6A64' }}>Message</span>
+                      <textarea rows={3} value={form.message} onChange={e => { setForm(f => ({ ...f, message:e.target.value })); setSent(false) }} placeholder="What are you looking to source?"
+                        className="lc-mono" style={{ border:0, borderLeft:'1px solid rgba(8,9,11,0.25)', background:'transparent', padding:'13px 12px', fontSize:12, lineHeight:1.6, letterSpacing:'0.04em', color:'#08090B', width:'100%', boxSizing:'border-box', resize:'vertical', fontFamily:'inherit' }}/>
+                    </label>
+                  </div>
+
+                  <div style={{ display:'flex', alignItems:'stretch', gap:1, background:'#08090B', flexWrap:'wrap', marginTop:14 }}>
+                    <button type="button" onClick={submit} disabled={sending}
+                      className="lc-mono" style={{ flex:'1 1 auto', minWidth:190, display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, border:0, cursor: sending?'not-allowed':'pointer', padding:'15px 18px', background: sent ? '#FF7A45' : '#08090B', color: sent ? '#08090B' : '#F2EFE6', fontWeight:700, fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+                      {sending ? 'Sending…' : sent ? "Slip filed · we'll reply" : 'Send enquiry'}
+                      <span style={{ fontSize:13, fontWeight:400 }}>→</span>
+                    </button>
+                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" className="faq-cta-secondary lc-mono"
+                      style={{ flex:'0 1 auto', display:'flex', alignItems:'center', gap:10, padding:'15px 18px', background:'#F2EFE6', color:'#08090B', fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}>
+                      WhatsApp
+                    </a>
+                  </div>
+
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:22, marginTop:14 }}>
+                    {ENQUIRY_STAMP_BARS.map((b,i) => (
+                      <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 20 : 14, background: i < cut ? '#FF7A45' : '#08090B', opacity: i < cut ? 1 : 0.22 }}/>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          <div style={{ height:'clamp(46px,7vh,84px)' }}/>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ── FOOTER ──────────────────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <footer style={{ padding:'0 2rem clamp(26px,4vh,40px)', position:'relative', zIndex:5 }}>
+        <div style={{ maxWidth:1240, margin:'0 auto' }}>
+          <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:'1px 0', background:'rgba(245,241,232,0.14)' }}>
+            <div style={{ background:'#08090B', padding:'clamp(20px,3vh,28px) clamp(14px,2vw,20px) clamp(18px,2.6vh,24px) 0' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+                <span style={{ width:26, height:26, border:'1px solid rgba(245,241,232,0.55)', borderLeft:'4px solid #FF7A45', display:'inline-block' }}/>
+                <span className="lc-mono" style={{ fontWeight:700, fontSize:13, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2EFE6' }}>Levamcorp</span>
+              </div>
+              <div className="lc-mono" style={{ marginTop:12, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', lineHeight:2 }}>Distributors · Doral, FL<br/>B2B wholesale only</div>
+              <div className="lc-mono" style={{ marginTop:16, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#FF7A45' }}>Registered DBA · Florida</div>
+            </div>
+
+            {FOOTER_COLUMNS.map(col => (
+              <div key={col.title} style={{ background:'#08090B', padding:'clamp(20px,3vh,28px) clamp(14px,2vw,20px) clamp(18px,2.6vh,24px)' }}>
+                <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', paddingBottom:12, borderBottom:'1px solid rgba(245,241,232,0.12)' }}>{col.title}</div>
+                {col.links.map(([label,href,code]) => (
+                  <a key={label} href={href} className="footer-col-link" style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, padding:'9px 0 10px', borderBottom:'1px solid rgba(245,241,232,0.07)', fontSize:14, color:'#C9C5BA', textDecoration:'none' }}>
+                    {label}
+                    <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#5F5D58' }}>{code}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:26, paddingTop:14, overflow:'hidden' }}>
+            {FOOTER_STAMP_BARS.map((b,i) => (
+              <div key={i} style={{ flex:`${b.w} 1 0`, minWidth:1, height: b.tall ? 22 : 15, background: i < footCut ? '#FF7A45' : '#F2EFE6', opacity: i < footCut ? 0.9 : 0.13 }}/>
+            ))}
+          </div>
+
+          <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', padding:'10px 0 0', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5F5D58' }}>
+            <span>© {new Date().getFullYear()} Levam Corp Distributors · All rights reserved</span>
+            <span>Doc 07-08 · Rev. 08 · 2026</span>
+          </div>
+        </div>
+      </footer>
+    </>
   )
 }
 
@@ -1750,7 +1928,7 @@ function ManifestBackdrop() {
     <div style={{ position:'fixed', inset:0, zIndex:-2, overflow:'hidden', pointerEvents:'none', perspective:900, perspectiveOrigin:'50% 46%' }}>
       <div ref={floorRef} style={{ position:'absolute', inset:'-20%', transformStyle:'preserve-3d' }}>
         <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(to right, rgba(245,241,232,0.13) 1px, transparent 1px), linear-gradient(to bottom, rgba(245,241,232,0.13) 1px, transparent 1px)', backgroundSize:'120px 120px' }}/>
-        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle at center, #F2B705 1.4px, transparent 2px)', backgroundSize:'480px 480px', backgroundPosition:'240px 240px', opacity:0.55 }}/>
+        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle at center, #FF7A45 1.4px, transparent 2px)', backgroundSize:'480px 480px', backgroundPosition:'240px 240px', opacity:0.55 }}/>
       </div>
 
       <div ref={ceilRef} style={{ position:'absolute', inset:'-20%', transformStyle:'preserve-3d' }}>
@@ -1768,7 +1946,7 @@ function ManifestBackdrop() {
               <div style={{ border:'1px solid rgba(8,9,11,0.85)', background:'rgba(245,241,232,0.94)', padding:'9px 11px 10px' }}>
                 <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingBottom:7, borderBottom:'1px solid rgba(8,9,11,0.2)', fontSize:7.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>
                   <span style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ display:'inline-block', width:7, height:7, border:'1px solid #5C5A55', borderLeft:'2px solid #F2B705' }}/>
+                    <span style={{ display:'inline-block', width:7, height:7, border:'1px solid #5C5A55', borderLeft:'2px solid #FF7A45' }}/>
                     {d.code}
                   </span>
                   <span>0{i+1}</span>
@@ -1792,7 +1970,7 @@ function ManifestBackdrop() {
 
 // impeccable:direction seed=90ffee00 (concept-seed --scope direction --mode persuade, degraded/no-network — index 7 of 7 grounded candidates assigned)
 // THESIS: Levam Corp is a real distribution operation, not another dark-SaaS dashboard wearing a wholesale label — the site proves that by rendering the one object every reseller already trusts: a shipping box.
-// OWN-WORLD: warehouse charcoal ground (#14120E, warm brown-black, not blue-black), kraft cardboard (#B98A54/#C79A5E), safety-hazard yellow (#F2B705) as the committed accent, steel-gray (#6B7280) secondary, brand blue (#2F7DF6) reserved for CTAs/links only. Space Grotesk/Inter preserved as the confirmed cross-site type system (7+ pages already ship it).
+// OWN-WORLD: warehouse charcoal ground (#14120E, warm brown-black, not blue-black), kraft cardboard (#B98A54/#C79A5E), safety-hazard orange (#FF7A45) as the committed accent, steel-gray (#6B7280) secondary, brand blue (#2F7DF6) reserved for CTAs/links only. Space Grotesk/Inter preserved as the confirmed cross-site type system (7+ pages already ship it).
 // STORY: a visitor scrolls past a genuine 3D cardboard box (real CSS transform-style:preserve-3d geometry, not a flat image) whose flaps fold shut as they scroll — the literal motion of an order being packed and sealed — then meets the same content the site always had (categories, process, About, FAQ) restyled into that same physical world (ink-stamp trust seals, hazard-stripe dividers, manifest-style badges).
 // FIRST VIEWPORT: open box at 3/4 perspective, right of headline; shipping-label badge above the headline; stats rendered as a manifest ledger strip below the CTAs.
 // FORM: user-directed pivot from two dealt directions (assigned "Margin Ledger", pick "Margin Board") to their own concrete brief — literal warehouse/box/forklift/big-brand-tech world — after seeing both cards; this direction is the user's brief, not the roll's card.
@@ -1817,10 +1995,10 @@ export default function Home() {
         :root {
           --c-bg:      #14120E;
           --c-blue:    #2F7DF6;
-          --c-yellow:  #F2B705;
+          --c-orange:  #FF7A45;
           --c-kraft:   #B98A54;
           --c-steel:   #6B7280;
-          --c-gold:    #F2B705;
+          --c-gold:    #FF7A45;
           --c-text:    #F5F1E8;
           --c-muted:   #A7A090;
           --c-card:    #1D1A15;
@@ -1855,7 +2033,7 @@ export default function Home() {
 
         /* Hazard stripe divider */
         .hazard-strip { height:10px; width:100%;
-          background-image:repeating-linear-gradient(-45deg,#F2B705 0 14px,#14120E 14px 28px);
+          background-image:repeating-linear-gradient(-45deg,#FF7A45 0 14px,#14120E 14px 28px);
           background-size:56px 10px; opacity:0.9; animation:stripeMove 3.2s linear infinite; }
         .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.02em; }
 
@@ -1887,9 +2065,12 @@ export default function Home() {
 
         /* FAQ record CTA row */
         .faq-cta-primary { transition:background 0.2s, color 0.2s; }
-        .faq-cta-primary:hover { background:#F2B705 !important; color:#08090B !important; }
+        .faq-cta-primary:hover { background:#FF7A45 !important; color:#08090B !important; }
         .faq-cta-secondary { transition:background 0.2s, color 0.2s; }
         .faq-cta-secondary:hover { background:#08090B !important; color:#F2EFE6 !important; }
+
+        /* Footer link columns */
+        .footer-col-link:hover { color:#ffffff !important; }
 
         /* Feature card hover */
         .feat-card { transition:border-color 0.3s, transform 0.3s cubic-bezier(0.4,0,0.2,1); }
@@ -1994,10 +2175,10 @@ export default function Home() {
               <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
                 border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(20,18,14,0.45)', backdropFilter:'blur(6px)',
                 marginBottom:'1.75rem', animation:'fadeUp 0.6s 0.1s ease both' }}>
-                <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#F2B705', textTransform:'uppercase' }}>
+                <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#FF7A45', textTransform:'uppercase' }}>
                   B2B WHOLESALE · DORAL FL · <LiveClock/> ET
                 </span>
-                <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#F2B705', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+                <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#FF7A45', color:'#14120E', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
               </div>
 
               {/* Headline — masked line-reveal, heavy weight for contrast against the footage */}
@@ -2014,7 +2195,7 @@ export default function Home() {
                 </span>
               </h1>
 
-              <div style={{ width:86, height:2, margin:'22px 0 22px', background:'#F2B705', transformOrigin:'left', animation:'heroWipe 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.68s both' }}/>
+              <div style={{ width:86, height:2, margin:'22px 0 22px', background:'#FF7A45', transformOrigin:'left', animation:'heroWipe 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.68s both' }}/>
 
               <p style={{ fontSize:16, color:'#A7A090', lineHeight:1.85, maxWidth:480, marginBottom:'1.5rem', animation:'fadeUp 0.7s 0.78s ease both' }}>
                 Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
@@ -2194,65 +2375,7 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── CONTACT ─────────────────────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section className="lc-section" id="contact" style={{ padding:'6rem 2rem', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)', overflow:'hidden' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', position:'relative' }}>
-          <Reveal>
-            <h2 className="lc-display" style={{ fontSize:'clamp(26px,4vw,44px)', fontWeight:700, letterSpacing:'-0.02em', margin:'0 0 3rem', lineHeight:1.1 }}>Get in touch.</h2>
-          </Reveal>
-          <div className="g3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-            {[
-              { icon:IC.mail,  label:'Email',    value:'partners@levamcorp.com',          href:'mailto:partners@levamcorp.com' },
-              { icon:IC.phone, label:'Phone',    value:'(786) 878-4122 · (786) 546-9476', href:'tel:+17868784122' },
-              { icon:IC.pin,   label:'Location', value:'6315 NW 99th Ave\nDoral, FL 33178', href:null },
-            ].map((c, i) => (
-              <Reveal key={c.label} delay={i*0.1}>
-                <TiltCard glow="#2F7DF6" style={{ height:'100%' }}>
-                  <Card style={{ height:'100%' }}>
-                    <div style={{ color:'#2F7DF6', marginBottom:'1rem' }}>{c.icon}</div>
-                    <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'rgba(167,160,144,0.5)', textTransform:'uppercase', marginBottom:8 }}>{c.label}</div>
-                    {c.href
-                      ? <a href={c.href} style={{ fontSize:13, color:'#fff', textDecoration:'none', fontWeight:500 }}>{c.value}</a>
-                      : <div style={{ fontSize:13, color:'#fff', fontWeight:500, whiteSpace:'pre-line', lineHeight:1.6 }}>{c.value}</div>}
-                  </Card>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── FOOTER ──────────────────────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <footer style={{ padding:'2.5rem 2rem 2rem', borderTop:'1px solid rgba(47,125,246,0.08)', background:'#14120E', position:'relative', zIndex:5, borderTop:'1px solid rgba(245,241,232,0.05)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto' }}>
-
-          {/* Ask us anything */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16, paddingBottom:'1.75rem', marginBottom:'1.75rem', borderBottom:'1px solid rgba(245,241,232,0.06)' }}>
-            <div>
-              <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>Haven&rsquo;t applied yet? Ask us anything.</div>
-              <div style={{ fontSize:11.5, color:'rgba(167,160,144,0.5)' }}>Drop your email and a question — we&rsquo;ll reply within 1&ndash;2 business days.</div>
-            </div>
-            <FooterAsk/>
-          </div>
-
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
-            <div className="lc-display" style={{ fontSize:12, fontWeight:700, letterSpacing:'0.18em', color:'rgba(167,160,144,0.5)', textTransform:'uppercase' }}>
-              LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span>
-            </div>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.14)' }}>© {new Date().getFullYear()} Levam Corp Distributors · Doral, FL · B2B wholesale only</div>
-            <div style={{ display:'flex', gap:18 }}>
-              {[['Portal','/portal'],['Apply','/apply'],['Insights','/insights'],['FAQ','#faq'],['Contact','#contact']].map(([l,h]) => (
-                <a key={l} href={h} style={{ fontSize:11, color:'rgba(167,160,144,0.5)', textDecoration:'none', fontWeight:600, letterSpacing:'0.06em', transition:'color 0.2s' }}
-                  onMouseOver={e=>e.target.style.color='rgba(255,255,255,0.6)'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.22)'}>{l}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <DispatchDesk/>
 
     </div>
   )
