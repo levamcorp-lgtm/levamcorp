@@ -256,6 +256,14 @@ function MobileMenu() {
           {label}
         </a>
       ))}
+
+      <div style={{ flex:1 }}/>
+
+      <div style={{ display:'flex', alignItems:'center', gap:11, opacity:0, animation:'fadeUp 0.4s 0.5s ease forwards' }}>
+        <span style={{ width:26, height:26, border:'1px solid rgba(245,241,232,0.55)', borderLeft:'4px solid #2F7DF6', display:'inline-block' }}/>
+        <span className="lc-mono" style={{ fontWeight:700, fontSize:13, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2EFE6' }}>Levamcorp</span>
+      </div>
+      <div className="lc-mono" style={{ marginTop:12, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', lineHeight:2, opacity:0, animation:'fadeUp 0.4s 0.5s ease forwards' }}>Distributors · Doral, FL<br/>B2B wholesale only</div>
     </div>
   )
 
