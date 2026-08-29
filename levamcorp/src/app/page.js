@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
@@ -243,6 +244,21 @@ const IC = {
 // ── MOBILE MENU ───────────────────────────────────────────────────────────────
 function MobileMenu() {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const overlay = (
+    <div style={{ position:'fixed', inset:0, background:'#000000', zIndex:300, display:'flex', flexDirection:'column', padding:'5rem 2rem 3rem' }}>
+      <button onClick={() => setOpen(false)} style={{ position:'absolute', top:20, right:20, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', width:40, height:40, borderRadius:'50%', fontSize:18, cursor:'pointer' }}>×</button>
+      {[['#brands','Products'],['#process','How it works'],['#about','About'],['#faq','FAQ'],['#contact','Contact'],['/insights','Market Insights'],['/apply','Apply now']].map(([href,label],i) => (
+        <a key={label} href={href} onClick={() => setOpen(false)}
+          style={{ fontSize:22, fontWeight:800, color:label==='Apply now'?'#2F7DF6':'#fff', textDecoration:'none', padding:'0.9rem 0', borderBottom:'1px solid rgba(255,255,255,0.05)', letterSpacing:'-0.01em', opacity:0, animation:`fadeUp 0.4s ${i*0.06}s ease forwards` }}>
+          {label}
+        </a>
+      ))}
+    </div>
+  )
+
   return (
     <>
       <button onClick={() => setOpen(!open)} className="lc-ham"
@@ -253,17 +269,11 @@ function MobileMenu() {
             opacity: open&&i===1?0:1 }}/>
         ))}
       </button>
-      {open && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.97)', backdropFilter:'blur(24px)', zIndex:300, display:'flex', flexDirection:'column', padding:'5rem 2rem 3rem' }}>
-          <button onClick={() => setOpen(false)} style={{ position:'absolute', top:20, right:20, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', width:40, height:40, borderRadius:'50%', fontSize:18, cursor:'pointer' }}>×</button>
-          {[['#brands','Products'],['#process','How it works'],['#about','About'],['#faq','FAQ'],['#contact','Contact'],['/insights','Market Insights'],['/apply','Apply now']].map(([href,label],i) => (
-            <a key={label} href={href} onClick={() => setOpen(false)}
-              style={{ fontSize:22, fontWeight:800, color:label==='Apply now'?'#2F7DF6':'#fff', textDecoration:'none', padding:'0.9rem 0', borderBottom:'1px solid rgba(255,255,255,0.05)', letterSpacing:'-0.01em', opacity:0, animation:`fadeUp 0.4s ${i*0.06}s ease forwards` }}>
-              {label}
-            </a>
-          ))}
-        </div>
-      )}
+      {/* Rendered via a portal straight into <body>: the nav bar's own backdrop-filter
+          makes it a containing block for any position:fixed descendant, which was
+          shrinking this "full-screen" overlay down to the nav bar's own tiny box
+          instead of covering the viewport — a portal escapes that entirely. */}
+      {open && mounted && createPortal(overlay, document.body)}
     </>
   )
 }
