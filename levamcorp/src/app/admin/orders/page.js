@@ -5,6 +5,13 @@ import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 
+const PAYMENT_METHODS = [
+  { value:'credit_card', label:'Credit Card' },
+  { value:'debit_card',  label:'Debit Card' },
+  { value:'ach',         label:'ACH Transfer' },
+  { value:'wire',        label:'Wire Transfer' },
+]
+
 const STATUS_COLOR = { new:'#2d7dd2', review:'#c49a00', confirmed:'#534ab7', dispatched:'#2a7d4f', completed:'#2a7d4f', cancelled:'#e74c3c' }
 const STATUS_LABEL = { new:'New', review:'In review', confirmed:'Confirmed', dispatched:'Dispatched', completed:'Completed', cancelled:'Cancelled' }
 const NEXT_STATUS  = { new:'review', review:'confirmed', confirmed:'dispatched', dispatched:'completed' }
@@ -35,6 +42,16 @@ export default function AdminOrders() {
   const [addItemForm,  setAddItemForm]  = useState({productId:'',search:'',quantity:'1',unitPrice:''})
   const [saving,       setSaving]       = useState(false)
   const [showDone,     setShowDone]     = useState(false)
+  // new order (admin entering a WhatsApp/off-portal deal for an existing client)
+  const [showNewOrder,   setShowNewOrder]   = useState(false)
+  const [creatingOrder,  setCreatingOrder]  = useState(false)
+  const [noClientId,     setNoClientId]     = useState(null)
+  const [noClientSearch, setNoClientSearch] = useState('')
+  const [noItems,        setNoItems]        = useState([])
+  const [noItemForm,     setNoItemForm]     = useState({ productId:'', search:'', quantity:'1', unitPrice:'' })
+  const [noPaymentMethod,setNoPaymentMethod]= useState('')
+  const [noDeliveryFee,  setNoDeliveryFee]  = useState('')
+  const [noNotify,       setNoNotify]       = useState(true)
 
   useEffect(() => {
     const sb = createClient()
@@ -105,6 +122,94 @@ export default function AdminOrders() {
     setOrders(prev => prev.map(o => o.id===sel.id ? {...o, total:newTotal, order_items:updatedItems} : o))
     setSel(prev => ({...prev, total:newTotal, order_items:updatedItems}))
     setSaving(false)
+  }
+
+  const resetNewOrder = () => {
+    setNoClientId(null); setNoClientSearch(''); setNoItems([])
+    setNoItemForm({ productId:'', search:'', quantity:'1', unitPrice:'' })
+    setNoPaymentMethod(''); setNoDeliveryFee('')
+    setNoNotify(true)
+  }
+
+  const addNewOrderItem = () => {
+    const product = products.find(p => p.id === noItemForm.productId)
+    if (!product) { alert('Pick a product first'); return }
+    const quantity  = parseInt(noItemForm.quantity) || 1
+    const unitPrice = parseFloat(noItemForm.unitPrice)
+    if (!(unitPrice >= 0)) { alert('Enter a unit price'); return }
+    setNoItems(prev => [...prev, { product_id: product.id, product_name: product.name, product_sku: product.sku || '—', quantity, unit_price: unitPrice }])
+    setNoItemForm({ productId:'', search:'', quantity:'1', unitPrice:'' })
+  }
+
+  const removeNewOrderItem = (idx) => setNoItems(prev => prev.filter((_, i) => i !== idx))
+
+  const createOrder = async () => {
+    const client = clients.find(c => c.id === noClientId)
+    if (!client) { alert('Select a client first'); return }
+    if (!noItems.length) { alert('Add at least one item'); return }
+    setCreatingOrder(true)
+    const sb = createClient()
+    const subtotal = noItems.reduce((s,i) => s + i.unit_price * i.quantity, 0)
+    const deliveryFee = parseFloat(noDeliveryFee) || 0
+    const total = subtotal + deliveryFee
+    const notesParts = [
+      `Email: ${client.email}`,
+      `Items: ${noItems.map(i => `${i.product_name} x${i.quantity}`).join(', ')}`,
+    ]
+    if (deliveryFee > 0) notesParts.push(`Delivery fee: ${money(deliveryFee)}`)
+    if (noPaymentMethod) notesParts.push(`Payment: ${PAYMENT_METHODS.find(m=>m.value===noPaymentMethod)?.label}`)
+    notesParts.push('Entered by admin — WhatsApp order')
+    const { data: order, error } = await sb.from('orders').insert([{
+      status: 'new',
+      subtotal,
+      total,
+      notes: notesParts.join(' | '),
+    }]).select().single()
+    if (error || !order) {
+      console.error('admin order creation failed', error)
+      alert(`Couldn't create the order: ${error?.message || 'unknown error'}`)
+      setCreatingOrder(false)
+      return
+    }
+    const { error: itemsError } = await sb.from('order_items').insert(
+      noItems.map(i => ({ order_id: order.id, product_id: i.product_id, product_name: i.product_name, product_sku: i.product_sku, quantity: i.quantity, unit_price: i.unit_price }))
+    )
+    if (itemsError) {
+      console.error('admin order_items insert failed', itemsError)
+      alert(`Order #${order.order_number} was created, but the items failed to save: ${itemsError.message}`)
+      await reload(sb)
+      setShowNewOrder(false)
+      setCreatingOrder(false)
+      return
+    }
+    if (noPaymentMethod) {
+      await sb.from('payments').insert([{
+        order_id: order.id,
+        amount: total,
+        status: 'requested',
+        payment_method: noPaymentMethod,
+        client_email: client.email,
+        notes: `Payment request for order #${order.order_number} | Entered by admin — WhatsApp order`,
+      }]).then(({ error: payError }) => { if (payError) console.error('admin payment row failed', payError) })
+    }
+    if (noNotify) {
+      const invoiceNum = `LC-${Math.floor(20000 + Math.random() * 9999)}`
+      await fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order,
+          items: noItems.map(i => ({ product_name: i.product_name, product_sku: i.product_sku, quantity: i.quantity, unit_price: i.unit_price })),
+          clientEmail: client.email, invoiceNum, total,
+        })
+      }).catch(() => {})
+    }
+    await reload(sb)
+    setSel({ ...order, order_items: noItems })
+    setTab('details')
+    setShowNewOrder(false)
+    resetNewOrder()
+    setCreatingOrder(false)
   }
 
   const logout = async () => { await createClient().auth.signOut(); window.location.href='/admin' }
@@ -393,6 +498,7 @@ export default function AdminOrders() {
                 style={{...inp,padding:'7px 12px 7px 28px',borderRadius:20,background:'rgba(0,0,0,0.05)',border:'0.5px solid rgba(0,0,0,0.1)',color:'#333'}}/>
               <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#999'}}>🔍</span>
             </div>
+            <button onClick={()=>{resetNewOrder();setShowNewOrder(true);setSel(null)}} style={{fontSize:11,padding:'7px 14px',borderRadius:20,border:'0.5px solid rgba(42,125,79,0.35)',background:'rgba(42,125,79,0.12)',color:'#2a7d4f',cursor:'pointer',fontWeight:700,fontFamily:'inherit',whiteSpace:'nowrap'}}>+ New order</button>
             {['all','new','review','confirmed','dispatched','completed','cancelled'].map(s=>(
               <button key={s} onClick={()=>setFilter(s)} style={{fontSize:11,padding:'6px 12px',borderRadius:20,border:`0.5px solid ${filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'rgba(0,0,0,0.08)'}`,background:filter===s?`${STATUS_COLOR[s]||'#2d7dd2'}20`:'transparent',color:filter===s?(STATUS_COLOR[s]||'#2d7dd2'):'#555',cursor:'pointer',fontWeight:filter===s?700:400,fontFamily:'inherit'}}>
                 {s==='all'?`All (${orders.length})`:STATUS_LABEL[s]+' ('+grouped[s].length+')'}
@@ -883,6 +989,161 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* NEW ORDER MODAL — admin enters a WhatsApp/off-portal deal for an existing client */}
+      {showNewOrder && (() => {
+        const noClient = clients.find(c => c.id === noClientId)
+        const noSubtotal = noItems.reduce((s,i) => s + i.unit_price * i.quantity, 0)
+        const noDeliveryFeeNum = parseFloat(noDeliveryFee) || 0
+        const noTotal = noSubtotal + noDeliveryFeeNum
+        const clientMatches = noClientSearch
+          ? clients.filter(c =>
+              c.business_name?.toLowerCase().includes(noClientSearch.toLowerCase()) ||
+              c.contact_name?.toLowerCase().includes(noClientSearch.toLowerCase()) ||
+              c.email?.toLowerCase().includes(noClientSearch.toLowerCase())
+            ).slice(0,20)
+          : []
+        const productMatches = noItemForm.search
+          ? products.filter(p =>
+              p.name?.toLowerCase().includes(noItemForm.search.toLowerCase()) ||
+              p.sku?.toLowerCase().includes(noItemForm.search.toLowerCase())
+            ).slice(0,20)
+          : []
+        return (
+          <div onClick={()=>{setShowNewOrder(false)}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:'2rem'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:8,width:520,maxWidth:'100%',maxHeight:'88vh',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
+
+              <div style={{padding:'1.25rem 1.5rem',borderBottom:'0.5px solid rgba(0,0,0,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+                <div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#111'}}>New order</div>
+                  <div style={{fontSize:11,color:'#999',marginTop:2}}>For a deal closed off-portal — e.g. over WhatsApp</div>
+                </div>
+                <button onClick={()=>setShowNewOrder(false)} style={{background:'rgba(0,0,0,0.06)',border:'none',color:'#666',cursor:'pointer',width:28,height:28,borderRadius:'50%',fontSize:15}}>×</button>
+              </div>
+
+              <div style={{overflowY:'auto',flex:1,padding:'1.25rem 1.5rem'}}>
+
+                {/* CLIENT */}
+                <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:6,fontWeight:700}}>Client</label>
+                {noClient ? (
+                  <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'rgba(45,125,210,0.06)',border:'0.5px solid rgba(45,125,210,0.2)',borderRadius:6,marginBottom:16}}>
+                    <div style={{width:34,height:34,borderRadius:'50%',background:'rgba(45,125,210,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:800,color:'#2d7dd2',flexShrink:0}}>{noClient.business_name?.[0]||'?'}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'#111'}}>{noClient.business_name}</div>
+                      <div style={{fontSize:11,color:'#888'}}>{noClient.contact_name} · {noClient.email}</div>
+                    </div>
+                    <button onClick={()=>{setNoClientId(null);setNoClientSearch('')}} style={{fontSize:11,color:'#999',background:'none',border:'0.5px solid rgba(0,0,0,0.1)',padding:'5px 10px',borderRadius:4,cursor:'pointer'}}>Change</button>
+                  </div>
+                ) : (
+                  <div style={{marginBottom:16}}>
+                    <input value={noClientSearch} onChange={e=>setNoClientSearch(e.target.value)} placeholder="Search by business, contact, or email..." style={inp}/>
+                    {noClientSearch && (
+                      <div style={{maxHeight:180,overflowY:'auto',border:'0.5px solid rgba(0,0,0,0.08)',borderRadius:4,marginTop:6,background:'#fff'}}>
+                        {clientMatches.map(c => (
+                          <div key={c.id} onClick={()=>{setNoClientId(c.id);setNoClientSearch('')}} style={{padding:'8px 10px',fontSize:12,color:'#333',cursor:'pointer',borderBottom:'0.5px solid rgba(0,0,0,0.04)'}}>
+                            <strong>{c.business_name}</strong> <span style={{color:'#999'}}>· {c.contact_name} · {c.email}</span>
+                          </div>
+                        ))}
+                        {clientMatches.length===0 && <div style={{padding:'8px 10px',fontSize:12,color:'#999'}}>No matching registered clients</div>}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ITEMS */}
+                <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:6,fontWeight:700}}>Items</label>
+                {noItems.map((item,i) => (
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'0.5px solid rgba(0,0,0,0.06)'}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:600,color:'#333'}}>{item.product_name}</div>
+                      <div style={{fontSize:10,color:'#999'}}>{item.quantity} units × {money(item.unit_price)}</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'#111'}}>{money(item.unit_price*item.quantity)}</div>
+                      <button onClick={()=>removeNewOrderItem(i)} style={{background:'none',border:'none',color:'#ccc',cursor:'pointer',fontSize:16,padding:0,lineHeight:1}}>×</button>
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{background:'rgba(42,125,79,0.04)',border:'0.5px solid rgba(42,125,79,0.15)',borderRadius:4,padding:'0.875rem',marginTop:noItems.length?10:6}}>
+                  <input value={noItemForm.search} onChange={e=>setNoItemForm(f=>({...f,search:e.target.value,productId:''}))}
+                    placeholder="Search product name or SKU..." style={{...inp,marginBottom:noItemForm.search&&!noItemForm.productId?6:0}}/>
+                  {noItemForm.search && !noItemForm.productId && (
+                    <div style={{maxHeight:150,overflowY:'auto',border:'0.5px solid rgba(0,0,0,0.08)',borderRadius:3,marginBottom:8,background:'#fff'}}>
+                      {productMatches.map(p => (
+                        <div key={p.id} onClick={()=>setNoItemForm(f=>({...f,productId:p.id,search:p.name,unitPrice:String(p.price||0)}))}
+                          style={{padding:'7px 10px',fontSize:12,color:'#333',cursor:'pointer',borderBottom:'0.5px solid rgba(0,0,0,0.04)'}}>
+                          {p.name} <span style={{color:'#999'}}>· {p.sku||'no sku'} · {money(p.price)}</span>
+                        </div>
+                      ))}
+                      {productMatches.length===0 && <div style={{padding:'7px 10px',fontSize:12,color:'#999'}}>No matching products</div>}
+                    </div>
+                  )}
+                  {noItemForm.productId && (
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:8,marginBottom:8}}>
+                      <div>
+                        <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Quantity</label>
+                        <input type="number" min="1" value={noItemForm.quantity} onChange={e=>setNoItemForm(f=>({...f,quantity:e.target.value}))} style={inp}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginBottom:4}}>Unit price ($)</label>
+                        <input type="number" step="0.01" value={noItemForm.unitPrice} onChange={e=>setNoItemForm(f=>({...f,unitPrice:e.target.value}))} style={inp}/>
+                      </div>
+                    </div>
+                  )}
+                  <button onClick={addNewOrderItem} disabled={!noItemForm.productId} style={{width:'100%',padding:8,background:!noItemForm.productId?'#ccc':'#2a7d4f',color:'#111',fontSize:11,fontWeight:700,border:'none',cursor:!noItemForm.productId?'not-allowed':'pointer',borderRadius:3}}>+ Add to order</button>
+                </div>
+
+                {/* DELIVERY FEE */}
+                <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginTop:16,marginBottom:6,fontWeight:700}}>Delivery / freight fee (optional)</label>
+                <input type="number" step="0.01" min="0" value={noDeliveryFee} onChange={e=>setNoDeliveryFee(e.target.value)} placeholder="0.00" style={inp}/>
+
+                {/* PAYMENT METHOD */}
+                <label style={{fontSize:9,color:'#777',textTransform:'uppercase',letterSpacing:'0.1em',display:'block',marginTop:16,marginBottom:6,fontWeight:700}}>Payment method (optional)</label>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                  {PAYMENT_METHODS.map(m => (
+                    <button key={m.value} onClick={()=>setNoPaymentMethod(prev=>prev===m.value?'':m.value)}
+                      style={{padding:'8px 4px',fontSize:10.5,fontWeight:700,border:`1px solid ${noPaymentMethod===m.value?'#2d7dd2':'rgba(0,0,0,0.1)'}`,background:noPaymentMethod===m.value?'rgba(45,125,210,0.12)':'transparent',color:noPaymentMethod===m.value?'#2d7dd2':'#555',borderRadius:4,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                {noPaymentMethod && <div style={{fontSize:10,color:'#888',marginTop:6}}>A payment request will be logged for the admin to track and mark paid.</div>}
+
+                {noItems.length > 0 && (
+                  <div style={{marginTop:16,padding:'12px 14px',background:'rgba(42,125,79,0.08)',border:'0.5px solid rgba(42,125,79,0.2)',borderRadius:4}}>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',marginBottom:4}}>
+                      <span>Items subtotal</span><span>{money(noSubtotal)}</span>
+                    </div>
+                    {noDeliveryFeeNum > 0 && (
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#666',marginBottom:4}}>
+                        <span>Delivery / freight</span><span>{money(noDeliveryFeeNum)}</span>
+                      </div>
+                    )}
+                    <div style={{display:'flex',justifyContent:'space-between',paddingTop:6,borderTop:'0.5px solid rgba(0,0,0,0.1)'}}>
+                      <span style={{fontSize:12,fontWeight:600,color:'#333'}}>Order total</span>
+                      <span style={{fontSize:20,fontWeight:900,color:'#2a7d4f'}}>{money(noTotal)}</span>
+                    </div>
+                  </div>
+                )}
+
+                <label style={{display:'flex',alignItems:'center',gap:8,marginTop:16,fontSize:12,color:'#555',cursor:'pointer'}}>
+                  <input type="checkbox" checked={noNotify} onChange={e=>setNoNotify(e.target.checked)}/>
+                  Email an order confirmation to the client
+                </label>
+              </div>
+
+              <div style={{padding:'1rem 1.5rem',borderTop:'0.5px solid rgba(0,0,0,0.08)',display:'flex',gap:8,flexShrink:0}}>
+                <button onClick={createOrder} disabled={creatingOrder || !noClient || !noItems.length}
+                  style={{flex:1,padding:11,background:(!noClient||!noItems.length)?'#ccc':'#2a7d4f',color:'#111',fontSize:13,fontWeight:700,border:'none',cursor:(!noClient||!noItems.length)?'not-allowed':'pointer',borderRadius:4}}>
+                  {creatingOrder?'Creating…':'✓ Create order'}
+                </button>
+                <button onClick={()=>setShowNewOrder(false)} style={{padding:'11px 16px',background:'transparent',color:'#999',fontSize:13,border:'0.5px solid rgba(0,0,0,0.1)',cursor:'pointer',borderRadius:4}}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
