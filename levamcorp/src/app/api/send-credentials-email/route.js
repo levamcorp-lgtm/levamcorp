@@ -23,6 +23,13 @@ export async function POST(request) {
 <meta name="supported-color-schemes" content="light dark" />
 <title>Your Access Credentials — Levam Corp Distributors</title>
 <style>
+  a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+  .lvm-cream a, a.lvm-cream, .lvm-cream a span, .lvm-cream a:visited {
+    color: #f2efe6 !important; text-decoration: none !important;
+  }
+  .lvm-dark a, a.lvm-dark, .lvm-dark a span, .lvm-dark a:visited {
+    color: #08090b !important; text-decoration: none !important;
+  }
   @media only screen and (max-width: 620px) {
     .lvm-pad { padding-left: 20px !important; padding-right: 20px !important; }
     .lvm-h1 { font-size: 28px !important; line-height: 32px !important; }
@@ -111,29 +118,35 @@ export async function POST(request) {
 </td>
 </tr>
 
-<!-- BLUE STUB: THE CREDENTIALS -->
+<!-- BLACK STUB: THE CREDENTIALS -->
 <tr>
-<td style="background-color: #2F7DF6; padding: 0;">
+<td bgcolor="#08090b" style="background-color: #08090b; padding: 0;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td class="lvm-pad" style="padding: 20px 28px 10px 28px; border-bottom: 1px solid rgba(8,9,11,0.4); font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: bold; letter-spacing: 2px; color: #08090b; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 15px;">
+    <td class="lvm-pad" style="padding: 20px 28px 10px 28px; border-bottom: 1px solid rgba(242,239,230,0.35); font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: bold; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 15px;">
       Access credential &middot; do not share
     </td>
   </tr>
   <tr>
     <td class="lvm-pad" style="padding: 20px 28px 6px 28px;">
-      <div style="font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #08090b; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 13px; padding-bottom: 7px;">Sign-in email</div>
-      <div style="font-family: 'Courier New', Courier, monospace; font-size: 17px; font-weight: bold; letter-spacing: 0.5px; color: #08090b; mso-line-height-rule: exactly; line-height: 24px; word-break: break-all;">${email}</div>
+      <div style="font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 13px; padding-bottom: 7px;">Sign-in email</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td bgcolor="#f2efe6" class="lvm-cream" style="background-color: #f2efe6; padding: 10px 14px 11px 14px;">
+          <a class="lvm-dark" href="mailto:${email}" style="font-family: 'Courier New', Courier, monospace; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; color: #08090b !important; text-decoration: none; mso-line-height-rule: exactly; line-height: 20px; word-break: break-all;"><span style="color: #08090b !important;">${email}</span></a>
+        </td>
+      </tr>
+      </table>
     </td>
   </tr>
   <tr>
     <td class="lvm-pad" style="padding: 16px 28px 4px 28px;">
-      <div style="border-top: 1px solid rgba(8,9,11,0.4); padding-top: 16px;">
-        <div style="font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #08090b; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 13px; padding-bottom: 8px;">Temporary password</div>
+      <div style="border-top: 1px solid rgba(242,239,230,0.35); padding-top: 16px;">
+        <div style="font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 13px; padding-bottom: 8px;">Temporary password</div>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td bgcolor="#08090b" style="background-color: #08090b; padding: 13px 18px 14px 18px;">
-            <span class="lvm-pw" style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; letter-spacing: 4px; color: #f2efe6; mso-line-height-rule: exactly; line-height: 32px;">${password}</span>
+          <td bgcolor="#f2efe6" style="background-color: #f2efe6; padding: 13px 18px 14px 18px;">
+            <span class="lvm-pw" style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; letter-spacing: 4px; color: #08090b; mso-line-height-rule: exactly; line-height: 32px;">${password}</span>
           </td>
         </tr>
         </table>
@@ -141,7 +154,7 @@ export async function POST(request) {
     </td>
   </tr>
   <tr>
-    <td class="lvm-pad" style="padding: 14px 28px 20px 28px; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 1.5px; color: #08090b; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
+    <td class="lvm-pad" style="padding: 14px 28px 20px 28px; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 1.5px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
       &#9632;&nbsp; Change this password after your first sign-in
     </td>
   </tr>
@@ -150,28 +163,28 @@ export async function POST(request) {
     <td class="lvm-pad" style="padding: 0 28px 18px 28px; font-size: 0; line-height: 0;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" height="22" style="height: 22px;">
       <tr>
-        <td width="4" height="22" bgcolor="#08090b" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="6" height="22" bgcolor="#08090b" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="3" height="22" bgcolor="#08090b" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="22" bgcolor="#08090b" style="width:7px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="4" height="22" bgcolor="#08090b" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="3" height="22" bgcolor="#08090b" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" height="22" bgcolor="#08090b" style="width:5px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="6" height="22" bgcolor="#08090b" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="4" height="22" bgcolor="#08090b" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="3" height="22" bgcolor="#08090b" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" height="22" bgcolor="#08090b" style="width:5px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="6" height="22" bgcolor="#08090b" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="3" height="22" bgcolor="#08090b" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="4" height="22" bgcolor="#08090b" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="2" height="22" bgcolor="#08090b" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="22" bgcolor="#08090b" style="width:7px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td height="22" style="font-size:0;line-height:0;">&nbsp;</td>
+        <td width="4" height="22" bgcolor="#f2efe6" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="6" height="22" bgcolor="#f2efe6" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="3" height="22" bgcolor="#f2efe6" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="22" bgcolor="#f2efe6" style="width:7px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="4" height="22" bgcolor="#f2efe6" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="3" height="22" bgcolor="#f2efe6" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" height="22" bgcolor="#f2efe6" style="width:5px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="6" height="22" bgcolor="#f2efe6" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="4" height="22" bgcolor="#f2efe6" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="3" height="22" bgcolor="#f2efe6" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" height="22" bgcolor="#f2efe6" style="width:5px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="6" height="22" bgcolor="#f2efe6" style="width:6px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="5" height="22" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="3" height="22" bgcolor="#f2efe6" style="width:3px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="3" height="22" style="width:3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="4" height="22" bgcolor="#f2efe6" style="width:4px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="6" height="22" style="width:6px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="2" height="22" bgcolor="#f2efe6" style="width:2px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td width="4" height="22" style="width:4px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="22" bgcolor="#f2efe6" style="width:7px;height:22px;font-size:0;line-height:0;">&nbsp;</td><td height="22" style="font-size:0;line-height:0;">&nbsp;</td>
       </tr>
       </table>
     </td>
@@ -285,7 +298,7 @@ export async function POST(request) {
         <td width="55%" class="lvm-stack" style="width: 55%; mso-line-height-rule: exactly; line-height: 18px;">
           <img src="https://www.levamcorp.com/levamcorp-logo-white.png" width="112" height="73" alt="LEVAM CORP — Distributors" style="display: block; width: 112px; height: 73px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />
         </td>
-        <td width="45%" class="lvm-right" style="width: 45%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #7c7a73; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 18px;">
+        <td width="45%" class="lvm-right" style="width: 45%; text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; letter-spacing: 2px; color: #f2efe6; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 18px;">
           B2B wholesale only
         </td>
       </tr>
@@ -293,16 +306,16 @@ export async function POST(request) {
     </td>
   </tr>
   <tr>
-    <td class="lvm-pad" style="padding: 18px 28px 6px 28px; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 1px; color: #9a968e; mso-line-height-rule: exactly; line-height: 20px;">
+    <td class="lvm-pad" style="padding: 18px 28px 6px 28px; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 1px; color: #ffffff; mso-line-height-rule: exactly; line-height: 20px;">
       6315 NW 99th Ave, Doral, FL 33178<br />
-      <a href="mailto:partners@levamcorp.com" style="color: #f2efe6; text-decoration: none; border-bottom: 1px solid rgba(242,239,230,0.35);">partners@levamcorp.com</a>
+      <a class="lvm-cream" href="mailto:partners@levamcorp.com" style="color: #ffffff !important; text-decoration: none; border-bottom: 1px solid rgba(242,239,230,0.35);">partners@levamcorp.com</a>
       &nbsp;&middot;&nbsp;
-      <a href="tel:+17868784122" style="color: #f2efe6; text-decoration: none; border-bottom: 1px solid rgba(242,239,230,0.35);">(786) 878-4122</a><br />
+      <a class="lvm-cream" href="tel:+17868784122" style="color: #ffffff !important; text-decoration: none; border-bottom: 1px solid rgba(242,239,230,0.35);">(786) 878-4122</a><br />
       Mon–Fri 9AM–5PM ET &middot; English &amp; Espa&ntilde;ol
     </td>
   </tr>
   <tr>
-    <td class="lvm-pad" style="padding: 20px 28px 24px 28px; font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #5f5d58; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
+    <td class="lvm-pad" style="padding: 20px 28px 24px 28px; font-family: 'Courier New', Courier, monospace; font-size: 9px; letter-spacing: 2px; color: #cfcbc2; text-transform: uppercase; mso-line-height-rule: exactly; line-height: 16px;">
       You received this because your partner account was created<br />
       &copy; ${new Date().getFullYear()} Levam Corp Distributors &middot; Doc 03 &middot; Rev. 08
     </td>
