@@ -55,6 +55,8 @@ export default function CatalogPage() {
   const [cart, setCart] = useState({})
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  const [brand, setBrand] = useState('all')
+  const [hideOutOfStock, setHideOutOfStock] = useState(false)
   const [showQuote, setShowQuote] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -86,10 +88,14 @@ export default function CatalogPage() {
   useEffect(() => {
     let list = products
     if (category !== 'all') list = list.filter(p => p.category === category)
+    if (brand !== 'all') list = list.filter(p => p.brand === brand)
+    if (hideOutOfStock) list = list.filter(p => (p.stock || 0) > 0)
     if (search.trim().length > 2) trackSearch(search.trim(), list.length)
     if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()))
     setFiltered(list)
-  }, [search, category, products])
+  }, [search, category, brand, hideOutOfStock, products])
+
+  const brands = [...new Set(products.map(p => p.brand).filter(Boolean))].sort()
 
   // Analytics tracked in addToCart
 const addToCart = (product, qty, variation) => {
@@ -268,10 +274,23 @@ const addToCart = (product, qty, variation) => {
               <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#6F6D67' }}>🔍</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 0, flexWrap:'wrap' }}>
+          <div style={{ display: 'flex', gap: 0, flexWrap:'wrap', alignItems:'center' }}>
             {CATEGORY_TABS.map(([val, label]) => (
               <button key={val} onClick={() => setCategory(val)} className="lc-mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing:'0.08em', textTransform:'uppercase', padding: '10px 18px', cursor: 'pointer', border: 'none', background: 'transparent', color: category === val ? '#F5F1E8' : '#6F6D67', borderBottom: `2px solid ${category === val ? '#2F7DF6' : 'transparent'}` }}>{label}</button>
             ))}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto', padding:'8px 0' }}>
+              {brands.length > 0 && (
+                <select value={brand} onChange={e => setBrand(e.target.value)} className="lc-mono"
+                  style={{ background:'transparent', border:'1px solid rgba(245,241,232,0.25)', color: brand !== 'all' ? '#F5F1E8' : '#8A8780', fontSize:10, fontWeight: brand !== 'all' ? 700 : 400, padding:'8px 10px', outline:'none', cursor:'pointer' }}>
+                  <option value="all">All brands</option>
+                  {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              )}
+              <button onClick={() => setHideOutOfStock(h => !h)} className="lc-mono"
+                style={{ fontSize: 10, fontWeight: 700, letterSpacing:'0.06em', textTransform:'uppercase', padding: '8px 14px', cursor: 'pointer', whiteSpace:'nowrap', border: `1px solid ${hideOutOfStock ? '#2F7DF6' : 'rgba(245,241,232,0.25)'}`, background: hideOutOfStock ? '#2F7DF6' : 'transparent', color: hideOutOfStock ? '#08090B' : '#8A8780' }}>
+                {hideOutOfStock ? '✓ ' : ''}Hide out of stock
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -284,8 +303,9 @@ const addToCart = (product, qty, variation) => {
             <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', fontWeight: 700 }}>No products found</div>
           </div>
         ) : (() => {
-          const topPicks = filtered.filter(p => p.is_top_pick)
-          const regular = filtered.filter(p => !p.is_top_pick)
+          const byStock = (a, b) => (a.stock === 0 ? 1 : 0) - (b.stock === 0 ? 1 : 0)
+          const topPicks = filtered.filter(p => p.is_top_pick).sort(byStock)
+          const regular = filtered.filter(p => !p.is_top_pick).sort(byStock)
           return (
             <>
               {/* TOP PICKS */}

@@ -34,6 +34,8 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [brandFilter, setBrandFilter] = useState('all')
+  const [hideOutOfStock, setHideOutOfStock] = useState(false)
   const [expanded, setExpanded] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -224,11 +226,15 @@ export default function AdminProducts() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const brands = [...new Set(products.map(p => p.brand).filter(Boolean))].sort()
+
   const filtered = products.filter(p => {
     const matchCat = categoryFilter === 'all' || p.category === categoryFilter || (p.additional_categories || []).includes(categoryFilter)
+    const matchBrand = brandFilter === 'all' || p.brand === brandFilter
     const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
-  })
+    const matchStock = !hideOutOfStock || p.stock > 0
+    return matchCat && matchBrand && matchSearch && matchStock
+  }).sort((a, b) => (a.stock === 0 ? 1 : 0) - (b.stock === 0 ? 1 : 0))
 
   const inp = { background: '#f0f1f3', border: '0.5px solid rgba(0,0,0,0.1)', color: '#444', fontSize: 12, padding: '9px 12px', borderRadius: 3, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', width: '100%' }
   const lbl = { fontSize: 9, color: '#777', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 5, fontWeight: 600 }
@@ -649,6 +655,17 @@ export default function AdminProducts() {
               style={{ background: 'rgba(0,0,0,0.05)', border: '0.5px solid rgba(0,0,0,0.1)', color: '#333', fontSize: 11, padding: '7px 12px 7px 30px', borderRadius: 20, outline: 'none', fontFamily: 'inherit', width: 220 }} />
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#999' }}>🔍</span>
           </div>
+          {brands.length > 0 && (
+            <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)}
+              style={{ fontSize: 11, padding: '7px 10px', borderRadius: 20, border: '0.5px solid rgba(0,0,0,0.1)', background: brandFilter !== 'all' ? 'rgba(45,125,210,0.15)' : 'transparent', color: brandFilter !== 'all' ? '#2d7dd2' : '#666', fontFamily: 'inherit', cursor: 'pointer', fontWeight: brandFilter !== 'all' ? 700 : 400, outline: 'none' }}>
+              <option value="all">All brands</option>
+              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          )}
+          <button onClick={() => setHideOutOfStock(h => !h)}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${hideOutOfStock ? '#e74c3c' : 'rgba(0,0,0,0.08)'}`, background: hideOutOfStock ? 'rgba(231,76,60,0.12)' : 'transparent', color: hideOutOfStock ? '#e74c3c' : '#666', fontWeight: hideOutOfStock ? 700 : 400 }}>
+            {hideOutOfStock ? '✓ ' : ''}Hide out of stock
+          </button>
           <div style={{ display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap' }}>
             {['all', ...CATEGORIES].map(cat => {
               const count = cat === 'all' ? products.length : products.filter(p => p.category === cat || (p.additional_categories || []).includes(cat)).length
