@@ -368,51 +368,89 @@ const addToCart = (product, qty, variation) => {
             <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight: 700, color:'#6F6D67' }}>No products match this filter</div>
             <button onClick={resetFilters} className="lc-mono" style={{ marginTop:14, border:'1px solid rgba(8,9,11,0.85)', background:'transparent', cursor:'pointer', padding:'10px 15px', fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#08090B' }}>Clear filters</button>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(228px,1fr))', gap: 1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
-            {filtered.map((product, i) => {
-              const isHovered = hoverId === product.id
-              const outOfStock = (product.stock || 0) === 0
-              const low = !outOfStock && product.stock <= 5
-              const teaseText = product.condition && product.condition !== 'New' ? product.condition : (product.dispatch_days ? `Ships in ${product.dispatch_days}` : '')
-              return (
-                <div key={product.id} role="button" tabIndex={0}
-                  onClick={() => openAt(i)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAt(i) } }}
-                  onMouseEnter={() => setHoverId(product.id)} onMouseLeave={() => setHoverId(null)}
-                  style={{ position:'relative', display:'flex', flexDirection:'column', cursor:'pointer', background: isHovered ? '#F7FAFF' : '#FFFFFF' }}>
-                  <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: isHovered ? '#2F7DF6' : 'transparent' }}/>
+        ) : (() => {
+          const renderCard = (product, i) => {
+            const isHovered = hoverId === product.id
+            const outOfStock = (product.stock || 0) === 0
+            const low = !outOfStock && product.stock <= 5
+            const teaseText = product.condition && product.condition !== 'New' ? product.condition : (product.dispatch_days ? `Ships in ${product.dispatch_days}` : '')
+            return (
+              <div key={product.id} role="button" tabIndex={0}
+                onClick={() => openAt(i)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAt(i) } }}
+                onMouseEnter={() => setHoverId(product.id)} onMouseLeave={() => setHoverId(null)}
+                style={{ position:'relative', display:'flex', flexDirection:'column', cursor:'pointer', background: isHovered ? '#F7FAFF' : '#FFFFFF' }}>
+                <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: isHovered ? '#2F7DF6' : 'transparent' }}/>
 
-                  <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 11px 7px', fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
-                    <span style={{ color: product.is_top_pick ? '#2F7DF6' : '#6F6D67' }}>{product.is_top_pick ? 'Top pick' : product.category}</span>
-                    <span style={{ color: outOfStock ? '#8A8780' : low ? '#9A6A1E' : '#0E9A5A' }}>{outOfStock ? 'Out of stock' : `${product.stock} in stock`}</span>
+                <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 11px 7px', fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+                  <span style={{ color: product.is_top_pick ? '#2F7DF6' : '#6F6D67' }}>{product.is_top_pick ? 'Top pick' : product.category}</span>
+                  <span style={{ color: outOfStock ? '#8A8780' : low ? '#9A6A1E' : '#0E9A5A' }}>{outOfStock ? 'Out of stock' : `${product.stock} in stock`}</span>
+                </div>
+
+                <div style={{ position:'relative', margin:'0 11px', aspectRatio:'1 / 1', background:'#F2EFE6', border:'1px solid rgba(8,9,11,0.1)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {product.image_url ? <img src={product.image_url} alt={product.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:16 }}/> : <span style={{ fontSize:36, color:'#D8D4C8' }}>◻</span>}
+                </div>
+
+                {product.brand && <div className="lc-mono" style={{ padding:'11px 11px 0', fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#2F7DF6' }}>{product.brand}</div>}
+                <div style={{ padding:'5px 11px 0', fontSize:13, lineHeight:1.4, letterSpacing:'-0.005em', color:'#08090B', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{product.name}</div>
+
+                {teaseText && <div className="lc-mono" style={{ padding:'8px 11px 0', fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color: isHovered ? '#1B5FD0' : '#9A968E' }}>{teaseText}</div>}
+
+                <div style={{ flex:1, minHeight:10 }}/>
+
+                <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8, padding:'12px 11px 0' }}>
+                  <span className="lc-display" style={{ fontSize:20, fontWeight:700, letterSpacing:'-0.03em', color:'#08090B' }}>${product.price?.toLocaleString()}</span>
+                  <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>MOQ {product.moq || 1}</span>
+                </div>
+
+                <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:11, padding:'10px 11px', background: isHovered ? '#2F7DF6' : '#E8F1FF', fontWeight:700, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color: isHovered ? '#08090B' : '#1B5FD0' }}>
+                  <span>{isHovered ? 'Open product sheet' : 'Specs · pricing · logistics'}</span>
+                  <span style={{ fontWeight:400, fontSize:11 }}>{isHovered ? '→' : '+'}</span>
+                </div>
+              </div>
+            )
+          }
+
+          // On the "All products" tab, pin top picks in their own featured strip above the rest —
+          // the "Top picks" tab still works separately as a dedicated filter.
+          const showTopPicksStrip = category === 'all'
+          const topPicksInView = showTopPicksStrip ? filtered.filter(p => p.is_top_pick) : []
+          const regularInView = showTopPicksStrip ? filtered.filter(p => !p.is_top_pick) : filtered
+
+          return (
+            <>
+              {topPicksInView.length > 0 && (
+                <div style={{ marginBottom: '2.5rem' }}>
+                  <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:14, marginBottom:'1.1rem', padding:'12px 18px', background:'#08090B', border:'1px solid rgba(8,9,11,0.1)', borderLeft:'3px solid #2F7DF6' }}>
+                    <div>
+                      <div style={{ fontSize:10.5, fontWeight:700, color:'#F5F1E8', letterSpacing:'0.16em', textTransform:'uppercase' }}>Top picks</div>
+                      <div style={{ fontSize:9.5, color:'#8A8780', marginTop:2 }}>Handpicked by Levam Corp — our best sellers right now</div>
+                    </div>
+                    <div style={{ marginLeft:'auto', fontSize:9.5, color:'#6F6D67', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>{topPicksInView.length} featured</div>
                   </div>
-
-                  <div style={{ position:'relative', margin:'0 11px', aspectRatio:'1 / 1', background:'#F2EFE6', border:'1px solid rgba(8,9,11,0.1)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    {product.image_url ? <img src={product.image_url} alt={product.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:16 }}/> : <span style={{ fontSize:36, color:'#D8D4C8' }}>◻</span>}
-                  </div>
-
-                  {product.brand && <div className="lc-mono" style={{ padding:'11px 11px 0', fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#2F7DF6' }}>{product.brand}</div>}
-                  <div style={{ padding:'5px 11px 0', fontSize:13, lineHeight:1.4, letterSpacing:'-0.005em', color:'#08090B', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{product.name}</div>
-
-                  {teaseText && <div className="lc-mono" style={{ padding:'8px 11px 0', fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color: isHovered ? '#1B5FD0' : '#9A968E' }}>{teaseText}</div>}
-
-                  <div style={{ flex:1, minHeight:10 }}/>
-
-                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8, padding:'12px 11px 0' }}>
-                    <span className="lc-display" style={{ fontSize:20, fontWeight:700, letterSpacing:'-0.03em', color:'#08090B' }}>${product.price?.toLocaleString()}</span>
-                    <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>MOQ {product.moq || 1}</span>
-                  </div>
-
-                  <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:11, padding:'10px 11px', background: isHovered ? '#2F7DF6' : '#E8F1FF', fontWeight:700, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color: isHovered ? '#08090B' : '#1B5FD0' }}>
-                    <span>{isHovered ? 'Open product sheet' : 'Specs · pricing · logistics'}</span>
-                    <span style={{ fontWeight:400, fontSize:11 }}>{isHovered ? '→' : '+'}</span>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(228px,1fr))', gap:1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
+                    {topPicksInView.map(product => renderCard(product, filtered.indexOf(product)))}
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+              )}
+
+              {regularInView.length > 0 && (
+                <div>
+                  {topPicksInView.length > 0 && (
+                    <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:12, marginBottom:'1rem', fontSize:9.5, color:'#6F6D67', letterSpacing:'0.16em', textTransform:'uppercase', fontWeight:700 }}>
+                      <div style={{ height:1, flex:1, background:'rgba(8,9,11,0.12)' }} />
+                      All products
+                      <div style={{ height:1, flex:1, background:'rgba(8,9,11,0.12)' }} />
+                    </div>
+                  )}
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(228px,1fr))', gap:1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
+                    {regularInView.map(product => renderCard(product, filtered.indexOf(product)))}
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        })()}
       </div>
 
       {/* PRODUCT SHEET MODAL */}
