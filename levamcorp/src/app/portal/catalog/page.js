@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '../../../lib/supabase'
@@ -7,14 +7,25 @@ import { trackPageView, trackProductView, trackProductClick, trackSearch } from 
 
 const NAV_LINKS = [['Dashboard','/portal/dashboard'],['Catalog','/portal/catalog'],['Orders','/portal/orders'],['Invoices','/portal/invoices'],['Payments','/portal/payments']]
 
-const CATEGORY_TABS = [['all','All products'],['tvs','TVs'],['electronics','Electronics'],['small appliances','Small Appliances'],['kitchen appliances','Kitchen'],['gaming','Gaming'],['audio & speakers','Audio'],['computers & laptops','Computers']]
+const CATEGORY_TABS = [['all','All products'],['top_picks','Top picks'],['tvs','TVs'],['electronics','Electronics'],['small appliances','Small Appliances'],['kitchen appliances','Kitchen'],['gaming','Gaming'],['audio & speakers','Audio'],['computers & laptops','Computers']]
+
+function seededBars(seed, count) {
+  let s = seed
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
+  const out = []
+  for (let i = 0; i < count; i++) {
+    const r = rnd()
+    out.push({ grow: r > 0.82 ? 3 : r > 0.5 ? 2 : 1, h: r > 0.94 ? 18 : 13 })
+  }
+  return out
+}
 
 function PortalNav({ user, onLogout, onDownload, cartCount, onQuote }) {
   const pathname = usePathname()
   return (
     <nav style={{ position:'sticky', top:0, zIndex:40, background:'#08090B', borderBottom:'1px solid rgba(245,241,232,0.1)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2rem', height:60, maxWidth:1240, margin:'0 auto' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:32 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'12px 2rem', maxWidth:1240, margin:'0 auto' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:32, flexWrap:'wrap' }}>
           <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
             <div style={{ width:30, height:30, border:'1.5px solid rgba(245,241,232,0.35)', borderLeft:'3px solid #2F7DF6', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:16, height:'auto' }}/>
@@ -24,7 +35,7 @@ function PortalNav({ user, onLogout, onDownload, cartCount, onQuote }) {
               <div className="lc-mono" style={{ fontSize:7, letterSpacing:'0.2em', color:'#6F6D67', textTransform:'uppercase', marginTop:2 }}>Partner Portal</div>
             </div>
           </Link>
-          <div style={{ display:'flex', height:60 }}>
+          <div style={{ display:'flex', flexWrap:'wrap', minHeight:60 }}>
             {NAV_LINKS.map(([l,h]) => {
               const active = pathname === h
               return (
@@ -33,7 +44,7 @@ function PortalNav({ user, onLogout, onDownload, cartCount, onQuote }) {
             })}
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           <button onClick={onDownload} className="lc-mono" style={{ display:'flex', alignItems:'center', gap:7, fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', color:'#8A8780', padding:'8px 14px', border:'1px solid rgba(245,241,232,0.18)', background:'transparent', cursor:'pointer' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download
@@ -64,9 +75,18 @@ export default function CatalogPage() {
   const [prepAddress, setPrepAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [orderSubmitted, setOrderSubmitted] = useState(false)
-  const [hoveredId, setHoveredId] = useState(null)
+  const [hoverId, setHoverId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [invoiceNum] = useState(`LC-${Math.floor(20000 + Math.random() * 9999)}`)
+
+  // Product-sheet modal
+  const [openIdx, setOpenIdx] = useState(-1)
+  const [modalQty, setModalQty] = useState(1)
+  const [modalVar, setModalVar] = useState(null)
+  const [modalSec, setModalSec] = useState(0)
+  const [modalAdded, setModalAdded] = useState(false)
+
+  const barcode = useMemo(() => seededBars(20260902, 96), [])
 
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -87,15 +107,19 @@ export default function CatalogPage() {
 
   useEffect(() => {
     let list = products
-    if (category !== 'all') list = list.filter(p => p.category === category)
+    if (category === 'top_picks') list = list.filter(p => p.is_top_pick)
+    else if (category !== 'all') list = list.filter(p => p.category === category)
     if (brand !== 'all') list = list.filter(p => p.brand === brand)
     if (hideOutOfStock) list = list.filter(p => (p.stock || 0) > 0)
     if (search.trim().length > 2) trackSearch(search.trim(), list.length)
     if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()))
-    setFiltered(list)
+    const byStock = (a, b) => (a.stock === 0 ? 1 : 0) - (b.stock === 0 ? 1 : 0)
+    setFiltered([...list].sort(byStock))
   }, [search, category, brand, hideOutOfStock, products])
 
   const brands = [...new Set(products.map(p => p.brand).filter(Boolean))].sort()
+
+  const resetFilters = () => { setSearch(''); setCategory('all'); setBrand('all'); setHideOutOfStock(false) }
 
   // Analytics tracked in addToCart
 const addToCart = (product, qty, variation) => {
@@ -230,6 +254,43 @@ const addToCart = (product, qty, variation) => {
 
   const categoryIcon = (cat) => cat === 'electronics' ? '📺' : cat === 'home' ? '🏠' : '🍳'
 
+  // Product-sheet modal
+  const openAt = (i) => {
+    const it = filtered[i]
+    if (!it) return
+    setOpenIdx(i); setModalQty(it.moq || 1); setModalVar(null); setModalSec(0); setModalAdded(false)
+    trackProductView && trackProductView(it)
+  }
+  const closeModal = () => setOpenIdx(-1)
+  const stepModal = (d) => {
+    if (!filtered.length) return
+    const n = (openIdx + d + filtered.length) % filtered.length
+    setOpenIdx(n); setModalQty(filtered[n].moq || 1); setModalVar(null); setModalSec(0); setModalAdded(false)
+  }
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (openIdx < 0) return
+      if (e.key === 'Escape') closeModal()
+      if (e.key === 'ArrowRight') stepModal(1)
+      if (e.key === 'ArrowLeft') stepModal(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openIdx, filtered])
+
+  useEffect(() => {
+    document.body.style.overflow = openIdx >= 0 ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [openIdx])
+
+  const modalProduct = openIdx >= 0 ? filtered[openIdx] : null
+  const modalActiveVar = modalProduct && modalVar !== null ? modalProduct.variations?.[modalVar] : null
+  const modalDisplayStock = modalActiveVar?.stock != null ? modalActiveVar.stock : (modalProduct?.stock || 0)
+  const modalDisplayPrice = modalProduct ? modalProduct.price + (modalActiveVar?.price_diff || 0) : 0
+  const modalOutOfStock = modalDisplayStock === 0
+  const modalTotal = modalDisplayPrice * modalQty
+
   const globalStyle = `
     .lc-display { font-family:'Space Grotesk',-apple-system,sans-serif; letter-spacing:-0.02em; }
     .lc-mono { font-family:'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace; }
@@ -257,7 +318,7 @@ const addToCart = (product, qty, variation) => {
 
       {/* CATALOG HEADER */}
       <div style={{ background: '#08090B', color:'#F5F1E8', padding: '2rem 2rem 0' }}>
-        <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto' }}>
           <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:10, paddingBottom:12, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
             <span style={{ width:6, height:6, background:'#2F7DF6', display:'inline-block' }}/>
             Partner pricing · Catalog
@@ -266,7 +327,7 @@ const addToCart = (product, qty, variation) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap:'wrap', gap:16, padding:'clamp(18px,2.6vh,26px) 0 clamp(18px,2.6vh,22px)' }}>
             <div>
               <h1 className="lc-display" style={{ fontSize:'clamp(26px,3.2vw,36px)', fontWeight:400, letterSpacing:'-0.03em', margin:'0 0 6px', color:'#F5F2E9' }}>Product catalog<span style={{ color:'#2F7DF6' }}>.</span></h1>
-              <p style={{ fontSize: 13, color: '#9A968E', margin:0 }}>Showing {filtered.length} products · Approved wholesale pricing</p>
+              <p style={{ fontSize: 13, color: '#9A968E', margin:0 }}>Showing {filtered.length} of {products.length} products · Approved wholesale pricing</p>
             </div>
             <div style={{ position: 'relative' }}>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products or SKU…"
@@ -274,79 +335,307 @@ const addToCart = (product, qty, variation) => {
               <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#6F6D67' }}>🔍</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 0, flexWrap:'wrap', alignItems:'center' }}>
-            {CATEGORY_TABS.map(([val, label]) => (
-              <button key={val} onClick={() => setCategory(val)} className="lc-mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing:'0.08em', textTransform:'uppercase', padding: '10px 18px', cursor: 'pointer', border: 'none', background: 'transparent', color: category === val ? '#F5F1E8' : '#6F6D67', borderBottom: `2px solid ${category === val ? '#2F7DF6' : 'transparent'}` }}>{label}</button>
-            ))}
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto', padding:'8px 0' }}>
-              {brands.length > 0 && (
-                <select value={brand} onChange={e => setBrand(e.target.value)} className="lc-mono"
-                  style={{ background:'transparent', border:'1px solid rgba(245,241,232,0.25)', color: brand !== 'all' ? '#F5F1E8' : '#8A8780', fontSize:10, fontWeight: brand !== 'all' ? 700 : 400, padding:'8px 10px', outline:'none', cursor:'pointer' }}>
-                  <option value="all">All brands</option>
-                  {brands.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              )}
-              <button onClick={() => setHideOutOfStock(h => !h)} className="lc-mono"
-                style={{ fontSize: 10, fontWeight: 700, letterSpacing:'0.06em', textTransform:'uppercase', padding: '8px 14px', cursor: 'pointer', whiteSpace:'nowrap', border: `1px solid ${hideOutOfStock ? '#2F7DF6' : 'rgba(245,241,232,0.25)'}`, background: hideOutOfStock ? '#2F7DF6' : 'transparent', color: hideOutOfStock ? '#08090B' : '#8A8780' }}>
-                {hideOutOfStock ? '✓ ' : ''}Hide out of stock
-              </button>
-            </div>
+          <div data-scroll style={{ display: 'flex', alignItems:'stretch', gap: 1, background:'rgba(245,241,232,0.16)', overflowX:'auto' }}>
+            {CATEGORY_TABS.map(([val, label]) => {
+              const n = val === 'all' ? products.length : val === 'top_picks' ? products.filter(p => p.is_top_pick).length : products.filter(p => p.category === val).length
+              const on = category === val
+              return (
+                <button key={val} onClick={() => setCategory(val)} className="lc-mono" style={{ flex:'1 0 auto', fontSize: 10, fontWeight: 700, letterSpacing:'0.14em', textTransform:'uppercase', padding: '11px 15px 12px', cursor: 'pointer', border: 'none', whiteSpace:'nowrap', background: on ? '#2F7DF6' : 'transparent', color: on ? '#08090B' : '#F5F1E8' }}>{label} <span style={{ color: on ? 'rgba(8,9,11,0.55)' : '#6F6D67' }}>{n}</span></button>
+              )
+            })}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 0 18px', flexWrap:'wrap' }}>
+            {brands.length > 0 && (
+              <select value={brand} onChange={e => setBrand(e.target.value)} className="lc-mono"
+                style={{ background:'transparent', border:'1px solid rgba(245,241,232,0.25)', color: brand !== 'all' ? '#F5F1E8' : '#8A8780', fontSize:10, fontWeight: brand !== 'all' ? 700 : 400, padding:'8px 10px', outline:'none', cursor:'pointer' }}>
+                <option value="all">All brands</option>
+                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            )}
+            <button onClick={() => setHideOutOfStock(h => !h)} className="lc-mono"
+              style={{ fontSize: 10, fontWeight: 700, letterSpacing:'0.06em', textTransform:'uppercase', padding: '8px 14px', cursor: 'pointer', whiteSpace:'nowrap', border: `1px solid ${hideOutOfStock ? '#2F7DF6' : 'rgba(245,241,232,0.25)'}`, background: hideOutOfStock ? '#2F7DF6' : 'transparent', color: hideOutOfStock ? '#08090B' : '#8A8780' }}>
+              {hideOutOfStock ? '✓ ' : ''}Hide out of stock
+            </button>
           </div>
         </div>
       </div>
 
       {/* PRODUCTS GRID */}
-      <div style={{ padding: '2rem', maxWidth: 1240, margin: '0 auto' }}>
+      <div style={{ padding: '2rem', maxWidth: 1440, margin: '0 auto' }}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '5rem', color: '#8A8780' }}>
+          <div style={{ border:'1px solid rgba(8,9,11,0.1)', padding: 'clamp(34px,6vh,60px) 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12, opacity:0.5 }}>🔍</div>
-            <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', fontWeight: 700 }}>No products found</div>
+            <div className="lc-mono" style={{ fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight: 700, color:'#6F6D67' }}>No products match this filter</div>
+            <button onClick={resetFilters} className="lc-mono" style={{ marginTop:14, border:'1px solid rgba(8,9,11,0.85)', background:'transparent', cursor:'pointer', padding:'10px 15px', fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#08090B' }}>Clear filters</button>
           </div>
-        ) : (() => {
-          const byStock = (a, b) => (a.stock === 0 ? 1 : 0) - (b.stock === 0 ? 1 : 0)
-          const topPicks = filtered.filter(p => p.is_top_pick).sort(byStock)
-          const regular = filtered.filter(p => !p.is_top_pick).sort(byStock)
-          return (
-            <>
-              {/* TOP PICKS */}
-              {topPicks.length > 0 && (
-                <div style={{ marginBottom: '2.5rem' }}>
-                  <div className="lc-mono" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: '1.1rem', padding: '12px 18px', background: '#08090B', border:'1px solid rgba(8,9,11,0.1)', borderLeft:'3px solid #B98A54' }}>
-                    <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: '#F5F1E8', letterSpacing: '0.16em', textTransform: 'uppercase' }}>Top picks</div>
-                      <div style={{ fontSize: 9.5, color: '#8A8780', marginTop:2 }}>Handpicked by Levam Corp — our best sellers right now</div>
-                    </div>
-                    <div style={{ marginLeft: 'auto', fontSize: 9.5, color: '#6F6D67', fontWeight: 600, letterSpacing:'0.08em', textTransform:'uppercase' }}>{topPicks.length} featured</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
-                    {topPicks.map(product => (
-                      <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty, variation) => addToCart(product, qty, variation)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
-                    ))}
-                  </div>
-                </div>
-              )}
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(228px,1fr))', gap: 1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
+            {filtered.map((product, i) => {
+              const isHovered = hoverId === product.id
+              const outOfStock = (product.stock || 0) === 0
+              const low = !outOfStock && product.stock <= 5
+              const teaseText = product.condition && product.condition !== 'New' ? product.condition : (product.dispatch_days ? `Ships in ${product.dispatch_days}` : '')
+              return (
+                <div key={product.id} role="button" tabIndex={0}
+                  onClick={() => openAt(i)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAt(i) } }}
+                  onMouseEnter={() => setHoverId(product.id)} onMouseLeave={() => setHoverId(null)}
+                  style={{ position:'relative', display:'flex', flexDirection:'column', cursor:'pointer', background: isHovered ? '#F7FAFF' : '#FFFFFF' }}>
+                  <div style={{ position:'absolute', left:0, right:0, top:0, height:3, background: isHovered ? '#2F7DF6' : 'transparent' }}/>
 
-              {/* REGULAR PRODUCTS */}
-              {regular.length > 0 && (
-                <div>
-                  {topPicks.length > 0 && (
-                    <div className="lc-mono" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1rem', fontSize: 9.5, color: '#6F6D67', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 700 }}>
-                      <div style={{ height: 1, flex: 1, background: 'rgba(8,9,11,0.12)' }} />
-                      All products
-                      <div style={{ height: 1, flex: 1, background: 'rgba(8,9,11,0.12)' }} />
-                    </div>
-                  )}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
-                    {regular.map(product => (
-                      <ProductCard key={product.id} product={product} inCart={!!cart[product.id]} onAdd={(qty, variation) => addToCart(product, qty, variation)} categoryIcon={categoryIcon} isHovered={hoveredId === product.id} onHover={setHoveredId} />
-                    ))}
+                  <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 11px 7px', fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+                    <span style={{ color: product.is_top_pick ? '#2F7DF6' : '#6F6D67' }}>{product.is_top_pick ? 'Top pick' : product.category}</span>
+                    <span style={{ color: outOfStock ? '#8A8780' : low ? '#9A6A1E' : '#0E9A5A' }}>{outOfStock ? 'Out of stock' : `${product.stock} in stock`}</span>
+                  </div>
+
+                  <div style={{ position:'relative', margin:'0 11px', aspectRatio:'1 / 1', background:'#F2EFE6', border:'1px solid rgba(8,9,11,0.1)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {product.image_url ? <img src={product.image_url} alt={product.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:16 }}/> : <span style={{ fontSize:36, color:'#D8D4C8' }}>◻</span>}
+                  </div>
+
+                  {product.brand && <div className="lc-mono" style={{ padding:'11px 11px 0', fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#2F7DF6' }}>{product.brand}</div>}
+                  <div style={{ padding:'5px 11px 0', fontSize:13, lineHeight:1.4, letterSpacing:'-0.005em', color:'#08090B', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{product.name}</div>
+
+                  {teaseText && <div className="lc-mono" style={{ padding:'8px 11px 0', fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color: isHovered ? '#1B5FD0' : '#9A968E' }}>{teaseText}</div>}
+
+                  <div style={{ flex:1, minHeight:10 }}/>
+
+                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8, padding:'12px 11px 0' }}>
+                    <span className="lc-display" style={{ fontSize:20, fontWeight:700, letterSpacing:'-0.03em', color:'#08090B' }}>${product.price?.toLocaleString()}</span>
+                    <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>MOQ {product.moq || 1}</span>
+                  </div>
+
+                  <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:11, padding:'10px 11px', background: isHovered ? '#2F7DF6' : '#E8F1FF', fontWeight:700, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color: isHovered ? '#08090B' : '#1B5FD0' }}>
+                    <span>{isHovered ? 'Open product sheet' : 'Specs · pricing · logistics'}</span>
+                    <span style={{ fontWeight:400, fontSize:11 }}>{isHovered ? '→' : '+'}</span>
                   </div>
                 </div>
-              )}
-            </>
-          )
-        })()}
+              )
+            })}
+          </div>
+        )}
       </div>
+
+      {/* PRODUCT SHEET MODAL */}
+      {openIdx >= 0 && modalProduct && (
+        <div style={{ position:'fixed', inset:0, zIndex:20000, display:'flex', alignItems:'center', justifyContent:'center', padding:'clamp(8px,2.4vh,30px) clamp(8px,3vw,30px)' }}>
+          <div onClick={closeModal} style={{ position:'absolute', inset:0, background:'rgba(8,9,11,0.62)' }}/>
+          <div role="dialog" aria-modal="true" style={{ position:'relative', width:'100%', maxWidth:1180, maxHeight:'100%', display:'flex', flexDirection:'column', background:'#FFFFFF', border:'1px solid #08090B', boxShadow:'0 40px 90px -30px rgba(8,9,11,0.7)' }}>
+
+            {/* Header */}
+            <div className="lc-mono" style={{ flex:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, flexWrap:'wrap', padding:'12px clamp(14px,2.4vw,26px)', borderBottom:'1px solid #08090B', background:'#08090B', color:'#F2EFE6', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:9 }}>
+                <span style={{ display:'inline-block', width:11, height:11, border:'1px solid rgba(242,239,230,0.6)', borderLeft:'3px solid #2F7DF6' }}/>
+                Product sheet · {modalProduct.sku || '—'}
+              </span>
+              <span style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+                <span style={{ color:'#8A8780' }}>Item {openIdx + 1} of {filtered.length}</span>
+                <button onClick={() => stepModal(-1)} style={{ border:'1px solid rgba(242,239,230,0.3)', background:'transparent', cursor:'pointer', padding:'6px 10px', color:'#F2EFE6', fontFamily:'inherit', fontSize:10 }}>←</button>
+                <button onClick={() => stepModal(1)} style={{ border:'1px solid rgba(242,239,230,0.3)', background:'transparent', cursor:'pointer', padding:'6px 10px', color:'#F2EFE6', fontFamily:'inherit', fontSize:10 }}>→</button>
+                <button onClick={closeModal} aria-label="Close" style={{ border:0, background:'#2F7DF6', cursor:'pointer', padding:'7px 12px', color:'#08090B', fontFamily:'inherit', fontWeight:700, fontSize:10, letterSpacing:'0.16em' }}>Close ✕</button>
+              </span>
+            </div>
+
+            <div data-scroll style={{ flex:1, minHeight:0, overflowY:'auto', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap:1, background:'rgba(8,9,11,0.1)', alignContent:'start' }}>
+
+              {/* LEFT: image, variations, marketplace links */}
+              <div style={{ background:'#FFFFFF', padding:'clamp(14px,2.2vw,22px)' }}>
+                <div style={{ position:'relative', aspectRatio:'1 / 1', background:'#F2EFE6', border:'1px solid rgba(8,9,11,0.14)', overflow:'hidden' }}>
+                  {(modalActiveVar?.image_url || modalProduct.image_url) ? (
+                    <img src={modalActiveVar?.image_url || modalProduct.image_url} alt={modalProduct.name} style={{ width:'100%', height:'100%', objectFit:'contain', padding:20 }}/>
+                  ) : (
+                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:44, color:'#D8D4C8' }}>◻</div>
+                  )}
+                  <div style={{ position:'absolute', left:9, top:9, pointerEvents:'none', width:12, height:12, borderTop:'1px solid rgba(8,9,11,0.4)', borderLeft:'1px solid rgba(8,9,11,0.4)' }}/>
+                  <div style={{ position:'absolute', right:9, bottom:9, pointerEvents:'none', width:12, height:12, borderBottom:'1px solid rgba(8,9,11,0.4)', borderRight:'1px solid rgba(8,9,11,0.4)' }}/>
+                </div>
+
+                {modalProduct.variations?.length > 0 && (
+                  <div style={{ marginTop:14 }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', paddingBottom:9 }}>Color / variation</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                      {modalProduct.variations.map((v, vi) => (
+                        <button key={vi} onClick={() => { setModalVar(modalVar === vi ? null : vi); setModalAdded(false) }} title={v.color || v.name}
+                          style={{ width:28, height:28, borderRadius:'50%', background:v.hex || '#888', border:`2px solid ${modalVar === vi ? '#08090B' : 'rgba(8,9,11,0.15)'}`, outline: modalVar === vi ? '1.5px solid #08090B' : 'none', outlineOffset:2, cursor:'pointer', padding:0 }}/>
+                      ))}
+                    </div>
+                    {modalActiveVar && (
+                      <div style={{ marginTop:6, fontSize:11, color:'#5C5A55', fontWeight:500 }}>
+                        {modalActiveVar.color || modalActiveVar.name}
+                        {modalActiveVar.price_diff !== 0 && <span style={{ color: modalActiveVar.price_diff > 0 ? '#E74C3C' : '#0E9A5A', fontWeight:700, marginLeft:4 }}>{modalActiveVar.price_diff > 0 ? '+' : ''}${modalActiveVar.price_diff}</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(modalProduct.amazon_url || modalProduct.walmart_url) && (
+                  <div style={{ marginTop:14, borderTop:'1px solid rgba(8,9,11,0.1)', paddingTop:12 }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', paddingBottom:9 }}>Marketplace listings</div>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                      {modalProduct.amazon_url && <a href={modalProduct.amazon_url} target="_blank" rel="noopener noreferrer" className="lc-mono" style={{ flex:1, minWidth:96, textAlign:'center', background:'#FF9900', color:'#08090B', fontWeight:700, fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', padding:'9px 8px', textDecoration:'none' }}>Amazon ↗</a>}
+                      {modalProduct.walmart_url && <a href={modalProduct.walmart_url} target="_blank" rel="noopener noreferrer" className="lc-mono" style={{ flex:1, minWidth:96, textAlign:'center', background:'#0071CE', color:'#fff', fontWeight:700, fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', padding:'9px 8px', textDecoration:'none' }}>Walmart ↗</a>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: details, KPIs, sections, order box */}
+              <div style={{ background:'#FFFFFF', padding:'clamp(16px,2.4vw,26px)' }}>
+                <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase' }}>
+                  {modalProduct.brand && <span style={{ color:'#2F7DF6' }}>{modalProduct.brand}</span>}
+                  {modalProduct.brand && <span style={{ color:'rgba(8,9,11,0.25)' }}>/</span>}
+                  <span style={{ color:'#6F6D67' }}>{modalProduct.category}</span>
+                  <span style={{ background: modalOutOfStock ? '#F2EFE6' : (modalDisplayStock <= 5 ? '#FEF3C7' : '#DCFCE7'), color: modalOutOfStock ? '#8A8780' : (modalDisplayStock <= 5 ? '#92400E' : '#166534'), padding:'4px 8px 5px' }}>
+                    {modalOutOfStock ? 'Out of stock' : modalDisplayStock <= 5 ? `${modalDisplayStock} left` : 'In stock'}
+                  </span>
+                </div>
+
+                <h2 className="lc-display" style={{ margin:'12px 0 0', fontSize:'clamp(21px,2.3vw,30px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1.16, color:'#08090B' }}>{modalProduct.name}</h2>
+
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:1, background:'rgba(8,9,11,0.1)', marginTop:'clamp(16px,2.4vh,22px)', border:'1px solid rgba(8,9,11,0.1)' }}>
+                  <div style={{ background:'#2F7DF6', padding:'11px 12px 12px' }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(8,9,11,0.62)' }}>Your price</div>
+                    <div style={{ paddingTop:6, fontSize:19, fontWeight:500, letterSpacing:'-0.03em', color:'#08090B' }}>${modalDisplayPrice?.toLocaleString()}</div>
+                    <div className="lc-mono" style={{ paddingTop:3, fontSize:8, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(8,9,11,0.62)' }}>per unit</div>
+                  </div>
+                  <div style={{ background:'#FFFFFF', padding:'11px 12px 12px' }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>In stock</div>
+                    <div style={{ paddingTop:6, fontSize:19, fontWeight:500, letterSpacing:'-0.03em', color:'#08090B' }}>{modalDisplayStock}</div>
+                    <div className="lc-mono" style={{ paddingTop:3, fontSize:8, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>units available</div>
+                  </div>
+                  <div style={{ background:'#FFFFFF', padding:'11px 12px 12px' }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>MOQ</div>
+                    <div style={{ paddingTop:6, fontSize:19, fontWeight:500, letterSpacing:'-0.03em', color:'#08090B' }}>{modalProduct.moq || 1}</div>
+                    <div className="lc-mono" style={{ paddingTop:3, fontSize:8, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>units minimum</div>
+                  </div>
+                  <div style={{ background:'#FFFFFF', padding:'11px 12px 12px' }}>
+                    <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>Dispatch</div>
+                    <div style={{ paddingTop:6, fontSize:19, fontWeight:500, letterSpacing:'-0.03em', color:'#08090B' }}>{modalProduct.dispatch_days || '—'}</div>
+                    <div className="lc-mono" style={{ paddingTop:3, fontSize:8, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>from Doral, FL</div>
+                  </div>
+                </div>
+
+                {(() => {
+                  const sections = ['Specifications', 'Logistics', ...(modalProduct.prep_fee ? ['Prep center'] : [])]
+                  return (
+                    <>
+                      <div data-scroll className="lc-mono" style={{ display:'flex', gap:1, background:'rgba(8,9,11,0.1)', marginTop:'clamp(16px,2.4vh,22px)', overflowX:'auto' }}>
+                        {sections.map((s, si) => (
+                          <button key={s} onClick={() => setModalSec(si)} style={{ flex:1, border:0, cursor:'pointer', whiteSpace:'nowrap', padding:'10px 13px 11px', background: modalSec === si ? '#08090B' : '#FFFFFF', color: modalSec === si ? '#F2EFE6' : '#08090B', fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase' }}>{s}</button>
+                        ))}
+                      </div>
+                      <div style={{ border:'1px solid rgba(8,9,11,0.1)', borderTop:0, padding:'clamp(12px,2vh,18px) clamp(12px,1.8vw,16px)' }}>
+                        {modalSec === 0 && (
+                          <div>
+                            {[
+                              ['Brand', modalProduct.brand],
+                              ['Category', modalProduct.category],
+                              ['Condition', modalProduct.condition || 'New'],
+                              ['SKU', modalProduct.sku],
+                              ['UPC', modalProduct.upc],
+                              ['ASIN', modalProduct.asin],
+                              ['Weight', modalProduct.weight],
+                              ['Dimensions', modalProduct.dimensions],
+                            ].filter(([, v]) => v).map(([k, v]) => (
+                              <div key={k} style={{ display:'grid', gridTemplateColumns:'clamp(104px,13vw,158px) 1fr', gap:'8px 14px', alignItems:'baseline', padding:'8px 0 9px', borderBottom:'1px solid rgba(8,9,11,0.1)' }}>
+                                <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>{k}</span>
+                                <span style={{ fontSize:13.5, lineHeight:1.5, color:'#08090B' }}>{v}</span>
+                              </div>
+                            ))}
+                            {modalProduct.description && (
+                              <div style={{ paddingTop:10, fontSize:13, lineHeight:1.7, color:'#5C5A55' }}>{modalProduct.description}</div>
+                            )}
+                          </div>
+                        )}
+                        {modalSec === 1 && (
+                          <div>
+                            {[
+                              ['Ships from', modalProduct.warehouse === 'WH: FL' ? 'Doral, FL 33178' : (modalProduct.warehouse || '—')],
+                              ['Lead time', modalProduct.dispatch_days || '—'],
+                              ['MOQ', `${modalProduct.moq || 1} units`],
+                            ].map(([k, v]) => (
+                              <div key={k} style={{ display:'grid', gridTemplateColumns:'clamp(104px,13vw,158px) 1fr', gap:'8px 14px', alignItems:'baseline', padding:'8px 0 9px', borderBottom:'1px solid rgba(8,9,11,0.1)' }}>
+                                <span className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>{k}</span>
+                                <span className="lc-mono" style={{ fontSize:12, letterSpacing:'0.06em', textTransform:'uppercase', color:'#08090B' }}>{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {modalSec === 2 && modalProduct.prep_fee && (
+                          <div>
+                            <div style={{ fontSize:13.5, lineHeight:1.62, color:'#3F3D39' }}>If you select <strong style={{ color:'#08090B' }}>Prep Center</strong> as your shipping method, labeling and prep services are available for this product — we receive, label and forward to the marketplace on your behalf.</div>
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:1, background:'rgba(8,9,11,0.1)', marginTop:14, border:'1px solid rgba(8,9,11,0.1)' }}>
+                              <div style={{ background:'#FFFFFF', padding:'10px 11px 11px' }}>
+                                <div className="lc-mono" style={{ fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>Prep fee</div>
+                                <div className="lc-mono" style={{ paddingTop:5, fontSize:13, fontWeight:700, color:'#08090B' }}>${modalProduct.prep_fee.toFixed(2)} / unit</div>
+                              </div>
+                              <div style={{ background:'#FFFFFF', padding:'10px 11px 11px' }}>
+                                <div className="lc-mono" style={{ fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>For {modalQty} units</div>
+                                <div className="lc-mono" style={{ paddingTop:5, fontSize:13, fontWeight:700, color:'#08090B' }}>${(modalProduct.prep_fee * modalQty).toFixed(2)}</div>
+                              </div>
+                              <div style={{ background:'#FFFFFF', padding:'10px 11px 11px' }}>
+                                <div className="lc-mono" style={{ fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase', color:'#6F6D67' }}>Includes</div>
+                                <div className="lc-mono" style={{ paddingTop:5, fontSize:13, fontWeight:700, color:'#08090B' }}>Label + prep</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
+
+                <div style={{ marginTop:'clamp(16px,2.4vh,22px)', borderTop:'1px solid #08090B', paddingTop:'clamp(14px,2.2vh,18px)' }}>
+                  <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:14, flexWrap:'wrap' }}>
+                    <div>
+                      <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', paddingBottom:8 }}>Order quantity · MOQ {modalProduct.moq || 1}</div>
+                      <div style={{ display:'flex', alignItems:'stretch', gap:1, background:'rgba(8,9,11,0.1)', border:'1px solid rgba(8,9,11,0.1)' }}>
+                        <button onClick={() => setModalQty(q => Math.max(modalProduct.moq || 1, q - 1))} disabled={modalOutOfStock} style={{ border:0, background:'#FFFFFF', cursor: modalOutOfStock ? 'not-allowed' : 'pointer', width:40, fontSize:17, color:'#08090B' }}>−</button>
+                        <input
+                          type="number"
+                          value={modalQty}
+                          disabled={modalOutOfStock}
+                          onChange={e => {
+                            const v = parseInt(e.target.value) || modalProduct.moq || 1
+                            setModalQty(Math.max(modalProduct.moq || 1, Math.min(modalDisplayStock || 9999, v)))
+                            setModalAdded(false)
+                          }}
+                          className="lc-mono" style={{ width:88, border:0, background:'#FFFFFF', textAlign:'center', fontSize:15, fontWeight:700, color:'#08090B', outline:'none', fontFamily:'inherit' }}
+                        />
+                        <button onClick={() => setModalQty(q => Math.min(modalDisplayStock || 9999, q + 1))} disabled={modalOutOfStock} style={{ border:0, background:'#FFFFFF', cursor: modalOutOfStock ? 'not-allowed' : 'pointer', width:40, fontSize:17, color:'#08090B' }}>+</button>
+                      </div>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>Order total</div>
+                      <div style={{ paddingTop:5, fontSize:'clamp(24px,3vw,34px)', fontWeight:500, letterSpacing:'-0.035em', color:'#08090B' }}>${modalOutOfStock ? '0.00' : modalTotal.toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 })}</div>
+                      <div className="lc-mono" style={{ fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#2F7DF6' }}>{!modalOutOfStock && `$${modalDisplayPrice?.toLocaleString()} per unit · ${modalQty} units`}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', gap:9, flexWrap:'wrap', marginTop:'clamp(14px,2.2vh,18px)' }}>
+                    <button onClick={() => { if (modalOutOfStock) return; addToCart(modalProduct, modalQty, modalActiveVar); setModalAdded(true) }} disabled={modalOutOfStock}
+                      className="lc-mono" style={{ flex:1, minWidth:180, border:0, cursor: modalOutOfStock ? 'not-allowed' : 'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:12, padding:'15px 20px', background: modalOutOfStock ? '#EDEAE1' : modalAdded ? '#86EFAC' : '#2F7DF6', color:'#08090B', fontWeight:700, fontSize:10.5, letterSpacing:'0.2em', textTransform:'uppercase' }}>
+                      {modalOutOfStock ? 'Out of stock' : modalAdded ? 'Added to quote ✓' : 'Add to quote'} {!modalOutOfStock && <span style={{ fontWeight:400, fontSize:12 }}>→</span>}
+                    </button>
+                    <a href="https://wa.me/17864909005" target="_blank" rel="noopener noreferrer" className="lc-mono" style={{ flex:1, minWidth:150, textAlign:'center', border:'1px solid #08090B', padding:'15px 18px', color:'#08090B', fontSize:10, letterSpacing:'0.18em', textTransform:'uppercase', textDecoration:'none' }}>Ask your rep</a>
+                  </div>
+
+                  <div className="lc-mono" style={{ paddingTop:11, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6F6D67' }}>
+                    Net terms available on approval · Ships from Doral, FL{modalProduct.dispatch_days ? ` · ${modalProduct.dispatch_days} lead time` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ flex:'none', boxSizing:'border-box', display:'flex', alignItems:'flex-end', gap:2, height:28, padding:'8px clamp(14px,2.4vw,26px)', overflow:'hidden', borderTop:'1px solid rgba(8,9,11,0.1)' }}>
+              {barcode.map((b, bi) => <div key={bi} style={{ flex:`${b.grow} 1 0`, minWidth:1, height:b.h, background:'#08090B', opacity:0.8 }}/>)}
+            </div>
+            <div className="lc-mono" style={{ flex:'none', display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, padding:'0 clamp(14px,2.4vw,26px) 12px', fontSize:8.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67' }}>
+              <span>Sheet · {modalProduct.sku || '—'} · partner pricing confidential</span>
+              <span>levamcorp.com</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QUOTE PANEL */}
       {showQuote && (
@@ -566,171 +855,6 @@ const addToCart = (product, qty, variation) => {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function ProductCard({ product, inCart, onAdd, categoryIcon, isHovered, onHover }) {
-  const [qty, setQty] = useState(product.moq || 1)
-  const [added, setAdded] = useState(inCart)
-  const [selVar, setSelVar] = useState(null)
-  const hasVariations = product.variations?.length > 0
-  const activeVar = selVar !== null ? product.variations?.[selVar] : null
-  const displayImage = activeVar?.image_url || product.image_url
-  const displayPrice = product.price + (activeVar?.price_diff || 0)
-  const displayStock = activeVar?.stock != null ? activeVar.stock : (product.stock || 0)
-  const outOfStock = displayStock === 0
-  const moq = product.moq || 1
-  const handleAdd = () => { if (outOfStock) return; onAdd(qty, activeVar); setAdded(true) }
-
-  return (
-    <div onMouseEnter={() => onHover(product.id)} onMouseLeave={() => onHover(null)}
-      style={{ background: '#FFFFFF', boxShadow: isHovered ? 'inset 0 0 0 1.5px #2F7DF6' : 'none', transition: 'box-shadow 0.15s ease', display: 'flex', flexDirection: 'column' }}>
-
-      {/* IMAGE */}
-      <div style={{ position: 'relative', width: '100%', paddingBottom: '80%', background: '#F2EFE6' }}>
-        {displayImage
-          ? <img src={displayImage} alt={activeVar?.name || product.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 16 }} />
-          : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, color: '#D8D4C8' }}>◻</div>
-        }
-        <div style={{ position: 'absolute', left: 8, top: 8, pointerEvents:'none', width: 10, height: 10, borderTop:'1px solid rgba(8,9,11,0.45)', borderLeft:'1px solid rgba(8,9,11,0.45)' }}/>
-        <div style={{ position: 'absolute', right: 8, bottom: 8, pointerEvents:'none', width: 10, height: 10, borderBottom:'1px solid rgba(8,9,11,0.45)', borderRight:'1px solid rgba(8,9,11,0.45)' }}/>
-        {/* Badges */}
-        <div className="lc-mono" style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {product.is_top_pick && <span style={{ fontSize: 8.5, padding: '3px 8px', background: '#08090B', color: '#B98A54', fontWeight: 700, letterSpacing: '0.08em' }}>TOP PICK</span>}
-          {product.condition && product.condition !== 'New' && <span style={{ fontSize: 8.5, padding: '3px 8px', background: '#08090B', color: '#F2EFE6', fontWeight: 700, letterSpacing:'0.06em' }}>{product.condition.toUpperCase()}</span>}
-        </div>
-        {/* Stock badge */}
-        <div className="lc-mono" style={{ position: 'absolute', top: 10, right: 10 }}>
-          <span style={{ fontSize: 8.5, padding: '4px 9px', letterSpacing:'0.04em', background: outOfStock ? 'rgba(245,241,232,0.9)' : displayStock <= 5 ? 'rgba(245,241,232,0.9)' : 'rgba(245,241,232,0.9)', color: outOfStock ? '#8A8780' : displayStock <= 5 ? '#9A6A1E' : '#0E9A5A', fontWeight: 700 }}>
-            {outOfStock ? 'Out of stock' : displayStock <= 5 ? `Only ${displayStock} left` : `${displayStock} in stock`}
-          </span>
-        </div>
-      </div>
-
-      {/* MAIN INFO */}
-      <div style={{ padding: '14px 14px 0', flex: 1 }}>
-        {/* Brand */}
-        {product.brand && <div className="lc-mono" style={{ fontSize: 9, fontWeight: 700, color: '#2F7DF6', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>{product.brand}</div>}
-        {/* Name */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#08090B', marginBottom: 10, lineHeight: 1.35 }}>{product.name}</div>
-
-        {/* COLOR VARIATIONS */}
-        {hasVariations && (
-          <div style={{ marginBottom: 12 }}>
-            <div className="lc-mono" style={{ fontSize: 8.5, color: '#8A8780', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 7 }}>Color</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {product.variations.map((v, i) => (
-                <button key={i} onClick={() => setSelVar(selVar === i ? null : i)}
-                  title={v.color || v.name}
-                  style={{ width: 24, height: 24, borderRadius: '50%', background: v.hex || '#888', border: `2px solid ${selVar === i ? '#08090B' : 'rgba(8,9,11,0.15)'}`, outline: selVar === i ? '1.5px solid #08090B' : 'none', outlineOffset: 2, cursor: 'pointer', padding: 0 }}/>
-              ))}
-            </div>
-            {activeVar && (
-              <div style={{ marginTop: 6, fontSize: 10, color: '#5C5A55', fontWeight: 500 }}>
-                {activeVar.color || activeVar.name}
-                {activeVar.price_diff !== 0 && <span style={{ color: activeVar.price_diff > 0 ? '#E74C3C' : '#0E9A5A', fontWeight: 700, marginLeft: 4 }}>{activeVar.price_diff > 0 ? '+' : ''}${activeVar.price_diff}</span>}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* PRICE + STOCK + MOQ */}
-      <div style={{ padding: '0 14px', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
-          <span className="lc-display" style={{ fontSize: 25, fontWeight: 700, color: '#08090B', letterSpacing: '-0.02em' }}>${displayPrice?.toLocaleString()}</span>
-          <span style={{ fontSize: 11, color: '#8A8780' }}>/ unit</span>
-          {product.delivery_days && <span className="lc-mono" style={{ marginLeft: 'auto', fontSize: 9.5, color: '#8A8780' }}>{product.delivery_days}d delivery</span>}
-        </div>
-
-        {/* Stock + MOQ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background:'rgba(8,9,11,0.1)', marginBottom: 10, border:'1px solid rgba(8,9,11,0.1)' }}>
-          {/* STOCK */}
-          <div style={{ padding: '10px 12px', background: '#F2EFE6' }}>
-            <div className="lc-mono" style={{ fontSize: 8.5, color: outOfStock ? '#8A8780' : displayStock <= 5 ? '#9A6A1E' : '#0E9A5A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontWeight: 700 }}>
-              {outOfStock ? 'Out of stock' : displayStock <= 5 ? 'Low stock' : 'In stock'}
-            </div>
-            <div className="lc-display" style={{ fontSize: 19, fontWeight: 700, color: outOfStock ? '#BFBBAF' : displayStock <= 5 ? '#9A6A1E' : '#0E9A5A', lineHeight: 1 }}>
-              {outOfStock ? '0' : displayStock}
-            </div>
-            <div style={{ fontSize: 9, color: '#8A8780', marginTop: 2 }}>units available</div>
-          </div>
-          {/* MOQ */}
-          <div style={{ padding: '10px 12px', background: '#F2EFE6' }}>
-            <div className="lc-mono" style={{ fontSize: 8.5, color: '#2F7DF6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontWeight: 700 }}>Min. order</div>
-            <div className="lc-display" style={{ fontSize: 19, fontWeight: 700, color: '#2F7DF6', lineHeight: 1 }}>{moq}</div>
-            <div style={{ fontSize: 9, color: '#8A8780', marginTop: 2 }}>units minimum</div>
-          </div>
-        </div>
-
-        {/* Description preview */}
-        {product.description && (
-          <div style={{ fontSize: 11, color: '#8A8780', lineHeight: 1.6, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {product.description}
-          </div>
-        )}
-
-        {/* Marketplace links */}
-        {(product.amazon_url || product.walmart_url) && (
-          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-            {product.amazon_url && <a href={product.amazon_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '5px 0', background: '#FF9900', textDecoration: 'none', textAlign: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>Amazon</a>}
-            {product.walmart_url && <a href={product.walmart_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '5px 0', background: '#0071CE', textDecoration: 'none', textAlign: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>Walmart</a>}
-          </div>
-        )}
-      </div>
-
-      {/* PREP CENTER NOTE */}
-      {product.prep_fee && (
-        <div style={{ margin: '0 14px 10px', padding: '10px 12px', background: '#F2EFE6', border: '1px solid rgba(8,9,11,0.1)' }}>
-          <div className="lc-mono" style={{ fontSize: 8.5, color: '#6D6A64', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>Prep center service</div>
-          <div style={{ fontSize: 11, color: '#3F3D39', lineHeight: 1.6 }}>
-            If you select <strong>Prep Center</strong> as your shipping method, labeling and prep services are available for this product.
-          </div>
-          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#08090B' }}>${product.prep_fee.toFixed(2)}</span>
-            <span style={{ fontSize: 10, color: '#8A8780' }}>per unit · includes labeling & prep</span>
-          </div>
-          <div style={{ marginTop: 4, fontSize: 10, color: '#8A8780' }}>
-            For {qty} units: <strong style={{ color: '#3F3D39' }}>${(product.prep_fee * qty).toFixed(2)}</strong> additional
-          </div>
-        </div>
-      )}
-
-      {/* ADD TO QUOTE — fixed at bottom */}
-      <div style={{ padding: '0 14px 14px' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: '#F2EFE6', border: '1px solid rgba(8,9,11,0.14)', overflow: 'hidden' }}>
-            <button onClick={() => setQty(q => Math.max(moq, q - 1))} disabled={outOfStock}
-              style={{ width: 30, height: 34, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 15, color: '#5C5A55', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-            <input
-              type="number"
-              value={qty}
-              min={moq}
-              max={displayStock || 9999}
-              onChange={e => {
-                const val = parseInt(e.target.value) || moq
-                setQty(Math.max(moq, Math.min(displayStock || 9999, val)))
-              }}
-              onBlur={e => {
-                const val = parseInt(e.target.value) || moq
-                setQty(Math.max(moq, val))
-              }}
-              disabled={outOfStock}
-              className="lc-mono" style={{ width: 44, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#08090B', border: 'none', background: 'transparent', outline: 'none', fontFamily: 'inherit', MozAppearance: 'textfield' }}
-            />
-            <button onClick={() => setQty(q => Math.min(displayStock || 9999, q + 1))} disabled={outOfStock}
-              style={{ width: 30, height: 34, border: 'none', background: 'transparent', cursor: outOfStock ? 'not-allowed' : 'pointer', fontSize: 15, color: '#5C5A55', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-          </div>
-          <button onClick={handleAdd} disabled={outOfStock} className="cat-add-btn lc-mono"
-            style={{ flex: 1, padding: '10px 0', background: outOfStock ? '#EDEAE1' : added ? '#0E9A5A' : '#08090B', color: outOfStock ? '#BFBBAF' : '#F2EFE6', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: outOfStock ? 'not-allowed' : 'pointer', transition: 'background 0.15s, color 0.15s' }}>
-            {outOfStock ? 'Out of stock' : added ? '✓ Added' : 'Add to quote'}
-          </button>
-        </div>
-        <div style={{ fontSize: 10, color: '#8A8780', textAlign: 'center' }}>
-          {!outOfStock && `Total: $${(displayPrice * qty).toLocaleString()} · ${qty} units`}
-        </div>
-      </div>
     </div>
   )
 }
