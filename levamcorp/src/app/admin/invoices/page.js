@@ -127,7 +127,7 @@ export default function AdminInvoices() {
             <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 6, padding: '3rem', textAlign: 'center', color: '#999' }}>No invoices yet</div>
           ) : invoices.map(inv => (
             <div key={inv.id} onClick={() => setSelected(inv)}
-              style={{ background: '#fff', border: `1px solid ${selected?.id === inv.id ? '#2d7dd2' : 'rgba(0,0,0,0.06)'}`, borderLeft: `4px solid ${inv.status === 'paid' ? '#2a7d4f' : '#2d7dd2'}`, borderRadius: 6, padding: '1rem 1.25rem', marginBottom: 8, cursor: 'pointer' }}>
+              style={{ background: '#fff', borderTop: `1px solid ${selected?.id === inv.id ? '#2d7dd2' : 'rgba(0,0,0,0.06)'}`, borderRight: `1px solid ${selected?.id === inv.id ? '#2d7dd2' : 'rgba(0,0,0,0.06)'}`, borderBottom: `1px solid ${selected?.id === inv.id ? '#2d7dd2' : 'rgba(0,0,0,0.06)'}`, borderLeft: `4px solid ${inv.status === 'paid' ? '#2a7d4f' : '#2d7dd2'}`, borderRadius: 6, padding: '1rem 1.25rem', marginBottom: 8, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{inv.invoice_number}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{fmtMoney(inv.total)}</div>
@@ -147,152 +147,140 @@ export default function AdminInvoices() {
             </div>
 
             {/* INVOICE DOCUMENT */}
-            <div ref={printRef} style={{ background: '#fff', borderRadius: 4, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
-              {/* Header */}
-              <div style={{ background: '#fff', padding: '32px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 11, letterSpacing: '0.3em', color: '#666', textTransform: 'uppercase', marginBottom: 4 }}>Corp · Distributors</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: '#111', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                    Levam<span style={{ color: '#2d7dd2' }}>Corp</span>
-                  </div>
-                  <div style={{ marginTop: 16, fontSize: 11, color: '#666', lineHeight: 1.8 }}>
-                    6315 NW 99th Ave, Doral, FL 33178<br />
-                    partners@levamcorp.com<br />
-                    www.levamcorp.com<br />
-                    (786) 878-4122
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: '#111', letterSpacing: '0.05em', marginBottom: 8 }}>INVOICE</div>
-                  <div style={{ fontSize: 16, color: '#2d7dd2', fontWeight: 700, marginBottom: 16 }}>{selected.invoice_number}</div>
-                  <div style={{ fontSize: 11, color: '#666', lineHeight: 2 }}>
-                    <span style={{ color: '#666' }}>Date: </span><span style={{ color: '#333' }}>{fmtDate(selected.date)}</span><br />
-                    {selected.due_date && <><span style={{ color: '#666' }}>Due: </span><span style={{ color: '#333' }}>{fmtDate(selected.due_date)}</span><br /></>}
-                    <span style={{ color: '#666' }}>Terms: </span><span style={{ color: '#333' }}>Net 15</span>
-                  </div>
-                </div>
-              </div>
+            {(() => {
+              const paid = selected.status === 'paid'
+              const stamp = paid ? 'Paid in full' : 'Payment due'
+              const stampBg = paid ? '#dcfce7' : '#fef3c7'
+              const stampInk = paid ? '#166534' : '#92400e'
+              const hasRemit = selected.bank_name || selected.account_number || selected.routing_number
+              return (
+              <div ref={printRef} style={{ background: '#fff', color: '#08090b', fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 13, lineHeight: 1.4, padding: 40 }}>
 
-              {/* Bill To / From */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '28px 40px', borderBottom: '1px solid #f0f0f0', gap: 40 }}>
-                <div>
-                  <div style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#777', fontWeight: 600, marginBottom: 10 }}>From</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>Levam Corp Distributors</div>
-                  <div style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>
-                    6315 NW 99th Ave<br />
-                    Doral, FL 33178<br />
-                    partners@levamcorp.com<br />
-                    (786) 878-4122
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 32, paddingBottom: 12, borderBottom: '1px solid rgba(8,9,11,0.45)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    <img src="https://www.levamcorp.com/levamcorp-logo_1.png" alt="Levam Corp Distributors" style={{ display: 'block', width: 85, height: 'auto', objectFit: 'contain' }} />
+                    <div style={{ paddingTop: 3, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', lineHeight: 1.85, color: '#4a4741' }}>
+                      6315 NW 99th Ave, Doral, FL 33178<br />
+                      partners@levamcorp.com · (786) 878-4122<br />
+                      levamcorp.com
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flex: 'none' }}>
+                    <div style={{ fontSize: 28, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1 }}>Invoice</div>
+                    <div style={{ paddingTop: 7, fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', color: '#2d7dd2' }}>{selected.invoice_number}</div>
+                    <div style={{ display: 'inline-block', marginTop: 8, background: stampBg, color: stampInk, fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '4px 9px 5px' }}>{stamp}</div>
                   </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#777', fontWeight: 600, marginBottom: 10 }}>Bill to</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>{selected.client_name}</div>
-                  <div style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 21, marginTop: 12, paddingBottom: 12, borderBottom: '1px solid rgba(8,9,11,0.14)' }}>
+                  {[
+                    ['Invoice date', fmtDate(selected.date), '#08090b'],
+                    ['Payment due', selected.due_date ? fmtDate(selected.due_date) : 'Net 15', paid ? '#166534' : '#b45309'],
+                    ['Status', paid ? 'Paid' : 'Unpaid', paid ? '#166534' : '#08090b'],
+                  ].map(([k, v, ink]) => (
+                    <div key={k}>
+                      <div style={{ fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#777' }}>{k}</div>
+                      <div style={{ paddingTop: 4, fontFamily: 'monospace', fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: ink }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 15 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#777', paddingBottom: 7 }}>Bill to</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>{selected.client_name}</div>
+                  <div style={{ paddingTop: 4, fontSize: 12, lineHeight: 1.55, color: '#4a4741' }}>
                     {selected.client_company && <>{selected.client_company}<br /></>}
                     {selected.client_email && <>{selected.client_email}<br /></>}
                     {selected.client_phone && <>{selected.client_phone}<br /></>}
-                    {selected.client_address && <>{selected.client_address}</>}
+                    {selected.client_address}
                   </div>
                 </div>
-              </div>
 
-              {/* Items table */}
-              <div style={{ padding: '0 40px 28px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 28 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 19 }}>
                   <thead>
-                    <tr style={{ background: '#fff' }}>
-                      {['Description', 'Qty', 'Unit price', 'Total'].map((h, i) => (
-                        <th key={h} style={{ padding: '12px 16px', fontSize: 10, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
+                    <tr style={{ borderBottom: '1px solid rgba(8,9,11,0.45)' }}>
+                      {['#', 'Description', 'Qty', 'Unit', 'Amount'].map((h, i) => (
+                        <th key={h} style={{ textAlign: i >= 2 ? 'right' : 'left', padding: i === 0 ? '7px 8px 8px 0' : '7px 8px 8px', fontFamily: 'monospace', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#777' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {(selected.items || []).map((item, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #f5f5f5', background: i % 2 === 1 ? '#fafafa' : '#fff' }}>
-                        <td style={{ padding: '14px 16px', fontSize: 13, color: '#333' }}>{item.description}</td>
-                        <td style={{ padding: '14px 16px', fontSize: 13, color: '#999', textAlign: 'right' }}>{item.qty}</td>
-                        <td style={{ padding: '14px 16px', fontSize: 13, color: '#999', textAlign: 'right' }}>{fmtMoney(item.unit_price)}</td>
-                        <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 600, color: '#111', textAlign: 'right' }}>{fmtMoney(parseFloat(item.qty) * parseFloat(item.unit_price))}</td>
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(8,9,11,0.1)' }}>
+                        <td style={{ padding: '9px 8px 10px 0', verticalAlign: 'top', fontFamily: 'monospace', fontSize: 11, color: '#9a968e' }}>{String(i + 1).padStart(2, '0')}</td>
+                        <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', fontSize: 13 }}>{item.description}</td>
+                        <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{item.qty}</td>
+                        <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: 'monospace', fontSize: 12 }}>{fmtMoney(item.unit_price)}</td>
+                        <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 700 }}>{fmtMoney(parseFloat(item.qty) * parseFloat(item.unit_price))}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
-                {/* Total */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-                  <div style={{ width: 280 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 16px', fontSize: 12, color: '#666', borderTop: '1px solid #eee' }}>
-                      <span>Subtotal</span>
-                      <span>{fmtMoney(selected.total)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 16px', background: '#fff', borderRadius: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total due</span>
-                      <span style={{ fontSize: 20, fontWeight: 900, color: '#111' }}>{fmtMoney(selected.total)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment instructions */}
-              {(selected.bank_name || selected.account_number || selected.routing_number) && (
-                <div style={{ margin: '0 40px', padding: '24px', background: '#f7f8fa', border: '1px solid #e8e8e8', borderRadius: 4, marginBottom: 28 }}>
-                  <div style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#777', fontWeight: 700, marginBottom: 14 }}>Payment instructions</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    {[
-                      ['Bank name', selected.bank_name],
-                      ['Account name', selected.account_name],
-                      ['Account number', selected.account_number],
-                      ['Routing number', selected.routing_number],
-                      ['SWIFT / BIC', selected.swift],
-                      ['Bank address', selected.bank_address],
-                    ].filter(([,v]) => v).map(([label, val]) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{label}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{val}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: hasRemit && !paid ? '1fr 285px' : '285px', justifyContent: hasRemit && !paid ? 'stretch' : 'end', gap: 24, marginTop: 13 }}>
+                  {hasRemit && !paid && (
+                    <div>
+                      <div style={{ paddingBottom: 8, borderBottom: '1px solid rgba(8,9,11,0.14)', fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#777' }}>Remit payment to</div>
+                      <div style={{ paddingTop: 9 }}>
+                        {[
+                          ['Bank', selected.bank_name],
+                          ['Account name', selected.account_name],
+                          ['Account #', selected.account_number],
+                          ['Routing', selected.routing_number],
+                          ['SWIFT / BIC', selected.swift],
+                          ['Bank address', selected.bank_address],
+                        ].filter(([, v]) => v).map(([k, v]) => (
+                          <div key={k} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 10, padding: '3px 0' }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#777' }}>{k}</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: 11, letterSpacing: '0.04em', color: '#08090b' }}>{v}</span>
+                          </div>
+                        ))}
+                        <div style={{ marginTop: 8, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2d7dd2' }}>Reference {selected.invoice_number} on your transfer</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {selected.notes && (
-                <div style={{ margin: '0 40px 28px', padding: '16px 20px', background: '#f7f8fa', borderRadius: 4, borderLeft: '3px solid #2d7dd2' }}>
-                  <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Notes</div>
-                  <div style={{ fontSize: 12, color: '#999', lineHeight: 1.7 }}>{selected.notes}</div>
-                </div>
-              )}
-
-              {/* Terms & Conditions */}
-              <div style={{ margin: '0 40px 28px', padding: '20px 24px', background: '#f7f8fa', border: '1px solid #e8e8e8', borderRadius: 4 }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#777', fontWeight: 700, marginBottom: 10 }}>Terms & Conditions</div>
-                <div style={{ fontSize: 11, color: '#999', lineHeight: 1.9 }}>
-                  <strong style={{ color: '#111' }}>ALL SALES ARE FINAL —</strong> No returns, exchanges, or refunds unless the product arrives physically damaged or defective. Damage must be reported within 48 hours of delivery with photographic evidence.<br />
-                  <strong style={{ color: '#111' }}>PAYMENT —</strong> Payment is due within the terms stated on this invoice. Late payments may incur a 1.5% monthly fee. Accepted methods: Wire Transfer, ACH, Credit/Debit Card.<br />
-                  <strong style={{ color: '#111' }}>JURISDICTION —</strong> This agreement is governed by the laws of the State of Florida, Miami-Dade County courts.<br />
-                  <strong style={{ color: '#111' }}>CHARGEBACKS —</strong> Unauthorized chargebacks will be disputed and may result in termination of the business relationship.
-                </div>
-              </div>
-
-              {/* Signature lines */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, padding: '0 40px 40px' }}>
-                {['Authorized · Levam Corp', 'Accepted · Client'].map(label => (
-                  <div key={label}>
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: 8 }}>
-                      <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>
-                      <div style={{ fontSize: 10, color: '#333', marginTop: 4 }}>Signature & date</div>
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '4px 0 5px', borderBottom: '1px solid rgba(8,9,11,0.12)' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#777' }}>Subtotal</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12, letterSpacing: '0.02em', color: '#08090b' }}>{fmtMoney(selected.total)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 7, background: paid ? '#16a34a' : '#08090b', padding: '8px 13px 9px' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: paid ? 'rgba(255,255,255,0.85)' : '#8f8c85' }}>{paid ? 'Paid in full' : 'Total due'}</span>
+                      <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.03em', color: '#fff' }}>{fmtMoney(selected.total)}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
 
-              {/* Footer */}
-              <div style={{ background: '#fff', padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, color: '#999' }}>Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178</div>
-                <div style={{ fontSize: 10, color: '#999' }}>partners@levamcorp.com · levamcorp.com</div>
+                {selected.notes && (
+                  <div style={{ marginTop: 19, borderLeft: '2px solid #2d7dd2', padding: '1px 0 2px 12px' }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#777' }}>Notes</div>
+                    <div style={{ paddingTop: 4, fontSize: 11.5, lineHeight: 1.5, color: '#3f3d39' }}>{selected.notes}</div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 21, paddingTop: 9, borderTop: '1px solid rgba(8,9,11,0.14)' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#777', paddingBottom: 7 }}>Terms &amp; conditions</div>
+                  <div style={{ fontSize: 9.5, lineHeight: 1.55, color: '#777' }}>All sales are final — no returns, exchanges, refunds or cancellations once payment is confirmed. Damaged or defective goods must be reported to partners@levamcorp.com within 48 hours of delivery with photographic evidence. Late payments accrue 1.5% monthly interest. Governed by Florida law; venue Miami-Dade County. Unauthorized chargebacks will be disputed and may result in termination of the business relationship.</div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 37, marginTop: 15 }}>
+                  <div>
+                    <div style={{ height: 25, borderBottom: '1px solid #08090b' }} />
+                    <div style={{ paddingTop: 5, fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#777' }}>Authorized · Levam Corp Distributors</div>
+                  </div>
+                  <div>
+                    <div style={{ height: 25, borderBottom: '1px solid #08090b' }} />
+                    <div style={{ paddingTop: 5, fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#777' }}>Accepted · {selected.client_name}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 21, marginTop: 21, paddingTop: 8, borderTop: '1px solid rgba(8,9,11,0.14)', fontFamily: 'monospace', fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#777' }}>
+                  <span>Levam Corp Distributors · {selected.invoice_number} · {fmtDate(selected.date)}</span>
+                  <span>levamcorp.com</span>
+                </div>
               </div>
-            </div>
+              )
+            })()}
           </div>
         )}
       </div>

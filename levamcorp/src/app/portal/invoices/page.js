@@ -60,8 +60,11 @@ function PortalNav({ onLogout }) {
   )
 }
 
+const SHIPPING_METHOD_LABELS = { pickup: 'Pickup — Doral, FL', prep_center: 'Prep Center Delivery', shipping: 'Standard Shipping', freight: 'Freight / LTL' }
+
 export default function InvoicesPage() {
   const [user, setUser] = useState(null)
+  const [client, setClient] = useState(null)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
@@ -78,8 +81,12 @@ export default function InvoicesPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
-      const { data: ordersData } = await supabase.from('orders').select('*, order_items(*)').eq('user_id', data.user.id).order('submitted_at', { ascending: false })
+      const [{ data: ordersData }, { data: clientData }] = await Promise.all([
+        supabase.from('orders').select('*, order_items(*)').eq('user_id', data.user.id).order('submitted_at', { ascending: false }),
+        supabase.from('clients').select('*').eq('email', data.user.email).single(),
+      ])
       setOrders(ordersData || [])
+      setClient(clientData || null)
       const orderIds = (ordersData || []).map(o => o.id)
       if (orderIds.length) {
         const { data: paymentsData } = await supabase.from('payments').select('*').in('order_id', orderIds)
@@ -122,9 +129,7 @@ export default function InvoicesPage() {
     setTimeout(() => { win.print(); win.close() }, 600)
   }
 
-  const fmtDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const fmtDateShort = (date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  const dueDate = (date) => { const d = new Date(date); d.setDate(d.getDate() + 15); return fmtDate(d) }
   const dueDateShort = (date) => { const d = new Date(date); d.setDate(d.getDate() + 15); return fmtDateShort(d) }
   const money = (n) => '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -138,6 +143,13 @@ export default function InvoicesPage() {
   const deliveryFeeFrom = (order) => {
     const m = (order.notes || '').match(/Delivery fee:\s*\$([\d,.]+)/)
     return m ? parseFloat(m[1].replace(/,/g, '')) : 0
+  }
+
+  // Ship-to address is only ever captured, as free text, when the client picks Standard Shipping
+  // or Freight at checkout (portal/catalog's "Shipping: {method} - {address}" note on the payment row).
+  const shipAddressFrom = (payment) => {
+    const m = (payment?.notes || '').match(/Shipping:.*? - (.+)$/)
+    return m ? m[1].trim() : null
   }
 
   const invoiceStatus = (order) => order.status === 'completed' ? 'Paid' : order.status === 'cancelled' ? 'Cancelled' : 'Unpaid'
@@ -174,24 +186,6 @@ export default function InvoicesPage() {
   const status = selected ? invoiceStatus(selected) : null
   const isPaid = status === 'Paid'
   const isCancelled = status === 'Cancelled'
-  const getPaymentStatus = (order) => {
-    if (!order) return 'unpaid'
-    if (order.status === 'completed') return 'paid'
-    const payment = payments[order.id]
-    if (payment?.payment_proof_url) return 'proof_submitted'
-    return 'unpaid'
-  }
-  const paymentStatus = selected ? getPaymentStatus(selected) : 'unpaid'
-
-  const steps = ['Submitted', 'Confirmed', 'Dispatched', 'Completed']
-  const getStep = (st) => {
-    if (st === 'new' || st === 'review') return 0
-    if (st === 'confirmed') return 1
-    if (st === 'dispatched') return 2
-    if (st === 'completed') return 3
-    return 0
-  }
-
   const globalStyle = `
     .lc-display { font-family:${DISPLAY}; letter-spacing:-0.02em; }
     .lc-mono { font-family:${MONO}; }
@@ -331,6 +325,17 @@ export default function InvoicesPage() {
                 ? { title: 'Invoice void', body: 'This invoice was cancelled before dispatch and carries no charge. It stays here for your records only.', bg: '#F6F5F2', ink: '#6F6D67', bar: '#9A968E' }
                 : { title: 'Payment needed to confirm this order', body: 'This document is a preliminary invoice. Pricing and availability are held pending payment — your order is confirmed and processed only once we receive and verify full payment. Transfer details are below.', bg: '#FFFBEB', ink: '#92400E', bar: '#F59E0B' }
 
+            // Data for the printable full document
+            const payment = payments[selected.id]
+            const stamp = isPaid ? 'Paid in full' : isCancelled ? 'Cancelled · void' : 'Payment due'
+            const stampBg = isPaid ? '#DCFCE7' : isCancelled ? '#FEE2E2' : '#FEF3C7'
+            const stampInk = isPaid ? '#166534' : isCancelled ? '#991B1B' : '#92400E'
+            const billName = client?.business_name || client?.contact_name || 'Approved Partner'
+            const billLine2 = client?.address || ''
+            const billTax = [client?.resale_tax_number ? `Resale cert. ${client.resale_tax_number}` : '', client?.ein_number ? `EIN ${client.ein_number}` : ''].filter(Boolean).join(' · ')
+            const shipMethod = payment?.shipping_method ? (SHIPPING_METHOD_LABELS[payment.shipping_method] || payment.shipping_method) : null
+            const shipAddr = payment?.shipping_method === 'pickup' ? '6315 NW 99th Ave, Doral, FL 33178' : shipAddressFrom(payment)
+
             return (
               <div style={{ border: '1px solid rgba(8,9,11,0.1)' }}>
                 <div className="no-print" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', padding:'11px clamp(13px,1.8vw,18px) 12px', background:'#08090B', color:'#F2EFE6' }}>
@@ -428,188 +433,135 @@ export default function InvoicesPage() {
                 </div>
 
                 {/* PRINTABLE FULL INVOICE — hidden on screen, only used by handlePrint (raw innerHTML, no className) */}
-                <div id="invoice-print-area" style={{ display: 'none', background: '#fff', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%, -50%) rotate(-35deg)', fontFamily: DISPLAY, fontSize: 88, fontWeight: 700, color: isPaid ? 'rgba(18,183,106,0.08)' : 'rgba(220,60,60,0.08)', letterSpacing: '0.1em', pointerEvents: 'none', zIndex: 10, userSelect: 'none', whiteSpace: 'nowrap' }}>
-                      {paymentStatus === 'paid' ? 'PAID' : paymentStatus === 'proof_submitted' ? 'SUBMITTED' : 'UNPAID'}
-                    </div>
+                <div id="invoice-print-area" style={{ display: 'none', background: '#fff', color: '#08090B', fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif", fontSize: 13, lineHeight: 1.4, padding: 40 }}>
 
-                    <div style={{ background: '#08090B', padding: '1.75rem 2rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                            <div style={{ width:28, height:28, border:'1.5px solid rgba(245,241,232,0.35)', borderLeft:'3px solid #2F7DF6' }}/>
-                            <div>
-                              <div style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, letterSpacing: '0.16em', color: '#F5F1E8', textTransform: 'uppercase' }}>LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span></div>
-                              <div style={{ fontFamily: MONO, fontSize: 7, letterSpacing: '0.25em', color: '#6F6D67', textTransform: 'uppercase', marginTop: 2 }}>Distributors</div>
-                            </div>
-                          </div>
-                          <div style={{ fontFamily: MONO, fontSize: 9, color: '#6F6D67', lineHeight: 1.9 }}>6315 NW 99th Ave, Doral, FL 33178<br />partners@levamcorp.com · levamcorp.com</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: '#F5F1E8', letterSpacing: '0.16em', marginBottom: 4 }}>INVOICE</div>
-                          <div style={{ fontFamily: MONO, fontSize: 12, color: '#2F7DF6', fontWeight: 700 }}>{selected.invNum}</div>
-                        </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 32, paddingBottom: 12, borderBottom: '1px solid rgba(8,9,11,0.45)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                      <img src="https://www.levamcorp.com/levamcorp-logo_1.png" alt="Levam Corp Distributors" style={{ display: 'block', width: 85, height: 'auto', objectFit: 'contain' }} />
+                      <div style={{ paddingTop: 3, fontFamily: MONO, fontSize: 9, letterSpacing: '0.1em', lineHeight: 1.85, color: '#4A4741' }}>
+                        6315 NW 99th Ave, Doral, FL 33178<br />
+                        partners@levamcorp.com · (786) 878-4122<br />
+                        levamcorp.com
                       </div>
                     </div>
+                    <div style={{ textAlign: 'right', flex: 'none' }}>
+                      <div style={{ fontSize: 28, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1 }}>Invoice</div>
+                      <div style={{ paddingTop: 7, fontFamily: MONO, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', color: '#1B5FD0' }}>{selected.invNum}</div>
+                      <div style={{ display: 'inline-block', marginTop: 8, background: stampBg, color: stampInk, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', padding: '4px 9px 5px' }}>{stamp}</div>
+                    </div>
+                  </div>
 
-                    <div style={{ background: '#000000', padding: '0.6rem 2rem', display: 'flex', justifyContent: 'space-between' }}>
-                      {[['Date', fmtDate(selected.submitted_at)], ['Due', dueDate(selected.submitted_at)], ['Terms', 'Net 15'], ['Order #', `#${selected.order_number}`]].map(([label, val]) => (
-                        <div key={label} style={{ textAlign: 'center' }}>
-                          <div style={{ fontFamily: MONO, fontSize: 8, color: '#6F6D67', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
-                          <div style={{ fontFamily: MONO, fontSize: 10, color: '#DDD8CD', fontWeight: 500 }}>{val}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 21, marginTop: 12, paddingBottom: 12, borderBottom: '1px solid rgba(8,9,11,0.14)' }}>
+                    {[
+                      ['Invoice date', fmtDateShort(selected.submitted_at), '#08090B'],
+                      [isPaid ? 'Payment' : 'Payment due', isPaid ? 'Paid in full' : isCancelled ? 'Cancelled — no charge' : dueDateShort(selected.submitted_at), isPaid ? '#166534' : isCancelled ? '#6F6D67' : '#B45309'],
+                      ['Terms', 'Net 15', '#08090B'],
+                      ['Order ref', selected.order_number, '#1B5FD0'],
+                    ].map(([k, v, ink]) => (
+                      <div key={k}>
+                        <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6F6D67' }}>{k}</div>
+                        <div style={{ paddingTop: 4, fontFamily: MONO, fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: ink }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginTop: 15 }}>
+                    <div>
+                      <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6F6D67', paddingBottom: 7 }}>Bill to</div>
+                      <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>{billName}</div>
+                      <div style={{ paddingTop: 4, fontSize: 12, lineHeight: 1.55, color: '#4A4741' }}>{billLine2 && <>{billLine2}<br /></>}{user?.email}</div>
+                      {billTax && <div style={{ paddingTop: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6F6D67' }}>{billTax}</div>}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6F6D67', paddingBottom: 7 }}>Ship to</div>
+                      <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>{billName}</div>
+                      <div style={{ paddingTop: 4, fontSize: 12, lineHeight: 1.55, color: '#4A4741' }}>{shipAddr || (shipMethod ? 'Coordinated directly with Levam Corp' : '—')}</div>
+                      {shipMethod && <div style={{ paddingTop: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6F6D67' }}>{shipMethod}</div>}
+                    </div>
+                  </div>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 19 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(8,9,11,0.45)' }}>
+                        {['#', 'Description', 'SKU', 'Qty', 'Unit', 'Amount'].map((h, i) => (
+                          <th key={h} style={{ textAlign: i >= 3 ? 'right' : 'left', padding: i === 0 ? '7px 8px 8px 0' : '7px 8px 8px', fontFamily: MONO, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6F6D67' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selected.order_items?.map((item, i) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(8,9,11,0.1)' }}>
+                          <td style={{ padding: '9px 8px 10px 0', verticalAlign: 'top', fontFamily: MONO, fontSize: 11, color: '#9A968E' }}>{String(i + 1).padStart(2, '0')}</td>
+                          <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', fontSize: 13, lineHeight: 1.4, letterSpacing: '-0.005em' }}>{item.product_name}</td>
+                          <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', fontFamily: MONO, fontSize: 11, letterSpacing: '0.04em', color: '#1B5FD0' }}>{item.product_sku || '—'}</td>
+                          <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: MONO, fontSize: 12 }}>{item.quantity.toLocaleString('en-US')}</td>
+                          <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: MONO, fontSize: 12 }}>{money(item.unit_price)}</td>
+                          <td style={{ padding: '9px 8px 10px', verticalAlign: 'top', textAlign: 'right', fontFamily: MONO, fontSize: 12, fontWeight: 700 }}>{money(item.quantity * item.unit_price)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: status === 'Unpaid' ? '1fr 285px' : '285px', justifyContent: status === 'Unpaid' ? 'stretch' : 'end', gap: 24, marginTop: 13 }}>
+                    {status === 'Unpaid' && (
+                      <div>
+                        <div style={{ paddingBottom: 8, borderBottom: '1px solid rgba(8,9,11,0.14)', fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6F6D67' }}>Remit payment to</div>
+                        <div style={{ paddingTop: 9 }}>
+                          {REMIT.map(r => (
+                            <div key={r.k} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 10, padding: '3px 0' }}>
+                              <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6F6D67' }}>{r.k}</span>
+                              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.04em', color: '#08090B' }}>{r.v}</span>
+                            </div>
+                          ))}
+                          <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1B5FD0' }}>Reference {selected.invNum} on your transfer</div>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      {[
+                        ['Subtotal', money(subtotal), '#08090B', '#6F6D67'],
+                        ...(deliveryFee > 0 ? [['Delivery fee', money(deliveryFee), '#08090B', '#6F6D67']] : []),
+                        ['Sales tax · resale exempt', '$0.00', '#6F6D67', '#6F6D67'],
+                      ].map(([k, v, ink, meta]) => (
+                        <div key={k} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '4px 0 5px', borderBottom: '1px solid rgba(8,9,11,0.12)' }}>
+                          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: meta }}>{k}</span>
+                          <span style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.02em', color: ink }}>{v}</span>
                         </div>
                       ))}
-                    </div>
-
-                    {!isPaid && !isCancelled && (
-                      <div style={{ background: 'rgba(231,76,60,0.06)', borderBottom: '1px solid rgba(231,76,60,0.18)', padding: '10px 2rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 16 }}>⚠️</span>
-                        <div>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#C0392B' }}>Payment pending — </span>
-                          <span style={{ fontSize: 12, color: '#5C5A55' }}>This invoice is not yet final. Payment must be received and confirmed by Levam Corp before the order is processed.</span>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 7, background: dueBg, padding: '8px 13px 9px' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: isPaid ? 'rgba(255,255,255,0.85)' : isCancelled ? '#6F6D67' : '#8F8C85' }}>{isPaid ? 'Paid in full' : isCancelled ? 'Charged' : 'Total due'}</span>
+                        <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.03em', color: dueInk }}>{isCancelled ? '$0.00' : money(grand(selected))}</span>
                       </div>
-                    )}
-                    {isPaid && (
-                      <div style={{ background: 'rgba(18,183,106,0.08)', borderBottom: '1px solid rgba(18,183,106,0.2)', padding: '10px 2rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 16 }}>✅</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#0E9A5A' }}>Payment received — Thank you! This invoice is final and confirmed.</span>
-                      </div>
-                    )}
-
-                    <div style={{ padding: '1rem 2rem', borderBottom: '1px solid rgba(8,9,11,0.1)', background: '#F2EFE6' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: 12, left: '8%', right: '8%', height: 1, background: 'rgba(8,9,11,0.15)', zIndex: 0 }} />
-                        <div style={{ position: 'absolute', top: 12, left: '8%', height: 1, background: '#2F7DF6', zIndex: 1, width: `${(getStep(selected.status) / 3) * 84}%` }} />
-                        {steps.map((step, i) => {
-                          const done = i <= getStep(selected.status)
-                          const active = i === getStep(selected.status)
-                          return (
-                            <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, position: 'relative' }}>
-                              <div style={{ width: 22, height: 22, borderRadius: '50%', background: done ? '#2F7DF6' : '#FFFFFF', border: active ? '3px solid #2F7DF6' : '1px solid rgba(8,9,11,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {done ? <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</span> : <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#BFBBAF', display: 'block' }} />}
-                              </div>
-                              <div style={{ fontFamily: MONO, fontSize: 8, color: done ? '#2F7DF6' : '#8A8780', fontWeight: done ? 700 : 400, marginTop: 5, whiteSpace: 'nowrap' }}>{step}</div>
-                            </div>
-                          )
-                        })}
+                      <div style={{ paddingTop: 5, textAlign: 'right', fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: isPaid ? '#166534' : isCancelled ? '#991B1B' : '#B45309' }}>
+                        {isPaid ? 'Payment received' : isCancelled ? 'Voided before dispatch — nothing owed' : `Due by ${dueDateShort(selected.submitted_at)} · Net 15`}
                       </div>
                     </div>
+                  </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid rgba(8,9,11,0.1)' }}>
-                      <div style={{ padding: '1rem 1.5rem' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#8A8780', marginBottom: 6 }}>From</div>
-                        <p style={{ fontSize: 11, color: '#5C5A55', lineHeight: 1.9, margin: 0 }}>
-                          <strong style={{ color: '#08090B', fontSize: 12 }}>Levam Corp Distributors</strong><br />
-                          6315 NW 99th Ave<br />Doral, FL 33178
-                        </p>
-                      </div>
-                      <div style={{ padding: '1rem 1.5rem', borderLeft: '1px solid rgba(8,9,11,0.1)' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#8A8780', marginBottom: 6 }}>Bill to</div>
-                        <p style={{ fontSize: 11, color: '#5C5A55', lineHeight: 1.9, margin: 0 }}>
-                          <strong style={{ color: '#08090B', fontSize: 12 }}>Approved Partner</strong><br />
-                          {user?.email}
-                        </p>
-                      </div>
+                  <div style={{ marginTop: 19, borderLeft: `2px solid ${notice.bar}`, padding: '1px 0 2px 12px' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: notice.ink }}>{notice.title}</div>
+                    <div style={{ paddingTop: 4, fontSize: 11.5, lineHeight: 1.5, color: '#3F3D39' }}>{notice.body}</div>
+                  </div>
+
+                  <div style={{ marginTop: 21, paddingTop: 9, borderTop: '1px solid rgba(8,9,11,0.14)' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6F6D67', paddingBottom: 7 }}>Terms &amp; conditions</div>
+                    <div style={{ fontSize: 9.5, lineHeight: 1.55, color: '#6F6D67' }}>All sales are final — no returns, exchanges, refunds or cancellations once payment is confirmed. Damaged or defective goods must be reported to partners@levamcorp.com within 48 hours of delivery with photographic evidence. Title passes to buyer on dispatch from Doral, FL. Buyer certifies goods are purchased for resale under a valid resale certificate. Late payments accrue 1.5% monthly interest. Governed by Florida law; venue Miami-Dade County.</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 37, marginTop: 15 }}>
+                    <div>
+                      <div style={{ height: 25, borderBottom: '1px solid #08090B' }} />
+                      <div style={{ paddingTop: 5, fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6F6D67' }}>Authorized · Levam Corp Distributors</div>
                     </div>
-
-                    <div style={{ padding: '0 1.5rem' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0' }}>
-                        <thead>
-                          <tr style={{ background: '#08090B' }}>
-                            {['#','Product','SKU','Qty','Price','Total'].map((h,i) => (
-                              <th key={h} style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A8780', padding: '8px', textAlign: i > 2 ? 'right' : 'left', fontWeight: 400 }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selected.order_items?.map((item, i) => (
-                            <tr key={item.id} style={{ background: i % 2 === 0 ? '#fff' : '#F2EFE6', borderBottom: '1px solid rgba(8,9,11,0.06)' }}>
-                              <td style={{ padding: '10px 8px', fontSize: 11, color: '#BFBBAF' }}>{i+1}</td>
-                              <td style={{ padding: '10px 8px', fontSize: 12, fontWeight: 600, color: '#08090B' }}>{item.product_name}</td>
-                              <td style={{ padding: '10px 8px', fontSize: 9, color: '#8A8780', fontFamily: MONO }}>{item.product_sku}</td>
-                              <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right', color: '#5C5A55' }}>{item.quantity}</td>
-                              <td style={{ padding: '10px 8px', fontSize: 11, textAlign: 'right', color: '#5C5A55' }}>${item.unit_price?.toLocaleString()}</td>
-                              <td style={{ padding: '10px 8px', fontSize: 12, fontWeight: 700, color: '#08090B', textAlign: 'right' }}>${(item.unit_price * item.quantity)?.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div>
+                      <div style={{ height: 25, borderBottom: '1px solid #08090B' }} />
+                      <div style={{ paddingTop: 5, fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6F6D67' }}>Accepted · {billName}</div>
                     </div>
+                  </div>
 
-                    <div style={{ margin: '0 1.5rem 1.25rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8A8780', padding: '3px 0' }}><span>Subtotal</span><span>${subtotal?.toLocaleString()}</span></div>
-                      {deliveryFee > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8A8780', padding: '3px 0' }}><span>Delivery fee</span><span>${deliveryFee.toLocaleString()}</span></div>}
-                      <div style={{ background: isPaid ? '#0E9A5A' : '#2F7DF6', padding: '1rem 1.25rem', marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontFamily: MONO, fontSize: 9, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 3 }}>{isPaid ? 'Amount paid' : 'Total due'}</div>
-                          <div style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 700, color: '#fff' }}>${selected.total?.toLocaleString()}</div>
-                        </div>
-                        <div style={{ fontSize: 28, opacity: 0.5 }}>{isPaid ? '✅' : '💰'}</div>
-                      </div>
-                      {parseFloat(selected?.amount_paid) > 0 && !isPaid && (
-                        <div style={{ marginTop: 10, padding: '12px 14px', background: 'rgba(18,183,106,0.06)', border: '1px solid rgba(18,183,106,0.25)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <span style={{ fontSize: 12, color: '#0E9A5A', fontWeight: 600 }}>✓ Amount paid</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0E9A5A' }}>${parseFloat(selected.amount_paid).toLocaleString()}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ fontSize: 12, color: '#E74C3C', fontWeight: 600 }}>Balance due</span>
-                            <span style={{ fontSize: 15, fontWeight: 800, color: '#E74C3C' }}>${Math.max(0, selected.total - parseFloat(selected.amount_paid)).toLocaleString()}</span>
-                          </div>
-                          <div style={{ height: 5, background: 'rgba(8,9,11,0.1)', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, (parseFloat(selected.amount_paid) / selected.total) * 100)}%`, background: '#0E9A5A' }} />
-                          </div>
-                          <div style={{ fontSize: 10, color: '#8A8780', textAlign: 'right', marginTop: 3 }}>
-                            {Math.min(100, Math.round((parseFloat(selected.amount_paid) / selected.total) * 100))}% paid
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {!isPaid && !isCancelled && (
-                      <div style={{ margin: '0 1.5rem 1rem', padding: '10px 14px', background: 'rgba(231,76,60,0.05)', border: '1px solid rgba(231,76,60,0.18)' }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#C0392B', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>⚠ Preliminary Invoice — Not Final</div>
-                        <div style={{ fontSize: 10, color: '#8A8780', lineHeight: 1.7 }}>
-                          This document is a preliminary invoice and quote. It does not constitute a final confirmed order. Levam Corp Distributors reserves the right to adjust pricing, availability, and terms. The order will only be confirmed and processed upon receipt and verification of full payment.
-                        </div>
-                      </div>
-                    )}
-
-                    {status === 'Unpaid' && (
-                      <div style={{ margin: '0 1.5rem 1.25rem', border: '1px solid rgba(8,9,11,0.1)' }}>
-                        <div style={{ background: '#08090B', padding: '6px 12px', fontFamily: MONO, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8A8780' }}>Payment instructions</div>
-                        <div style={{ background: '#F2EFE6', padding: '10px 12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                          {REMIT.map(r => (
-                            <div key={r.k} style={{ fontSize: 10.5, color: '#5C5A55' }}><span style={{ color: '#8A8780' }}>{r.k}: </span><strong style={{ color: '#3F3D39' }}>{r.v}</strong></div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ margin: '0 1.5rem 1.25rem', border: '1px solid rgba(8,9,11,0.1)' }}>
-                      <div style={{ background: '#08090B', padding: '6px 12px', fontFamily: MONO, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8A8780' }}>Terms & Conditions</div>
-                      <div style={{ background: '#F2EFE6', padding: '10px 12px', fontSize: 9.5, color: '#5C5A55', lineHeight: 1.75 }}>
-                        <strong style={{ color: '#3F3D39', fontSize: 9, textTransform: 'uppercase' }}>All Sales Are Final — </strong>
-                        No returns, exchanges, refunds, or cancellations once payment is confirmed. Damaged goods must be reported within 48 hours to partners@levamcorp.com. Governed by the laws of the State of Florida, Miami-Dade County courts.
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'rgba(8,9,11,0.1)', margin: '0 1.5rem 1.25rem' }}>
-                      <div style={{ background: '#fff', padding: '1rem' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#BFBBAF', marginBottom: 20 }}>Authorized · Levam Corp</div>
-                        <div style={{ borderTop: '1px solid rgba(8,9,11,0.15)', paddingTop: 5, fontSize: 9, color: '#BFBBAF' }}>Signature & date</div>
-                      </div>
-                      <div style={{ background: '#fff', padding: '1rem' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#BFBBAF', marginBottom: 20 }}>Accepted · Client</div>
-                        <div style={{ borderTop: '1px solid rgba(8,9,11,0.15)', paddingTop: 5, fontSize: 9, color: '#BFBBAF' }}>Signature & date</div>
-                      </div>
-                    </div>
-
-                    <div style={{ background: '#08090B', padding: '0.75rem 1.5rem', fontFamily: MONO, fontSize: 9, color: '#6F6D67', textAlign: 'center' }}>
-                      Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178 · partners@levamcorp.com · levamcorp.com
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 21, marginTop: 21, paddingTop: 8, borderTop: '1px solid rgba(8,9,11,0.14)', fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6F6D67' }}>
+                    <span>Levam Corp Distributors · {selected.invNum} · {fmtDateShort(selected.submitted_at)}</span>
+                    <span>levamcorp.com</span>
                   </div>
                 </div>
               </div>

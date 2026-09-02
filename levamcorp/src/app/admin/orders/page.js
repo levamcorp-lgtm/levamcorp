@@ -293,142 +293,160 @@ export default function AdminOrders() {
     const items = order.order_items || []
     const eta   = order.eta ? new Date(order.eta+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : null
 
-    const billTo = [
-      c?.contact_name || (order.notes||'').split('Business: ')[1]?.split(/[|\n]/)[0]?.trim() || 'Client',
-      c?.business_name || '',
+    const billName = c?.business_name || c?.contact_name || (order.notes||'').split('Business: ')[1]?.split(/[|\n]/)[0]?.trim() || 'Client'
+    const billLines = [
+      c?.contact_name && c?.business_name ? c.contact_name : '',
+      c?.address || '',
       c?.email || (order.notes||'').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim() || '',
       c?.phone || (order.notes||'').split('Phone: ')[1]?.split(/[|\n]/)[0]?.trim() || '',
-      c?.address || '',
-      c?.ein_number ? 'EIN: '+c.ein_number : '',
     ].filter(Boolean)
+    const billTax = [c?.resale_tax_number ? 'Resale cert. '+c.resale_tax_number : '', c?.ein_number ? 'EIN '+c.ein_number : ''].filter(Boolean).join(' · ')
 
-    const rows = items.map(i =>
-      `<tr>
-        <td style="padding:11px 16px;font-size:13px;border-bottom:1px solid #f0f0f0">${i.product_name}</td>
-        <td style="padding:11px 16px;font-size:13px;border-bottom:1px solid #f0f0f0;text-align:center">${i.quantity}</td>
-        <td style="padding:11px 16px;font-size:13px;border-bottom:1px solid #f0f0f0;text-align:right">${money(i.unit_price)}</td>
-        <td style="padding:11px 16px;font-size:13px;font-weight:700;border-bottom:1px solid #f0f0f0;text-align:right">${money(i.unit_price*i.quantity)}</td>
+    const paid = order.status === 'completed'
+    const cancelled = order.status === 'cancelled'
+    const stamp = paid ? 'Paid in full' : cancelled ? 'Cancelled · void' : 'Payment due'
+    const stampBg = paid ? '#dcfce7' : cancelled ? '#fee2e2' : '#fef3c7'
+    const stampInk = paid ? '#166534' : cancelled ? '#991b1b' : '#92400e'
+    const amountPaid = parseFloat(order.amount_paid) || 0
+    const balanceDue = Math.max(0, order.total - amountPaid)
+
+    const rows = items.map((i, idx) =>
+      `<tr style="border-bottom:1px solid rgba(8,9,11,.1)">
+        <td style="padding:9px 8px 10px 0;vertical-align:top;font-family:monospace;font-size:11px;color:#9a968e">${String(idx+1).padStart(2,'0')}</td>
+        <td style="padding:9px 8px 10px;vertical-align:top;font-size:13px">${i.product_name}</td>
+        <td style="padding:9px 8px 10px;vertical-align:top;text-align:right;font-family:monospace;font-size:12px">${i.quantity}</td>
+        <td style="padding:9px 8px 10px;vertical-align:top;text-align:right;font-family:monospace;font-size:12px">${money(i.unit_price)}</td>
+        <td style="padding:9px 8px 10px;vertical-align:top;text-align:right;font-family:monospace;font-size:12px;font-weight:700">${money(i.unit_price*i.quantity)}</td>
       </tr>`
     ).join('')
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Helvetica Neue',Arial,sans-serif;color:#111;background:#fff}
+      body{font-family:'Helvetica Neue',Arial,sans-serif;color:#08090b;background:#fff}
       @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
-    <!-- HEADER -->
-    <div style="background:#111;padding:32px 48px;display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <div style="font-size:10px;letter-spacing:0.3em;color:#666;text-transform:uppercase;margin-bottom:6px">Corp · Distributors</div>
-        <div style="font-size:30px;font-weight:900;color:#fff;letter-spacing:0.12em;text-transform:uppercase">LEVAM<span style="color:#2d7dd2">CORP</span></div>
-        <div style="margin-top:14px;font-size:11px;color:#777;line-height:2">
-          6315 NW 99th Ave, Doral, FL 33178<br>
-          partners@levamcorp.com &nbsp;·&nbsp; www.levamcorp.com<br>
-          (786) 878-4122
+    <div style="padding:40px;font-size:13px;line-height:1.4">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:32px;padding-bottom:12px;border-bottom:1px solid rgba(8,9,11,.45)">
+        <div style="display:flex;align-items:flex-start;gap:16px">
+          <img src="https://www.levamcorp.com/levamcorp-logo_1.png" alt="Levam Corp Distributors" style="display:block;width:85px;height:auto;object-fit:contain">
+          <div style="padding-top:3px;font-family:monospace;font-size:9px;letter-spacing:0.1em;line-height:1.85;color:#4a4741">
+            6315 NW 99th Ave, Doral, FL 33178<br>
+            partners@levamcorp.com · (786) 878-4122<br>
+            levamcorp.com
+          </div>
+        </div>
+        <div style="text-align:right;flex:none">
+          <div style="font-size:28px;font-weight:400;letter-spacing:-0.03em;line-height:1">Invoice</div>
+          <div style="padding-top:7px;font-family:monospace;font-size:15px;font-weight:700;letter-spacing:0.04em;color:#2d7dd2">#${order.order_number}</div>
+          <div style="display:inline-block;margin-top:8px;background:${stampBg};color:${stampInk};font-family:monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;padding:4px 9px 5px">${stamp}</div>
         </div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:38px;font-weight:900;color:#fff;letter-spacing:0.06em">INVOICE</div>
-        <div style="font-size:17px;color:#2d7dd2;font-weight:700;margin-top:4px">#${order.order_number}</div>
-        <div style="margin-top:14px;font-size:11px;color:#777;line-height:2">
-          <span style="color:#555">Date:</span> <span style="color:#ccc">${fmtL(order.submitted_at)}</span><br>
-          <span style="color:#555">Status:</span> <span style="color:#ccc">${STATUS_LABEL[order.status]||order.status}</span><br>
-          <span style="color:#555">Terms:</span> <span style="color:#ccc">Net 15</span>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:21px;margin-top:12px;padding-bottom:12px;border-bottom:1px solid rgba(8,9,11,.14)">
+        <div>
+          <div style="font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Invoice date</div>
+          <div style="padding-top:4px;font-family:monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;color:#08090b">${fmtL(order.submitted_at)}</div>
+        </div>
+        <div>
+          <div style="font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">${paid?'Payment':'Payment due'}</div>
+          <div style="padding-top:4px;font-family:monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;color:${paid?'#166534':cancelled?'#6f6d67':'#b45309'}">${paid?'Paid in full':cancelled?'Cancelled — no charge':'Net 15'}</div>
+        </div>
+        <div>
+          <div style="font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Order status</div>
+          <div style="padding-top:4px;font-family:monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;color:#08090b">${STATUS_LABEL[order.status]||order.status}</div>
+        </div>
+        <div>
+          <div style="font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Order ref</div>
+          <div style="padding-top:4px;font-family:monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;color:#2d7dd2">${order.order_number}</div>
         </div>
       </div>
-    </div>
-    <!-- BLUE LINE -->
-    <div style="height:3px;background:#2d7dd2"></div>
-    <!-- FROM / BILL TO -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;padding:28px 48px;border-bottom:1px solid #eee;gap:48px">
-      <div>
-        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;font-weight:700;margin-bottom:10px">From</div>
-        <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:6px">Levam Corp Distributors</div>
-        <div style="font-size:12px;color:#666;line-height:1.9">
-          6315 NW 99th Ave<br>Doral, FL 33178<br>
-          partners@levamcorp.com<br>(786) 878-4122
-        </div>
+
+      <div style="margin-top:15px">
+        <div style="font-family:monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:#6f6d67;padding-bottom:7px">Bill to</div>
+        <div style="font-size:15px;font-weight:500;letter-spacing:-0.01em">${billName}</div>
+        <div style="padding-top:4px;font-size:12px;line-height:1.55;color:#4a4741">${billLines.join('<br>')}</div>
+        ${billTax?`<div style="padding-top:5px;font-family:monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#6f6d67">${billTax}</div>`:''}
       </div>
-      <div>
-        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;font-weight:700;margin-bottom:10px">Bill to</div>
-        <div style="font-size:12px;color:#333;line-height:1.9">
-          ${billTo.map((line,i)=>`<div style="${i===0?'font-size:14px;font-weight:700;color:#111;margin-bottom:4px':''}">${line}</div>`).join('')}
-        </div>
-      </div>
-    </div>
-    ${eta ? `<div style="margin:20px 48px 0;padding:12px 18px;background:#eef7ee;border:1px solid #2a7d4f;border-radius:4px;display:flex;align-items:center;gap:12px">
-      <div style="font-size:10px;color:#2a7d4f;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">Estimated arrival</div>
-      <div style="font-size:15px;font-weight:800;color:#2a7d4f">${eta}</div>
-      ${order.eta_notes?`<div style="font-size:11px;color:#555;margin-left:auto">${order.eta_notes}</div>`:''}
-    </div>` : ''}
-    <!-- ITEMS -->
-    <div style="padding:24px 48px 0">
-      <table style="width:100%;border-collapse:collapse">
+
+      ${eta ? `<div style="margin-top:14px;padding:10px 14px;background:#eef7ee;border:1px solid #2a7d4f;border-radius:4px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:10px;color:#2a7d4f;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">Estimated arrival</div>
+        <div style="font-size:14px;font-weight:800;color:#2a7d4f">${eta}</div>
+        ${order.eta_notes?`<div style="font-size:11px;color:#555;margin-left:auto">${order.eta_notes}</div>`:''}
+      </div>` : ''}
+
+      <table style="width:100%;border-collapse:collapse;margin-top:19px">
         <thead>
-          <tr style="background:#111">
-            <th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.1em;text-align:left">Product / Description</th>
-            <th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;text-align:center">Qty</th>
-            <th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;text-align:right">Unit price</th>
-            <th style="padding:12px 16px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;text-align:right">Total</th>
+          <tr style="border-bottom:1px solid rgba(8,9,11,.45)">
+            <th style="text-align:left;padding:7px 8px 8px 0;font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">#</th>
+            <th style="text-align:left;padding:7px 8px 8px;font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Description</th>
+            <th style="text-align:right;padding:7px 8px 8px;font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Qty</th>
+            <th style="text-align:right;padding:7px 8px 8px;font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Unit</th>
+            <th style="text-align:right;padding:7px 8px 8px;font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Amount</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
-      <!-- TOTAL -->
-      <div style="display:flex;justify-content:flex-end;margin-top:16px;margin-bottom:28px">
-        <div style="width:300px">
-          <div style="display:flex;justify-content:space-between;padding:8px 16px;font-size:12px;color:#888;border-top:1px solid #eee">
-            <span>Subtotal</span><span>${money(order.total)}</span>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:13px">
+        <div style="width:285px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:4px 0 5px;border-bottom:1px solid rgba(8,9,11,.12)">
+            <span style="font-family:monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#6f6d67">Subtotal</span>
+            <span style="font-family:monospace;font-size:12px;letter-spacing:0.02em;color:#08090b">${money(order.total)}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:16px;background:#111;border-radius:4px;margin-top:4px">
-            <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase">Total due</span>
-            <span style="font-size:22px;font-weight:900;color:#fff">${money(order.total)}</span>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:7px;background:${cancelled?'#f6f5f2':paid?'#16a34a':'#08090b'};padding:8px 13px 9px">
+            <span style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${cancelled?'#6f6d67':paid?'rgba(255,255,255,.85)':'#8f8c85'}">${paid?'Paid in full':cancelled?'Charged':'Total due'}</span>
+            <span style="font-size:20px;font-weight:500;letter-spacing:-0.03em;color:${cancelled?'#08090b':'#fff'}">${cancelled?'$0.00':money(order.total)}</span>
           </div>
-          ${(parseFloat(order.amount_paid)||0)>0?`<div style="display:flex;justify-content:space-between;padding:8px 16px;font-size:12px;margin-top:4px;background:#eef7ee;border-radius:4px">
-            <span style="color:#2a7d4f;font-weight:600">Amount paid</span><span style="color:#2a7d4f;font-weight:700">${money(order.amount_paid)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:8px 16px;font-size:13px;font-weight:700;background:#fff3cd;border-radius:4px;margin-top:4px">
-            <span>Balance due</span><span>${money(Math.max(0,order.total-(parseFloat(order.amount_paid)||0)))}</span>
-          </div>`:''}
+          ${amountPaid>0 && !paid && !cancelled ? `<div style="margin-top:8px;padding:9px 11px;background:rgba(18,183,106,.06);border:1px solid rgba(18,183,106,.25);border-radius:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:#0e9a5a;font-weight:600">Amount paid</span><span style="color:#0e9a5a;font-weight:700">${money(amountPaid)}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>Balance due</span><span>${money(balanceDue)}</span></div>
+          </div>` : ''}
         </div>
       </div>
-    </div>
-    <!-- PAYMENT INFO -->
-    <div style="margin:0 48px 24px;padding:20px 24px;background:#f7f8fa;border:1px solid #e8e8e8;border-radius:4px">
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;font-weight:700;margin-bottom:12px">Payment instructions</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
-        <div><span style="color:#aaa">Bank:</span> <strong>Bank of America</strong></div>
-        <div><span style="color:#aaa">Account name:</span> <strong>Levam Corp</strong></div>
-        <div><span style="color:#aaa">Account #:</span> <strong>898169098220</strong></div>
-        <div><span style="color:#aaa">ACH routing:</span> <strong>063100277</strong></div>
-        <div><span style="color:#aaa">Wire routing:</span> <strong>026009593</strong></div>
-        <div><span style="color:#aaa">Address:</span> <strong>6315 NW 99th Ave, Doral, FL 33178</strong></div>
-      </div>
-    </div>
-    <!-- T&C -->
-    <div style="margin:0 48px 28px;padding:18px 22px;background:#f7f8fa;border:1px solid #e8e8e8;border-radius:4px">
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;font-weight:700;margin-bottom:10px">Terms & Conditions</div>
-      <div style="font-size:11px;color:#555;line-height:1.9">
-        <strong style="color:#111">ALL SALES ARE FINAL</strong> — No returns or refunds except for damaged/defective items reported within 48 hours with photo evidence.
-        <strong style="color:#111"> PAYMENT</strong> — Due within 15 days. Accepted: Wire Transfer, ACH, Credit/Debit Card. Late payments subject to 1.5% monthly fee.
-        <strong style="color:#111"> JURISDICTION</strong> — Governed by the laws of the State of Florida, Miami-Dade County courts.
-        <strong style="color:#111"> CHARGEBACKS</strong> — Unauthorized chargebacks will be disputed and may result in termination of the business relationship.
-      </div>
-    </div>
-    <!-- SIGNATURES -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;padding:0 48px 40px">
-      ${['Authorized · Levam Corp','Accepted · Client'].map(l=>`
-      <div>
-        <div style="border-top:1px solid #ddd;padding-top:8px">
-          <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em">${l}</div>
-          <div style="font-size:10px;color:#ccc;margin-top:4px">Signature &amp; date</div>
+
+      ${!paid && !cancelled ? `<div style="margin-top:19px;border-left:2px solid #f59e0b;padding:1px 0 2px 12px">
+        <div style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#92400e">Payment needed to confirm this order</div>
+        <div style="padding-top:4px;font-size:11.5px;line-height:1.5;color:#3f3d39">This document is a preliminary invoice. Pricing and availability are held pending payment — the order is confirmed and processed only once we receive and verify full payment. Transfer details are below.</div>
+      </div>` : paid ? `<div style="margin-top:19px;border-left:2px solid #16a34a;padding:1px 0 2px 12px">
+        <div style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#166534">Payment received</div>
+        <div style="padding-top:4px;font-size:11.5px;line-height:1.5;color:#3f3d39">Payment has been received and verified. This order is confirmed and scheduled for dispatch from our Doral, FL warehouse.</div>
+      </div>` : `<div style="margin-top:19px;border-left:2px solid #9a968e;padding:1px 0 2px 12px">
+        <div style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#6f6d67">Invoice void</div>
+        <div style="padding-top:4px;font-size:11.5px;line-height:1.5;color:#3f3d39">This invoice was cancelled before dispatch and carries no charge. It is retained for records only.</div>
+      </div>`}
+
+      ${!paid && !cancelled ? `<div style="margin-top:19px;border:1px solid rgba(8,9,11,.85)">
+        <div style="background:#08090b;padding:6px 12px;font-family:monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#8f8c85">Payment instructions</div>
+        <div style="background:#f2efe6;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="font-size:10.5px;color:#5c5a55"><span style="color:#8a8780">Bank: </span><strong style="color:#3f3d39">Bank of America</strong></div>
+          <div style="font-size:10.5px;color:#5c5a55"><span style="color:#8a8780">Account name: </span><strong style="color:#3f3d39">Levam Corp</strong></div>
+          <div style="font-size:10.5px;color:#5c5a55"><span style="color:#8a8780">Account #: </span><strong style="color:#3f3d39">898169098220</strong></div>
+          <div style="font-size:10.5px;color:#5c5a55"><span style="color:#8a8780">ACH routing: </span><strong style="color:#3f3d39">063100277</strong></div>
+          <div style="font-size:10.5px;color:#5c5a55"><span style="color:#8a8780">Wire routing: </span><strong style="color:#3f3d39">026009593</strong></div>
         </div>
-      </div>`).join('')}
-    </div>
-    <!-- FOOTER -->
-    <div style="background:#111;padding:14px 48px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:10px;color:#555">Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178</div>
-      <div style="font-size:10px;color:#555">partners@levamcorp.com · levamcorp.com</div>
+      </div>` : ''}
+
+      <div style="margin-top:21px;padding-top:9px;border-top:1px solid rgba(8,9,11,.14)">
+        <div style="font-family:monospace;font-size:8.5px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#6f6d67;padding-bottom:7px">Terms &amp; conditions</div>
+        <div style="font-size:9.5px;line-height:1.55;color:#6f6d67">All sales are final — no returns, exchanges, refunds or cancellations once payment is confirmed. Damaged or defective goods must be reported to partners@levamcorp.com within 48 hours of delivery with photographic evidence. Title passes to buyer on dispatch from Doral, FL. Buyer certifies goods are purchased for resale under a valid resale certificate. Late payments accrue 1.5% monthly interest. Governed by Florida law; venue Miami-Dade County.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:37px;margin-top:15px">
+        <div>
+          <div style="height:25px;border-bottom:1px solid #08090b"></div>
+          <div style="padding-top:5px;font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Authorized · Levam Corp Distributors</div>
+        </div>
+        <div>
+          <div style="height:25px;border-bottom:1px solid #08090b"></div>
+          <div style="padding-top:5px;font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">Accepted · ${billName}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:21px;margin-top:21px;padding-top:8px;border-top:1px solid rgba(8,9,11,.14);font-family:monospace;font-size:8.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6f6d67">
+        <span>Levam Corp Distributors · ${order.order_number} · ${fmtL(order.submitted_at)}</span>
+        <span>levamcorp.com</span>
+      </div>
     </div>
     </body></html>`
 
@@ -527,7 +545,7 @@ export default function AdminOrders() {
               const hasPartial = (parseFloat(order.amount_paid)||0) > 0 && !isPaid
               return (
                 <div key={order.id} onClick={()=>{setSel(order===sel?null:order);setTab('details');setShowETA(false);setShowPayment(false);setShowUnits(false)}}
-                  style={{background: (parseFloat(order.amount_paid)||0)<=0 && !['completed','cancelled'].includes(order.status) ? 'rgba(231,76,60,0.03)' : '#111', border:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(0,0,0,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
+                  style={{background: (parseFloat(order.amount_paid)||0)<=0 && !['completed','cancelled'].includes(order.status) ? 'rgba(231,76,60,0.03)' : '#111', borderTop:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(0,0,0,0.06)'}`,borderRight:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(0,0,0,0.06)'}`,borderBottom:`1px solid ${sel?.id===order.id?STATUS_COLOR[order.status]:'rgba(0,0,0,0.06)'}`,borderLeft:`4px solid ${STATUS_COLOR[order.status]||'#555'}`,borderRadius:6,padding:'1rem 1.25rem',marginBottom:8,cursor:'pointer'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                     <div>
                       <div style={{fontSize:14,fontWeight:700,color:'#111',marginBottom:1}}>#{order.order_number}</div>
