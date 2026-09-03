@@ -372,6 +372,22 @@ function AdminOrdersInner() {
     setPayForm({amount:'',notes:''}); setShowPayment(false); setSaving(false)
   }
 
+  const confirmPayment = async (payment) => {
+    if (!payment) return
+    if (!confirm('Mark this payment as confirmed? This clears it from the "payment proofs to confirm" queue.')) return
+    setSaving(true)
+    const sb = createClient()
+    const { error } = await sb.from('payments').update({ status: 'paid' }).eq('id', payment.id)
+    if (error) {
+      console.error('confirm payment failed', error)
+      alert(`Couldn't confirm the payment: ${error.message}`)
+      setSaving(false)
+      return
+    }
+    setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'paid' } : p))
+    setSaving(false)
+  }
+
   const saveUnits = async () => {
     if (!unitItems.length) return
     setSaving(true)
@@ -903,7 +919,7 @@ function AdminOrdersInner() {
                           <span style={{ fontSize: 14.5, color: '#16181d', wordBreak: 'break-word' }}>{v}</span>
                         </div>
                       ))}
-                      {sel.payment_proof_url && <button onClick={() => openDoc(sel.payment_proof_url)} style={{ width: '100%', marginTop: 12, padding: 11, background: '#f0fdf4', color: '#166534', fontSize: 13.5, fontWeight: 700, border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer' }}>View payment proof</button>}
+                      {selPayment?.payment_proof_url && <button onClick={() => openDoc(selPayment.payment_proof_url)} style={{ width: '100%', marginTop: 12, padding: 11, background: '#f0fdf4', color: '#166534', fontSize: 13.5, fontWeight: 700, border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer' }}>View payment proof</button>}
                     </div>
                   )
                 )}
@@ -931,7 +947,13 @@ function AdminOrdersInner() {
                       </div>
                     ))}
                     {payLabel === 'Proof sent' && (
-                      <div style={{ marginTop: 14, padding: '13px 14px 14px', borderRadius: 10, background: '#f7f9fc', borderLeft: `4px solid ${ACCENT}`, fontSize: 14, lineHeight: 1.55, color: '#47505e' }}>The client uploaded a payment confirmation. Check it against your bank, then record it below to release the order.</div>
+                      <div style={{ marginTop: 14, padding: '13px 14px 14px', borderRadius: 10, background: '#f7f9fc', borderLeft: `4px solid ${ACCENT}`, fontSize: 14, lineHeight: 1.55, color: '#47505e' }}>
+                        The client uploaded a payment confirmation. Check it against your bank, then confirm it below.
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          {selPayment?.payment_proof_url && <button onClick={() => openDoc(selPayment.payment_proof_url)} style={{ flex: 1, padding: 10, background: '#ffffff', color: '#47505e', fontSize: 13.5, fontWeight: 700, border: '1px solid #d9dce2', borderRadius: 8, cursor: 'pointer' }}>View proof</button>}
+                          <button onClick={() => confirmPayment(selPayment)} disabled={saving} style={{ flex: 1, padding: 10, background: '#16a34a', color: '#ffffff', fontSize: 13.5, fontWeight: 700, border: 'none', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Confirming…' : '✓ Confirm payment'}</button>
+                        </div>
+                      </div>
                     )}
 
                     {sel.payment_notes && (
@@ -954,7 +976,6 @@ function AdminOrdersInner() {
                         </div>
                       </div>
                     )}
-                    {sel.payment_proof_url && <button onClick={() => openDoc(sel.payment_proof_url)} style={{ width: '100%', marginTop: 10, padding: 11, background: '#f0fdf4', color: '#166534', fontSize: 13.5, fontWeight: 700, border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer' }}>View payment proof</button>}
                   </div>
                 )}
 
