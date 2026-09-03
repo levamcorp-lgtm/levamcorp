@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
@@ -125,7 +125,16 @@ function Sidebar({ open, setOpen, pathname, badges }) {
 }
 
 export default function AdminOrders() {
+  return (
+    <Suspense fallback={null}>
+      <AdminOrdersInner />
+    </Suspense>
+  )
+}
+
+function AdminOrdersInner() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [orders,   setOrders]   = useState([])
   const [clients,  setClients]  = useState([])
   const [products, setProducts] = useState([])
@@ -165,6 +174,17 @@ export default function AdminOrders() {
       await reload(sb)
     })
   }, [])
+
+  useEffect(() => {
+    const clientId = searchParams.get('client')
+    if (!clientId || !clients.length) return
+    const c = clients.find(c => String(c.id) === clientId)
+    if (!c) return
+    resetNewOrder()
+    setNoClientId(c.id)
+    setShowNewOrder(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients])
 
   const reload = async (sb) => {
     sb = sb || createClient()
