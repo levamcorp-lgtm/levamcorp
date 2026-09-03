@@ -16,6 +16,7 @@ export default function AdminPayments() {
   const [sending, setSending] = useState(false)
   const [clientEmailInput, setClientEmailInput] = useState('')
   const [sent, setSent] = useState(false)
+  const [confirming, setConfirming] = useState(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -35,6 +36,30 @@ export default function AdminPayments() {
   }
 
   const handleLogout = async () => { const supabase = createClient(); await supabase.auth.signOut(); window.location.href = '/admin' }
+
+  const openDoc = async (path) => {
+    if (!path) return
+    const supabase = createClient()
+    let r = await supabase.storage.from('Documents').createSignedUrl(path, 3600)
+    if (!r.data?.signedUrl) r = await supabase.storage.from('documents').createSignedUrl(path, 3600)
+    if (r.data?.signedUrl) window.open(r.data.signedUrl, '_blank')
+  }
+
+  const confirmPayment = async (payment) => {
+    if (!payment) return
+    if (!confirm('Mark this payment as confirmed? This clears it from the "payment proofs to confirm" queue on the dashboard.')) return
+    setConfirming(payment.id)
+    const supabase = createClient()
+    const { error } = await supabase.from('payments').update({ status: 'paid' }).eq('id', payment.id)
+    if (error) {
+      alert(`Couldn't confirm the payment: ${error.message}`)
+      setConfirming(null)
+      return
+    }
+    setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'paid' } : p))
+    if (selected?.id === payment.id) setSelected(prev => ({ ...prev, status: 'paid' }))
+    setConfirming(null)
+  }
 
   const methodLabels = {
     ach: 'ACH Bank Transfer', wire: 'Wire Transfer',
@@ -85,7 +110,7 @@ export default function AdminPayments() {
   const statusConfig = {
     pending: { label: 'Pending', color: '#854f0b', bg: 'rgba(186,117,23,0.1)' },
     requested: { label: 'Requested', color: '#2d7dd2', bg: 'rgba(45,125,210,0.1)' },
-    processing: { label: 'Link sent', color: '#2a7d4f', bg: 'rgba(42,125,79,0.1)' },
+    processing: { label: 'To confirm', color: '#b45309', bg: 'rgba(180,83,9,0.1)' },
     paid: { label: 'Paid', color: '#2a7d4f', bg: 'rgba(42,125,79,0.15)' },
   }
 
@@ -111,7 +136,7 @@ export default function AdminPayments() {
         <div>
           <div style={{ marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: 18, fontWeight: 500, color: '#111', marginBottom: 4 }}>Payment requests</h2>
-            <p style={{ fontSize: 12, color: '#444' }}>{payments.filter(p => p.status === 'requested').length} pending · {payments.length} total</p>
+            <p style={{ fontSize: 12, color: '#444' }}>{payments.filter(p => p.status === 'requested').length} pending · {payments.filter(p => p.status === 'processing').length} to confirm · {payments.length} total</p>
           </div>
 
           <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.06)', borderRadius: 4, overflow: 'hidden' }}>
@@ -150,6 +175,20 @@ export default function AdminPayments() {
                               Send →
                             </button>
                           )}
+                          {payment.status === 'processing' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {payment.payment_proof_url && (
+                                <button onClick={(e) => { e.stopPropagation(); openDoc(payment.payment_proof_url) }}
+                                  style={{ fontSize: 10, padding: '4px 10px', background: 'transparent', color: '#444', border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: 2, cursor: 'pointer' }}>
+                                  View proof
+                                </button>
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); confirmPayment(payment) }} disabled={confirming === payment.id}
+                                style={{ fontSize: 10, padding: '4px 10px', background: 'rgba(42,125,79,0.15)', color: '#2a7d4f', border: '0.5px solid rgba(42,125,79,0.3)', borderRadius: 2, cursor: confirming === payment.id ? 'not-allowed' : 'pointer' }}>
+                                {confirming === payment.id ? 'Confirming…' : '✓ Confirm'}
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )
@@ -167,12 +206,13 @@ export default function AdminPayments() {
 
               <div style={{ background: '#f8f9fa', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>Send payment instructions</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{selected.status === 'requested' ? 'Send payment instructions' : selected.status === 'processing' ? 'Confirm this payment' : 'Payment confirmed'}</div>
                   <div style={{ fontSize: 11, color: '#444', marginTop: 3 }}>Order #{selected.orders?.order_number} · ${selected.amount?.toLocaleString()}</div>
                 </div>
                 <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 18 }}>×</button>
               </div>
 
+              {selected.status === 'requested' ? (
               <div style={{ padding: '1.25rem 1.5rem', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '10px 14px', background: 'rgba(45,125,210,0.08)', border: '0.5px solid rgba(45,125,210,0.2)', borderRadius: 2, marginBottom: '1rem' }}>
                   <div style={{ fontSize: 11, color: '#999', marginBottom: 3 }}>Payment method requested</div>
@@ -225,6 +265,40 @@ export default function AdminPayments() {
                   </button>
                 )}
               </div>
+              ) : (
+              <div style={{ padding: '1.25rem 1.5rem' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  {['Client', 'Method', 'Amount'].map((k, i) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 2 ? '0.5px solid rgba(0,0,0,0.06)' : 'none' }}>
+                      <span style={{ fontSize: 11, color: '#999' }}>{k}</span>
+                      <span style={{ fontSize: 12, color: '#333', fontWeight: 600 }}>
+                        {k === 'Client' ? (selected.client_email || selected.notes?.match(/Email: ([^\s|]+)/)?.[1] || '—')
+                          : k === 'Method' ? `${methodIcons[selected.payment_method]} ${methodLabels[selected.payment_method]}`
+                          : `$${selected.amount?.toLocaleString()}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {selected.status === 'processing' ? (
+                  <>
+                    {selected.payment_proof_url ? (
+                      <button onClick={() => openDoc(selected.payment_proof_url)} style={{ width: '100%', marginBottom: 10, padding: 11, background: '#fff', color: '#444', fontSize: 12, fontWeight: 600, border: '0.5px solid rgba(0,0,0,0.12)', borderRadius: 2, cursor: 'pointer' }}>View uploaded proof</button>
+                    ) : (
+                      <div style={{ padding: '10px 14px', marginBottom: 10, background: 'rgba(186,117,23,0.08)', border: '0.5px solid rgba(186,117,23,0.2)', borderRadius: 2, fontSize: 11.5, color: '#854f0b' }}>No proof file was uploaded by the client — confirm only after checking your bank/Melio/Zelle account directly.</div>
+                    )}
+                    <button onClick={() => confirmPayment(selected)} disabled={confirming === selected.id}
+                      style={{ width: '100%', padding: 11, background: confirming === selected.id ? '#333' : '#2a7d4f', color: '#fff', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', border: 'none', cursor: confirming === selected.id ? 'not-allowed' : 'pointer', borderRadius: 2 }}>
+                      {confirming === selected.id ? 'Confirming...' : '✓ Confirm payment received'}
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ padding: '12px', background: 'rgba(42,125,79,0.12)', border: '0.5px solid rgba(42,125,79,0.3)', borderRadius: 2, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#2a7d4f' }}>
+                    ✓ Already confirmed
+                  </div>
+                )}
+              </div>
+              )}
             </div>
           </div>
         )}
