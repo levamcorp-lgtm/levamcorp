@@ -9,6 +9,18 @@ const ACCENT = '#2F7DF6'
 const DEEP = '#1B5FD1'
 const CHIP = '#E8F0FF'
 
+// Marks a document as confirmed outside the portal (WhatsApp, email, in person) instead of
+// uploaded — written into the same ein_document_url/resale_tax_document_url columns rather than
+// a fake storage path, so the approve gate (which just checks "is this field truthy") unblocks
+// honestly, without pretending a real file exists anywhere.
+const EXTERNAL_DOC_MARKER = 'external:whatsapp'
+const isExternalDoc = (path) => typeof path === 'string' && path.startsWith(EXTERNAL_DOC_MARKER)
+const externalDocDate = (path) => {
+  const iso = path?.split('|')[1]
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } catch { return '' }
+}
+
 const NAV_GROUPS_BASE = [
   { label: 'Day to day work', items: [
     { label: 'Dashboard', code: 'DB', href: '/admin/dashboard' },
@@ -169,6 +181,18 @@ export default function AdminApplications() {
     await loadApps(supabase)
   }
 
+  const markDocExternal = async (app, field) => {
+    const value = `${EXTERNAL_DOC_MARKER}|${new Date().toISOString()}`
+    const supabase = createClient()
+    const { error } = await supabase.from('applications').update({ [field]: value }).eq('id', app.id)
+    if (!error) setApplications(prev => prev.map(a => a.id === app.id ? { ...a, [field]: value } : a))
+  }
+  const undoDocExternal = async (app, field) => {
+    const supabase = createClient()
+    const { error } = await supabase.from('applications').update({ [field]: null }).eq('id', app.id)
+    if (!error) setApplications(prev => prev.map(a => a.id === app.id ? { ...a, [field]: null } : a))
+  }
+
   const missingDocs = (app) => {
     const m = []
     if (!app.ein_document_url) m.push('EIN / SS-4 letter')
@@ -247,7 +271,7 @@ export default function AdminApplications() {
   useEffect(() => {
     if (!sel) { setDocUrl(null); return }
     const path = docTab === 'EIN letter' ? sel.ein_document_url : sel.resale_tax_document_url
-    if (!path) { setDocUrl(null); return }
+    if (!path || isExternalDoc(path)) { setDocUrl(null); return }
     let cancelled = false
     setDocLoading(true)
     resolveDocUrl(path).then(url => { if (!cancelled) { setDocUrl(url); setDocLoading(false) } })
@@ -337,7 +361,7 @@ export default function AdminApplications() {
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', paddingTop: 9 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: app.first_contact_at ? '#dcfce7' : '#fde68a', color: app.first_contact_at ? '#166534' : '#7c4a03' }}>{app.first_contact_at ? 'Contacted' : 'Not contacted'}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: partial ? '#fee2e2' : '#eef0f4', color: partial ? '#991b1b' : '#47505e' }}>{docsCount} of 2 uploaded</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: partial ? '#fee2e2' : '#eef0f4', color: partial ? '#991b1b' : '#47505e' }}>{docsCount} of 2 confirmed</span>
                   {app.monthly_volume && <span style={{ fontSize: 12, color: '#8b909a' }}>{app.monthly_volume}</span>}
                 </span>
               </button>
@@ -390,6 +414,7 @@ export default function AdminApplications() {
               },
             ]
 
+            const docField = docTab === 'EIN letter' ? 'ein_document_url' : 'resale_tax_document_url'
             const docPath = docTab === 'EIN letter' ? sel.ein_document_url : sel.resale_tax_document_url
             const docLabel = docTab === 'EIN letter' ? 'ein-ss4-letter' : 'fl-resale-certificate'
 
@@ -467,25 +492,39 @@ export default function AdminApplications() {
                     <div style={{ background: '#ffffff', border: '1px solid #ddd6f3', borderRadius: 12, overflow: 'hidden', position: 'sticky', top: 8 }}>
                       <div style={{ padding: '14px 17px 15px', borderBottom: '1px solid #ddd6f3', background: '#f7f5fe' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 7 }}><span className="lc-mono" style={{ display: 'grid', placeItems: 'center', width: 21, height: 21, borderRadius: 5, background: '#7c3aed', color: '#fff', fontSize: 11, fontWeight: 700 }}>4</span><span className="lc-mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5b21b6' }}>Their documents</span></span>
-                        <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em', color: '#4c1d95' }}>Documents they uploaded</span>
-                        <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Shown right here — no download needed</span>
+                        <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em', color: '#4c1d95' }}>Documents on file</span>
+                        <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Uploaded files shown right here — or confirmed some other way</span>
                       </div>
 
                       <div style={{ display: 'flex', gap: 7, padding: '12px 17px 0' }}>
                         {['EIN letter', 'Resale'].map(k => {
                           const on = docTab === k
-                          const isMissing = k === 'Resale' ? !sel.resale_tax_document_url : !sel.ein_document_url
-                          const label = k === 'Resale' ? (isMissing ? 'Resale · missing' : 'Resale certificate') : 'EIN / SS-4 letter'
-                          return <button key={k} type="button" onClick={() => setDocTab(k)} style={{ flex: '1 1 0', border: `1px solid ${on ? '#16181d' : isMissing ? '#f3c9c9' : '#d9dce2'}`, borderRadius: 8, cursor: 'pointer', background: on ? '#16181d' : isMissing ? '#fff6f6' : '#ffffff', color: on ? '#ffffff' : isMissing ? '#991b1b' : '#47505e', padding: '9px 10px 10px', fontSize: 13.5, fontWeight: on ? 700 : 600 }}>{label}</button>
+                          const path = k === 'Resale' ? sel.resale_tax_document_url : sel.ein_document_url
+                          const external = isExternalDoc(path)
+                          const isMissing = !path
+                          const label = k === 'Resale'
+                            ? (external ? 'Resale · via WhatsApp' : isMissing ? 'Resale · missing' : 'Resale certificate')
+                            : (external ? 'EIN · via WhatsApp' : isMissing ? 'EIN · missing' : 'EIN / SS-4 letter')
+                          const border = on ? '#16181d' : external ? '#bfdbfe' : isMissing ? '#f3c9c9' : '#d9dce2'
+                          const bg = on ? '#16181d' : external ? '#f2f7ff' : isMissing ? '#fff6f6' : '#ffffff'
+                          const ink = on ? '#ffffff' : external ? DEEP : isMissing ? '#991b1b' : '#47505e'
+                          return <button key={k} type="button" onClick={() => setDocTab(k)} style={{ flex: '1 1 0', border: `1px solid ${border}`, borderRadius: 8, cursor: 'pointer', background: bg, color: ink, padding: '9px 10px 10px', fontSize: 13.5, fontWeight: on ? 700 : 600 }}>{label}</button>
                         })}
                       </div>
 
                       <div style={{ padding: '13px 17px 0' }}>
                         <div style={{ border: '1px solid #d9dce2', borderRadius: 10, background: '#eceef2', padding: 12, minHeight: 340, display: 'flex', alignItems: 'stretch' }}>
-                          {!docPath ? (
+                          {isExternalDoc(docPath) ? (
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '2rem', background: '#f2f7ff', border: '1px dashed #bfdbfe', borderRadius: 6, textAlign: 'center' }}>
+                              <div style={{ fontSize: 14.5, fontWeight: 700, color: DEEP }}>✓ Confirmed via WhatsApp / other channel</div>
+                              <div style={{ fontSize: 13, color: '#47505e' }}>{sel.contact_name || 'The applicant'} sent this outside the portal{externalDocDate(docPath) ? ` on ${externalDocDate(docPath)}` : ''} — no file is stored here.</div>
+                              <button type="button" onClick={() => undoDocExternal(sel, docField)} style={{ marginTop: 2, padding: '7px 12px 8px', border: '1px solid #d9dce2', borderRadius: 7, fontSize: 12.5, fontWeight: 600, color: '#6b7280', background: '#ffffff', cursor: 'pointer' }}>Undo — wait for the real upload</button>
+                            </div>
+                          ) : !docPath ? (
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '2rem', background: '#fff6f6', border: '1px dashed #f3c9c9', borderRadius: 6 }}>
                               <div style={{ fontSize: 14.5, fontWeight: 700, color: '#991b1b' }}>Document not submitted</div>
                               <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center' }}>The applicant hasn't uploaded this file yet. Ask for it on WhatsApp above.</div>
+                              <button type="button" onClick={() => markDocExternal(sel, docField)} style={{ marginTop: 2, padding: '8px 13px 9px', border: '1px solid #cfe0fb', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: DEEP, background: '#f2f7ff', cursor: 'pointer' }}>✓ I already got this via WhatsApp / other channel</button>
                             </div>
                           ) : docLoading ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b909a', fontSize: 13.5 }}>Loading document…</div>
@@ -498,7 +537,7 @@ export default function AdminApplications() {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '13px 17px 16px' }}>
-                        <span style={{ fontSize: 13, color: '#6b7280' }}>{docPath ? `${docLabel}.pdf` : 'No file · ask the client for it'}</span>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>{isExternalDoc(docPath) ? 'Confirmed via WhatsApp — no file stored' : docPath ? `${docLabel}.pdf` : 'No file · ask the client for it'}</span>
                         {docUrl && (
                           <span style={{ display: 'flex', gap: 8 }}>
                             <button type="button" onClick={() => window.open(docUrl, '_blank')} style={{ padding: '8px 12px 9px', border: '1px solid #d9dce2', borderRadius: 7, fontSize: 13, fontWeight: 600, color: '#47505e', background: '#ffffff', cursor: 'pointer' }}>Full size</button>

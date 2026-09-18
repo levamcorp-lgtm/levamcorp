@@ -8,6 +8,16 @@ const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
 const ACCENT = '#2F7DF6'
 const DEEP = '#1B5FD1'
 
+// A document confirmed via WhatsApp/other channel instead of uploaded — same marker the
+// Applications page writes into ein_document_url/resale_tax_document_url, carried over on approval.
+const EXTERNAL_DOC_MARKER = 'external:whatsapp'
+const isExternalDoc = (path) => typeof path === 'string' && path.startsWith(EXTERNAL_DOC_MARKER)
+const externalDocDate = (path) => {
+  const iso = path?.split('|')[1]
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } catch { return '' }
+}
+
 const NAV_GROUPS_BASE = [
   { label: 'Day to day work', items: [
     { label: 'Dashboard', code: 'DB', href: '/admin/dashboard' },
@@ -241,7 +251,10 @@ export default function AdminClients() {
     if (!c) return
     let cancelled = false
     setDocLoading(true)
-    Promise.all([resolveDocUrl(c.ein_document_url), resolveDocUrl(c.resale_tax_document_url)]).then(([ein, resale]) => {
+    Promise.all([
+      isExternalDoc(c.ein_document_url) ? Promise.resolve(null) : resolveDocUrl(c.ein_document_url),
+      isExternalDoc(c.resale_tax_document_url) ? Promise.resolve(null) : resolveDocUrl(c.resale_tax_document_url),
+    ]).then(([ein, resale]) => {
       if (!cancelled) { setDocUrls({ ein, resale }); setDocLoading(false) }
     })
     return () => { cancelled = true }
@@ -539,7 +552,12 @@ export default function AdminClients() {
                             </div>
                             <div style={{ padding: '13px 16px 0' }}>
                               <div style={{ border: '1px solid #d9dce2', borderRadius: 9, background: '#eceef2', padding: 11, minHeight: 260, display: 'flex' }}>
-                                {!dc.path ? (
+                                {isExternalDoc(dc.path) ? (
+                                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#f2f7ff', border: '1px dashed #bfdbfe', borderRadius: 6, padding: '1.5rem', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: DEEP }}>✓ Confirmed via WhatsApp / other channel</div>
+                                    <div style={{ fontSize: 12.5, color: '#47505e' }}>Sent outside the portal{externalDocDate(dc.path) ? ` on ${externalDocDate(dc.path)}` : ''} — no file is stored here.</div>
+                                  </div>
+                                ) : !dc.path ? (
                                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#fff6f6', border: '1px dashed #f3c9c9', borderRadius: 6, padding: '1.5rem' }}>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: '#991b1b' }}>Document not submitted</div>
                                     <div style={{ fontSize: 12.5, color: '#6b7280', textAlign: 'center' }}>This client never uploaded this file.</div>
