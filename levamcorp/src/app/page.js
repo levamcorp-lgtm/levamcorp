@@ -2349,7 +2349,7 @@ export default function Home() {
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── PRODUCT PREVIEW / CATALOG SHEET ─────────────────────────────── */}
-      <section className="lc-section" style={{ padding:'clamp(56px,9vh,110px) 2rem clamp(70px,11vh,130px)', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+      <section className="lc-section" id="catalog" style={{ padding:'clamp(56px,9vh,110px) 2rem clamp(70px,11vh,130px)', position:'relative', zIndex:5, borderTop:'1px solid rgba(255,255,255,0.04)' }}>
         <div style={{ maxWidth:1180, margin:'0 auto' }}>
           <Reveal>
             <CatalogSheet/>
