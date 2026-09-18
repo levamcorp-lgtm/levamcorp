@@ -18,7 +18,13 @@ export async function POST(req) {
     }
     if (!clients?.length) return Response.json({ error: 'No clients found' }, { status: 400 })
 
-    const productRows = products.map(p => `
+    const productRows = products.map(p => {
+      const hasOffer = typeof p.offer_price === 'number' && p.offer_price > 0 && p.offer_price < p.price
+      const off = hasOffer ? Math.round((1 - p.offer_price / p.price) * 100) : 0
+      const priceHtml = hasOffer
+        ? `<span style="font-size:13px;font-weight:400;color:#aaa;text-decoration:line-through;margin-right:8px">$${p.price?.toLocaleString()}</span><span style="font-size:20px;font-weight:900;color:#166534">$${p.offer_price.toLocaleString()}</span><span style="font-size:11px;font-weight:400;color:#aaa">/unit</span>`
+        : `<span style="font-size:20px;font-weight:900;color:#111">$${p.price?.toLocaleString()}</span><span style="font-size:11px;font-weight:400;color:#aaa">/unit</span>`
+      return `
       <tr>
         <td style="padding:16px;border-bottom:1px solid #f0f0f0;vertical-align:top;width:80px">
           ${p.image_url
@@ -30,14 +36,15 @@ export async function POST(req) {
           ${p.brand ? `<div style="font-size:10px;font-weight:700;color:#2d7dd2;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px">${p.brand}</div>` : ''}
           <div style="font-size:15px;font-weight:700;color:#111;margin-bottom:4px">${p.name}</div>
           ${p.description ? `<div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:8px">${p.description.slice(0,120)}${p.description.length > 120 ? '...' : ''}</div>` : ''}
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <span style="font-size:20px;font-weight:900;color:#111">$${p.price?.toLocaleString()}<span style="font-size:11px;font-weight:400;color:#aaa">/unit</span></span>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            ${priceHtml}
+            ${hasOffer ? `<span style="font-size:11px;color:#166534;background:rgba(22,163,74,0.1);border:0.5px solid rgba(22,163,74,0.25);padding:3px 10px;border-radius:20px;font-weight:700;align-self:center">${off}% off</span>` : ''}
             ${p.moq ? `<span style="font-size:11px;color:#2d7dd2;background:rgba(45,125,210,0.08);border:0.5px solid rgba(45,125,210,0.2);padding:3px 10px;border-radius:20px;font-weight:600;align-self:center">Min. ${p.moq} units</span>` : ''}
             ${p.stock ? `<span style="font-size:11px;color:#2a7d4f;background:rgba(42,125,79,0.08);border:0.5px solid rgba(42,125,79,0.2);padding:3px 10px;border-radius:20px;font-weight:600;align-self:center">${p.stock} in stock</span>` : ''}
           </div>
         </td>
       </tr>
-    `).join('')
+    `}).join('')
 
     const buildHtml = (clientName) => `<!DOCTYPE html>
 <html>
