@@ -5,25 +5,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+const CATALOG_SIZE = 10
+
 export async function GET() {
   try {
-    // Get top picks first, then fill with regular products up to 8
+    // Get top picks first, then fill with regular products up to CATALOG_SIZE
     const { data: topPicks } = await supabase
       .from('products')
       .select('id, name, brand, image_url, moq, category, is_top_pick')
       .eq('active', true)
       .eq('is_top_pick', true)
-      .limit(8)
+      .limit(CATALOG_SIZE)
 
     let products = topPicks || []
 
-    if (products.length < 8) {
+    if (products.length < CATALOG_SIZE) {
       const { data: regular } = await supabase
         .from('products')
         .select('id, name, brand, image_url, moq, category, is_top_pick')
         .eq('active', true)
         .eq('is_top_pick', false)
-        .limit(8 - products.length)
+        .limit(CATALOG_SIZE - products.length)
       products = [...products, ...(regular || [])]
     }
 
