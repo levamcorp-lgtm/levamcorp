@@ -1,88 +1,95 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { createClient } from '../../../lib/supabase'
 
-// ── MINI CHART COMPONENTS ─────────────────────────────────────────────────────
-function BarChart({ data, color = '#2d7dd2', height = 80 }) {
-  if (!data?.length) return <div style={{ height, display:'flex', alignItems:'center', justifyContent:'center', color:'#ccc', fontSize:11 }}>No data</div>
-  const max = Math.max(...data.map(d => d.value), 1)
-  return (
-    <div style={{ display:'flex', alignItems:'flex-end', gap:3, height, paddingTop:8 }}>
-      {data.map((d, i) => (
-        <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, height:'100%', justifyContent:'flex-end' }}>
-          <div title={`${d.label}: ${d.value}`} style={{ width:'100%', background:color, borderRadius:'2px 2px 0 0', height:`${(d.value/max)*100}%`, minHeight: d.value > 0 ? 3 : 0, opacity: d.value === 0 ? 0.2 : 1, transition:'height 0.4s ease', cursor:'default' }}/>
-          <div style={{ fontSize:8, color:'#aaa', textAlign:'center', whiteSpace:'nowrap', overflow:'hidden', width:'100%', textOverflow:'ellipsis' }}>{d.label}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
+const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
+const ACCENT = '#2F7DF6'
+const DEEP = '#1B5FD1'
 
-function LineChart({ data, color = '#2d7dd2', height = 80 }) {
-  if (!data?.length || data.length < 2) return <div style={{ height, display:'flex', alignItems:'center', justifyContent:'center', color:'#ccc', fontSize:11 }}>Not enough data</div>
-  const max = Math.max(...data.map(d => d.value), 1)
-  const W = 300, H = height - 20
-  const pts = data.map((d, i) => ({
-    x: (i / (data.length - 1)) * W,
-    y: H - (d.value / max) * H,
+const NAV_GROUPS_BASE = [
+  { label: 'Day to day work', items: [
+    { label: 'Dashboard', code: 'DB', href: '/admin/dashboard' },
+    { label: 'Applications', code: 'AP', href: '/admin/applications' },
+    { label: 'Orders', code: 'OR', href: '/admin/orders' },
+    { label: 'Payments', code: 'PY', href: '/admin/payments' },
+    { label: 'Messages', code: 'MS', href: '/admin/messages' },
+  ]},
+  { label: 'Catalog and clients', items: [
+    { label: 'Products', code: 'PR', href: '/admin/products' },
+    { label: 'Clients', code: 'CL', href: '/admin/clients' },
+    { label: 'Invoices', code: 'IN', href: '/admin/invoices' },
+    { label: 'Offers', code: 'OF', href: '/admin/offers' },
+  ]},
+  { label: 'Money and growth', items: [
+    { label: 'Profit report', code: 'PF', href: '/admin/profit' },
+    { label: 'Analytics', code: 'AN', href: '/admin/insights' },
+    { label: 'Marketing', code: 'MK', href: '/admin/marketing' },
+    { label: 'Walmart', code: 'WM', href: '/admin/walmart' },
+    { label: 'Recruit', code: 'RC', href: '/admin/recruit' },
+  ]},
+]
+
+function Sidebar({ open, setOpen, pathname, badges }) {
+  const navGroups = NAV_GROUPS_BASE.map(g => ({
+    label: g.label,
+    items: g.items.map(n => {
+      const active = n.href === pathname
+      const meta = badges[n.label] || {}
+      const badge = active ? '' : (meta.badge || '')
+      const urgent = !active && meta.urgent
+      return {
+        label: n.label, code: n.code, href: n.href,
+        bg: active ? '#16181d' : 'transparent',
+        ink: active ? '#ffffff' : '#3d4652',
+        weight: active ? 700 : 500,
+        iconBg: active ? ACCENT : urgent ? '#fde68a' : '#eef0f4',
+        iconInk: active ? '#ffffff' : urgent ? '#7c4a03' : '#6b7280',
+        badge,
+        badgeBg: badge ? (urgent ? '#fde68a' : '#eef0f4') : 'transparent',
+        badgeInk: badge ? (urgent ? '#7c4a03' : '#6b7280') : 'transparent',
+        collapsedDot: !open && urgent,
+      }
+    })
   }))
-  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const areaD = `${pathD} L ${pts[pts.length-1].x} ${H} L 0 ${H} Z`
   return (
-    <div style={{ position:'relative', height }}>
-      <svg viewBox={`0 0 ${W} ${H+20}`} style={{ width:'100%', height:'100%' }} preserveAspectRatio="none">
-        <defs>
-          <linearGradient id={`grad-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.2"/>
-            <stop offset="100%" stopColor={color} stopOpacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d={areaD} fill={`url(#grad-${color.replace('#','')})`}/>
-        <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} opacity={0.8}/>
-        ))}
-      </svg>
-    </div>
-  )
-}
-
-function DonutChart({ data, size = 100 }) {
-  if (!data?.length) return null
-  const total = data.reduce((s, d) => s + d.value, 0)
-  if (total === 0) return null
-  const colors = ['#2d7dd2','#22c55e','#f59e0b','#e74c3c','#8b5cf6','#14b8a6']
-  let cumulative = 0
-  const r = 35, cx = 50, cy = 50, circumference = 2 * Math.PI * r
-
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-      <svg width={size} height={size} viewBox="0 0 100 100">
-        {data.map((d, i) => {
-          const pct = d.value / total
-          const offset = circumference * (1 - cumulative)
-          const dash = circumference * pct
-          cumulative += pct
-          return (
-            <circle key={i} cx={cx} cy={cy} r={r}
-              fill="none" stroke={colors[i % colors.length]} strokeWidth="18"
-              strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={offset}
-              style={{ transform:'rotate(-90deg)', transformOrigin:'center', transition:'all 0.5s ease' }}/>
-          )
-        })}
-        <circle cx={cx} cy={cy} r={24} fill="#fff"/>
-        <text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="700" fill="#111">{total}</text>
-        <text x={cx} y={cy+14} textAnchor="middle" dominantBaseline="middle" fontSize="7" fill="#aaa">total</text>
-      </svg>
-      <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ display:'flex', alignItems:'center', gap:7 }}>
-            <div style={{ width:8, height:8, borderRadius:'50%', background:colors[i % colors.length], flexShrink:0 }}/>
-            <span style={{ fontSize:11, color:'#555', flex:1 }}>{d.label}</span>
-            <span style={{ fontSize:11, fontWeight:700, color:'#111' }}>{d.value}</span>
-            <span style={{ fontSize:10, color:'#aaa' }}>{Math.round((d.value/total)*100)}%</span>
+    <div data-scroll style={{ height: '100vh', overflowY: 'auto', overflowX: 'hidden', background: '#ffffff', borderRight: '1px solid #e2e4e9' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: open ? 'space-between' : 'center', gap: 12, padding: '16px 14px 17px', borderBottom: '1px solid #e2e4e9' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 8, background: '#16181d' }}><img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width: 20, height: 'auto' }} /></span>
+          {open && (
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.015em', whiteSpace: 'nowrap' }}>Levam Corp</span>
+              <span style={{ display: 'block', paddingTop: 3, fontSize: 12.5, color: '#6b7280', whiteSpace: 'nowrap' }}>Admin console</span>
+            </span>
+          )}
+        </span>
+        {open && <button type="button" onClick={() => setOpen(false)} aria-label="Collapse menu" title="Collapse menu" style={{ flex: 'none', border: '1px solid #d9dce2', borderRadius: 7, background: '#ffffff', cursor: 'pointer', width: 32, height: 32, display: 'grid', placeItems: 'center', fontFamily: "'JetBrains Mono',monospace", fontSize: 15, color: '#47505e' }}>‹</button>}
+      </div>
+      {!open && (
+        <div style={{ padding: '12px 0 4px', display: 'flex', justifyContent: 'center' }}>
+          <button type="button" onClick={() => setOpen(true)} aria-label="Expand menu" title="Expand menu" style={{ border: '1px solid #d9dce2', borderRadius: 7, background: '#ffffff', cursor: 'pointer', width: 38, height: 34, display: 'grid', placeItems: 'center', fontFamily: "'JetBrains Mono',monospace", fontSize: 15, color: '#47505e' }}>›</button>
+        </div>
+      )}
+      <div style={{ padding: '14px 10px 20px' }}>
+        {navGroups.map(g => (
+          <div key={g.label} style={{ paddingBottom: 18 }}>
+            {open ? (
+              <div style={{ padding: '0 8px 8px', fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: '#9aa0aa', whiteSpace: 'nowrap' }}>{g.label}</div>
+            ) : (
+              <div style={{ margin: '0 8px 10px', height: 1, background: '#e8eaee' }} />
+            )}
+            {g.items.map(n => (
+              <Link key={n.label} href={n.href} title={n.badge ? `${n.label} · ${n.badge}` : n.label} style={{ display: 'flex', alignItems: 'center', justifyContent: open ? 'space-between' : 'center', gap: 11, padding: open ? '9px 10px' : '9px 0', marginBottom: 3, borderRadius: 8, background: n.bg, color: n.ink, fontSize: 15, fontWeight: n.weight, letterSpacing: '-.01em', position: 'relative' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+                  <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 6, background: n.iconBg, color: n.iconInk, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 11 }}>{n.code}</span>
+                  {open && <span style={{ whiteSpace: 'nowrap' }}>{n.label}</span>}
+                </span>
+                {open && n.badge && <span style={{ flex: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: 11.5, fontWeight: 700, padding: '3px 7px 4px', borderRadius: 5, background: n.badgeBg, color: n.badgeInk }}>{n.badge}</span>}
+                {n.collapsedDot && <span style={{ position: 'absolute', top: 5, right: 5, width: 8, height: 8, borderRadius: '50%', background: '#dc2626', border: '2px solid #ffffff' }} />}
+              </Link>
+            ))}
           </div>
         ))}
       </div>
@@ -90,619 +97,662 @@ function DonutChart({ data, size = 100 }) {
   )
 }
 
-function SparkLine({ values, color = '#2d7dd2' }) {
-  if (!values?.length) return null
-  const max = Math.max(...values, 1)
-  const W = 80, H = 28
-  const pts = values.map((v, i) => ({ x:(i/(values.length-1))*W, y:H-(v/max)*H }))
-  const d = pts.map((p,i) => `${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ')
-  return (
-    <svg width={W} height={H} style={{ display:'block' }}>
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+const money = (n) => '$' + (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+const fmtShort = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'
+const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''
+const daysSince = (d) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : null
+
+const TIER_STYLE = {
+  Platinum: { bg: '#ede9fe', ink: '#5b21b6' },
+  Gold: { bg: '#fef3c7', ink: '#7c4a03' },
+  Silver: { bg: '#e8eaee', ink: '#47505e' },
+  Standard: { bg: '#eef0f4', ink: '#6b7280' },
 }
 
-// ── KPI CARD ──────────────────────────────────────────────────────────────────
-function KPI({ label, value, sub, color='#2d7dd2', icon, trend, sparkValues }) {
-  const trendUp = trend > 0
-  return (
-    <div style={{ background:'#fff', border:'1px solid #f0f0f0', borderRadius:10, padding:'1.25rem 1.5rem', borderTop:`3px solid ${color}`, display:'flex', flexDirection:'column', gap:8 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-        <div style={{ fontSize:10, fontWeight:700, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase' }}>{label}</div>
-        <div style={{ color, opacity:0.7 }}>{icon}</div>
-      </div>
-      <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
-        <div>
-          <div style={{ fontSize:28, fontWeight:900, color:'#111', letterSpacing:'-0.02em', lineHeight:1 }}>{value}</div>
-          {sub && <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>{sub}</div>}
-        </div>
-        {sparkValues && <SparkLine values={sparkValues} color={color}/>}
-      </div>
-      {trend !== undefined && (
-        <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color: trendUp?'#22c55e':'#e74c3c', fontWeight:600 }}>
-          <span>{trendUp ? '↑' : '↓'} {Math.abs(trend)}%</span>
-          <span style={{ color:'#aaa', fontWeight:400 }}>vs prev period</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── ICONS ─────────────────────────────────────────────────────────────────────
-const IC = {
-  eye:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  users:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  box:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
-  search: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  zap:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
-  cart:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
-  clock:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  fire:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
-  dollar: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-}
-
-// ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function AdminInsights() {
-  const [events,   setEvents]   = useState([])
-  const [orders,   setOrders]   = useState([])
-  const [clients,  setClients]  = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [range,    setRange]    = useState('30')
-  const [tab,      setTab]      = useState('overview')
+  const pathname = usePathname()
+  const [events, setEvents] = useState([])
+  const [orders, setOrders] = useState([])
+  const [clients, setClients] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [period, setPeriod] = useState('30')
+  const [tab, setTab] = useState('Overview')
+  const [clientSort, setClientSort] = useState('Intent')
 
-  useEffect(() => { load() }, [range])
+  useEffect(() => {
+    const sb = createClient()
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
+      await loadAll(sb, period)
+    })
+  }, [])
 
-  const load = async () => {
+  useEffect(() => { if (!loading) loadAll(createClient(), period) }, [period])
+
+  const loadAll = async (sb, days) => {
     setLoading(true)
-    try {
-      const sb   = createClient()
-      const from = new Date()
-      from.setDate(from.getDate() - parseInt(range))
-      const fromISO = from.toISOString()
-
-      const [evRes, ordRes, cliRes] = await Promise.all([
-        sb.from('analytics_events').select('*').gte('created_at', fromISO).order('created_at', { ascending: false }),
-        sb.from('orders').select('*,order_items(*)').gte('created_at', fromISO).order('created_at', { ascending: false }),
-        sb.from('clients').select('*').order('created_at', { ascending: false }),
-      ])
-      setEvents(evRes.data || [])
-      setOrders(ordRes.data || [])
-      setClients(cliRes.data || [])
-    } catch(e) { console.error(e) }
+    const from = new Date(); from.setDate(from.getDate() - parseInt(days))
+    const [{ data: ev }, { data: o }, { data: cl }, { data: p }] = await Promise.all([
+      sb.from('analytics_events').select('*').gte('created_at', from.toISOString()).order('created_at', { ascending: false }),
+      sb.from('orders').select('*,order_items(*)').gte('submitted_at', from.toISOString()).order('submitted_at', { ascending: false }),
+      sb.from('clients').select('*'),
+      sb.from('products').select('id, name, brand, category, stock, active'),
+    ])
+    setEvents(ev || []); setOrders(o || []); setClients(cl || []); setProducts(p || [])
     setLoading(false)
   }
 
-  // ── DERIVED ───────────────────────────────────────────────────────────────
-  const pageViews    = events.filter(e => e.event_type === 'page_view')
+  // ── REAL derived data — everything below reads from analytics_events / orders / clients / products ──
+  const pageViews = events.filter(e => e.event_type === 'page_view')
   const productViews = events.filter(e => e.event_type === 'product_view')
-  const clicks       = events.filter(e => e.event_type === 'product_click')
-  const searches     = events.filter(e => e.event_type === 'catalog_search')
+  const quoteAdds = events.filter(e => e.event_type === 'product_click')
+  const searchEvents = events.filter(e => e.event_type === 'catalog_search')
   const uniqueEmails = [...new Set(events.map(e => e.client_email).filter(Boolean))]
+  const confirmedOrders = orders.filter(o => ['confirmed', 'dispatched', 'completed'].includes(o.status))
 
-  // Daily breakdown for charts
-  const days = parseInt(range)
-  const dailyLabels = Array.from({ length: Math.min(days, 14) }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (Math.min(days,14) - 1 - i))
-    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
-  })
-  const dailyData = (evType) => dailyLabels.map(label => ({
-    label,
-    value: events.filter(e => {
-      if (evType && e.event_type !== evType) return false
-      const d = new Date(e.created_at)
-      return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) === label
-    }).length
-  }))
+  const clientNameFor = (order) => (order.notes || '').split('Business: ')[1]?.split('|')[0]?.split('\n')[0]?.trim() || 'Client'
+  const emailFor = (order) => (order.notes || '').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim() || ''
+  const ordersForEmail = (email) => confirmedOrders.filter(o => emailFor(o) === email)
 
-  // Product stats
+  const revenueByEmail = {}
+  confirmedOrders.forEach(o => { const e = emailFor(o); if (e) revenueByEmail[e] = (revenueByEmail[e] || 0) + (o.total || 0) })
+  const tierFor = (email) => { const rev = revenueByEmail[email] || 0; if (rev >= 20000) return 'Platinum'; if (rev >= 5000) return 'Gold'; if (rev >= 1000) return 'Silver'; return 'Standard' }
+
+  // Product map — real event counts joined to real current stock
   const productMap = {}
   productViews.forEach(e => {
     const k = e.product_id || e.product_name
     if (!k) return
-    if (!productMap[k]) productMap[k] = { name:e.product_name, brand:e.product_brand, views:0, clicks:0, searches:0 }
+    if (!productMap[k]) productMap[k] = { id: e.product_id, name: e.product_name, brand: e.product_brand, views: 0, quotes: 0 }
     productMap[k].views++
   })
-  clicks.forEach(e => {
-    const k = e.product_id || e.product_name
-    if (productMap[k]) productMap[k].clicks++
-  })
-  const topProducts = Object.values(productMap).sort((a,b) => b.views - a.views)
-  const opportunities = topProducts.filter(p => p.views >= 2 && p.clicks === 0)
+  quoteAdds.forEach(e => { const k = e.product_id || e.product_name; if (productMap[k]) productMap[k].quotes++ })
+  const topProducts = Object.values(productMap).map(p => {
+    const real = products.find(rp => rp.id === p.id) || products.find(rp => rp.name === p.name)
+    return { ...p, stock: real ? real.stock : null, category: real ? real.category : null, active: real ? real.active : null }
+  }).sort((a, b) => b.views - a.views)
+  const maxViews = topProducts[0]?.views || 1
+  const unfilled = topProducts.filter(p => p.stock === 0 && p.views >= 2).sort((a, b) => b.views - a.views).slice(0, 6)
 
-  // Client stats
+  // Client map — real event counts joined to real client record + real order history
   const clientMap = {}
   events.filter(e => e.client_email).forEach(e => {
-    if (!clientMap[e.client_email]) clientMap[e.client_email] = {
-      email:e.client_email, name:e.client_name||e.client_email,
-      pageViews:0, productViews:0, clicks:0, searches:0, lastSeen:e.created_at,
-      days: new Set()
-    }
+    if (!clientMap[e.client_email]) clientMap[e.client_email] = { email: e.client_email, name: e.client_name || e.client_email, pageViews: 0, productViews: 0, searches: 0, quotes: 0, lastSeen: e.created_at, lastProduct: null, lastProductAt: null }
     const c = clientMap[e.client_email]
-    if (e.event_type==='page_view')     c.pageViews++
-    if (e.event_type==='product_view')  c.productViews++
-    if (e.event_type==='product_click') c.clicks++
-    if (e.event_type==='catalog_search') c.searches++
-    if (e.created_at > c.lastSeen)      c.lastSeen = e.created_at
-    c.days.add(new Date(e.created_at).toDateString())
+    if (e.event_type === 'page_view') c.pageViews++
+    if (e.event_type === 'product_view') { c.productViews++; if (!c.lastProductAt || e.created_at > c.lastProductAt) { c.lastProduct = e.product_name; c.lastProductAt = e.created_at } }
+    if (e.event_type === 'catalog_search') c.searches++
+    if (e.event_type === 'product_click') c.quotes++
+    if (e.created_at > c.lastSeen) c.lastSeen = e.created_at
   })
-  const topClients = Object.values(clientMap).sort((a,b) => b.productViews - a.productViews)
+  const clientProfiles = Object.values(clientMap).map(c => {
+    const realClient = clients.find(rc => rc.email === c.email)
+    const days = daysSince(c.lastSeen)
+    const recency = Math.max(0, 30 - (days ?? 30)) / 30
+    const score = Math.min(100, Math.round(c.productViews * 0.5 + c.searches * 0.8 + c.quotes * 9 + recency * 22))
+    const ordersN = ordersForEmail(c.email).length
+    return { ...c, businessName: realClient?.business_name || c.name, phone: realClient?.phone || '', tier: tierFor(c.email), days, score, orders: ordersN }
+  })
 
-  // Revenue from orders
-  const totalRevenue  = orders.reduce((s,o) => s + (o.total||0), 0)
-  const avgOrderValue = orders.length ? totalRevenue/orders.length : 0
-
-  // Search terms
   const searchMap = {}
-  searches.forEach(e => {
-    const q = e.metadata?.query?.toLowerCase()
-    if (q) searchMap[q] = (searchMap[q]||0)+1
+  searchEvents.forEach(e => { const q = e.metadata?.query?.toLowerCase()?.trim(); if (q) searchMap[q] = (searchMap[q] || 0) + 1 })
+  const topSearches = Object.entries(searchMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([term, n]) => {
+    const carried = products.some(p => (p.name + ' ' + (p.brand || '')).toLowerCase().includes(term))
+    return { term, n, carried }
   })
-  const topSearches = Object.entries(searchMap).sort((a,b)=>b[1]-a[1]).slice(0,10)
 
-  // Category breakdown
-  const catMap = {}
-  productViews.forEach(e => {
-    const brand = e.product_brand || 'Unknown'
-    catMap[brand] = (catMap[brand]||0)+1
+  const brandMap = {}
+  productViews.forEach(e => { const b = e.product_brand || 'Unknown'; brandMap[b] = (brandMap[b] || 0) + 1 })
+  const brandTotal = Object.values(brandMap).reduce((a, b) => a + b, 0) || 1
+  const brandColors = [ACCENT, '#16a34a', '#f0b429', '#dc2626', '#7c3aed', '#0ea5e9']
+  const brands = Object.entries(brandMap).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v], i) => ({ k, v, pct: Math.round((v / brandTotal) * 100), color: brandColors[i % brandColors.length] }))
+
+  // Daily activity (blue = page+product views, green = quote adds)
+  const dayCount = Math.min(parseInt(period), 14)
+  const dayLabels = Array.from({ length: dayCount }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (dayCount - 1 - i)); return d })
+  const days = dayLabels.map(d => {
+    const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const views = events.filter(e => (e.event_type === 'page_view' || e.event_type === 'product_view') && new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) === key).length
+    const q = quoteAdds.filter(e => new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) === key).length
+    return { label: key, views, quotes: q }
   })
-  const brandData = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([label,value])=>({label,value}))
+  const maxDayViews = Math.max(...days.map(d => d.views), 1)
 
-  // Hourly activity (what time do clients browse?)
   const hourMap = Array(24).fill(0)
-  events.forEach(e => { hourMap[new Date(e.created_at).getHours()]++ })
+  events.forEach(e => hourMap[new Date(e.created_at).getHours()]++)
   const peakHour = hourMap.indexOf(Math.max(...hourMap))
-  const hourData = hourMap.map((value,i) => ({ label: i%4===0?`${i}h`:'', value }))
+  const maxHour = Math.max(...hourMap, 1)
 
-  // Conversion funnel
   const funnel = [
-    { label:'Page views',      value:pageViews.length,   color:'#2d7dd2' },
-    { label:'Product views',   value:productViews.length,color:'#6366f1' },
-    { label:'Add to quote',    value:clicks.length,       color:'#f59e0b' },
-    { label:'Orders placed',   value:orders.length,       color:'#22c55e' },
+    { k: 'Visited the portal', v: pageViews.length, color: ACCENT },
+    { k: 'Opened a product', v: productViews.length, color: '#7c3aed' },
+    { k: 'Searched something', v: searchEvents.length, color: '#f0b429' },
+    { k: 'Added to quote', v: quoteAdds.length, color: '#16a34a' },
+    { k: 'Placed an order', v: confirmedOrders.length, color: '#0ea5e9' },
   ]
-  const funnelMax = funnel[0].value || 1
+  const funnelTop = funnel[0].v || 1
+  const endRate = pageViews.length ? (confirmedOrders.length / pageViews.length) * 100 : 0
 
-  const tabs = [
-    { id:'overview',  label:'Overview'    },
-    { id:'products',  label:'Products'    },
-    { id:'clients',   label:'Clients'     },
-    { id:'revenue',   label:'Revenue'     },
-    { id:'activity',  label:'Live feed'   },
+  // Hot leads — real: added to quote in the period and seen recently, no fabricated $ value
+  const hotLeads = clientProfiles.filter(c => c.quotes > 0 && c.days !== null && c.days <= 7).sort((a, b) => b.score - a.score)
+
+  // Revenue — real, per client + per month + per category
+  const revClients = Object.entries(revenueByEmail).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([email, revenue]) => {
+    const realClient = clients.find(rc => rc.email === email)
+    return { email, biz: realClient?.business_name || realClient?.contact_name || email, revenue, tier: tierFor(email) }
+  })
+  const revMax = revClients[0]?.revenue || 1
+
+  const monthKeys = Array.from(new Set(confirmedOrders.map(o => o.submitted_at && o.submitted_at.slice(0, 7)).filter(Boolean))).sort().slice(-6)
+  const revMonths = monthKeys.map(k => {
+    const mo = confirmedOrders.filter(o => o.submitted_at && o.submitted_at.startsWith(k))
+    const total = mo.reduce((s, o) => s + (o.total || 0), 0)
+    const [y, m] = k.split('-')
+    return { key: k, label: new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' }), total }
+  })
+  const revMonthMax = Math.max(...revMonths.map(m => m.total), 1)
+
+  const catMap = {}
+  confirmedOrders.forEach(o => (o.order_items || []).forEach(item => {
+    const prod = products.find(p => p.id === item.product_id)
+    const cat = prod?.category || 'Uncategorized'
+    catMap[cat] = (catMap[cat] || 0) + (item.quantity || 0) * (item.unit_price || item.price || 0)
+  }))
+  const catColors = [ACCENT, '#7c3aed', '#16a34a', '#f0b429', '#dc2626', '#0ea5e9']
+  const revCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v], i) => ({ k, v, color: catColors[i % catColors.length] }))
+  const revCatMax = revCats[0]?.[1] || Math.max(...revCats.map(c => c.v), 1)
+
+  // Live feed — real events, newest first
+  const eventStyle = {
+    page_view: { label: 'Page view', icon: 'V', iBg: '#f1f2f5', iInk: '#47505e', edge: 'transparent' },
+    product_view: { label: 'Viewed product', icon: 'V', iBg: '#e8f0ff', iInk: DEEP, edge: 'transparent' },
+    product_click: { label: 'Added to quote', icon: 'Q', iBg: '#dcfce7', iInk: '#166534', edge: '#16a34a' },
+    catalog_search: { label: 'Searched', icon: 'S', iBg: '#fef3c7', iInk: '#7c4a03', edge: '#f0b429' },
+  }
+  const feed = events.slice(0, 60).map(e => {
+    const s = eventStyle[e.event_type] || { label: e.event_type, icon: '•', iBg: '#f1f2f5', iInk: '#6b7280', edge: 'transparent' }
+    const realClient = clients.find(rc => rc.email === e.client_email)
+    return {
+      icon: s.icon, iBg: s.iBg, iInk: s.iInk, edge: s.edge,
+      who: e.client_name || e.client_email || 'Unknown',
+      detail: e.event_type === 'product_view' || e.event_type === 'product_click' ? e.product_name : e.event_type === 'catalog_search' ? `"${e.metadata?.query || ''}"` : e.page || '',
+      label: s.label,
+      when: `${fmtShort(e.created_at)} · ${fmtTime(e.created_at)}`,
+      phone: realClient?.phone || '',
+      showAction: e.event_type === 'product_click',
+    }
+  })
+
+  const shellCols = sidebarOpen ? 'clamp(210px, 16vw, 244px) minmax(0, 1fr)' : '76px minmax(0, 1fr)'
+  const twoCols = 'minmax(0, 1.18fr) minmax(290px, .82fr)'
+
+  const exportCSV = () => {
+    const header = ['Client', 'Email', 'Page views', 'Product views', 'Searches', 'Added to quote', 'Orders', 'Last seen']
+    const lines = clientProfiles.map(c => [c.businessName, c.email, c.pageViews, c.productViews, c.searches, c.quotes, c.orders, fmtShort(c.lastSeen)].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    const csv = [header.join(','), ...lines].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `levam-analytics-${period}d.csv`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
+      <style>{`@keyframes spin { to{transform:rotate(360deg)} }`}</style>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 32, height: 32, margin: '0 auto 14px', border: '3px solid #e2e4e9', borderTopColor: ACCENT, borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <div style={{ fontSize: 13, color: '#6b7280' }}>Loading analytics…</div>
+      </div>
+    </div>
+  )
+
+  const kpiDefs = [
+    { k: 'Page views', v: pageViews.length, sub: 'vs. last period not tracked', bar: ACCENT, iBg: '#e8f0ff', iInk: DEEP },
+    { k: 'Active clients', v: uniqueEmails.length, sub: 'signed in', bar: '#7c3aed', iBg: '#ede9fe', iInk: '#5b21b6' },
+    { k: 'Product views', v: productViews.length, sub: 'catalog opens', bar: '#f0b429', iBg: '#fef3c7', iInk: '#7c4a03' },
+    { k: 'Added to quote', v: quoteAdds.length, sub: 'buying signals', bar: '#16a34a', iBg: '#dcfce7', iInk: '#166534' },
+    { k: 'Orders', v: confirmedOrders.length, sub: 'placed in portal', bar: '#0ea5e9', iBg: '#e0f2fe', iInk: '#075985' },
+    { k: 'Searches', v: searchEvents.length, sub: 'what they hunt for', bar: '#8b909a', iBg: '#f1f2f5', iInk: '#47505e' },
   ]
+
+  const tabDefs = [
+    { key: 'Overview', label: 'Overview', icon: 'O' },
+    { key: 'Products', label: 'Products', icon: 'P' },
+    { key: 'Clients', label: 'Clients', icon: 'C' },
+    { key: 'Revenue', label: 'Revenue', icon: '$' },
+    { key: 'Live', label: 'Live feed', icon: 'L' },
+  ]
+
+  let sortedClients = clientProfiles.slice()
+  if (clientSort === 'Views') sortedClients.sort((a, b) => b.productViews - a.productViews)
+  else if (clientSort === 'Recent') sortedClients.sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
+  else sortedClients.sort((a, b) => b.score - a.score)
 
   return (
-    <div style={{ minHeight:'100vh', background:'#f4f5f7', fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif' }}>
+    <div style={{ background: '#f4f5f7', minHeight: '100vh', color: '#16181d', fontFamily: '"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
       <style>{`
-        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        .insight-section { animation: fadeIn 0.3s ease }
-        table { border-collapse: collapse; width: 100% }
-        th, td { text-align: left; }
+        .lc-mono { font-family:'JetBrains Mono','SF Mono',ui-monospace,Menlo,monospace; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes lvm-live { 0%,100%{opacity:.3} 50%{opacity:1} }
+        .ain-shell { min-height:100vh; display:grid; grid-template-columns:${shellCols}; align-items:start; }
+        @media(max-width:860px){ .ain-shell { grid-template-columns:1fr !important; } .ain-shell > div:first-child { position:static !important; max-height:none !important; } }
+        .ain-2col { display:grid; grid-template-columns:${twoCols}; gap:clamp(14px,1.8vw,18px); align-items:start; }
+        @media(max-width:820px){ .ain-2col { grid-template-columns:1fr !important; } }
+        [data-scroll]::-webkit-scrollbar { width:8px; height:8px; }
+        [data-scroll]::-webkit-scrollbar-thumb { background: rgba(22,24,29,0.22); border-radius:4px; }
+        a { text-decoration:none; }
       `}</style>
 
-      {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <div style={{ background:'#fff', borderBottom:'1px solid #eee', padding:'1rem 2rem', position:'sticky', top:0, zIndex:40 }}>
-        <div style={{ maxWidth:1300, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-            <Link href="/admin/dashboard" style={{ fontSize:12, color:'#888', textDecoration:'none' }}>← Dashboard</Link>
-            <div style={{ width:1, height:16, background:'#eee' }}/>
-            <h1 style={{ fontSize:18, fontWeight:800, color:'#111', margin:0 }}>Analytics & Insights</h1>
-            <div style={{ fontSize:9, padding:'3px 10px', background:'rgba(34,197,94,0.1)', color:'#22c55e', borderRadius:20, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:4 }}>
-              <div style={{ width:5, height:5, borderRadius:'50%', background:'#22c55e', animation:'pulse 2s infinite' }}/>Live
+      <div className="ain-shell">
+        <div data-scroll style={{ position: 'sticky', top: 0, alignSelf: 'stretch', maxHeight: '100vh', overflowY: 'auto' }}>
+          <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} pathname={pathname} badges={{}} />
+        </div>
+
+        <div style={{ minWidth: 0 }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: '13px clamp(14px,2.4vw,28px)', background: '#ffffff', borderBottom: '1px solid #e2e4e9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em' }}>Analytics</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 10px 5px', borderRadius: 999, background: '#dcfce7', color: '#166534' }} className="lc-mono">
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', animation: 'lvm-live 2.4s ease-in-out infinite' }} />
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' }}>Live</span>
+              </span>
+              <span style={{ fontSize: 14, color: '#6b7280' }}>Last {period} days · {uniqueEmails.length} clients active</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span data-scroll style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 8, overflowX: 'auto', background: '#f7f8fa' }}>
+                {['7', '14', '30', '90'].map(p => { const on = p === period
+                  return <button key={p} type="button" onClick={() => setPeriod(p)} style={{ flex: '0 0 auto', border: 0, cursor: 'pointer', padding: '9px 13px 10px', background: on ? '#16181d' : 'transparent', color: on ? '#ffffff' : '#6b7280', fontSize: 13.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap' }}>{p} days</button>
+                })}
+              </span>
+              <button type="button" onClick={exportCSV} style={{ padding: '10px 13px 11px', border: '1px solid #d9dce2', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#47505e', background: '#ffffff', cursor: 'pointer' }}>↓ Export</button>
             </div>
           </div>
-          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-            <span style={{ fontSize:11, color:'#888' }}>Period:</span>
-            {[['7','7 days'],['14','14 days'],['30','30 days'],['90','90 days']].map(([val,label]) => (
-              <button key={val} onClick={()=>setRange(val)}
-                style={{ fontSize:11, fontWeight:700, padding:'5px 14px', borderRadius:20, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
-                  background:range===val?'#111':'#fff', color:range===val?'#fff':'#666', border:range===val?'1px solid #111':'1px solid #e5e7eb' }}>
-                {label}
-              </button>
-            ))}
-            <button onClick={load} style={{ fontSize:11, fontWeight:600, padding:'5px 12px', borderRadius:20, cursor:'pointer', fontFamily:'inherit', background:'#f0f0f0', border:'none', color:'#555', marginLeft:4 }}>
-              ↻
-            </button>
-          </div>
-        </div>
-      </div>
 
-      <div style={{ maxWidth:1300, margin:'0 auto', padding:'1.5rem 2rem' }}>
+          <div style={{ padding: 'clamp(16px,2.2vw,22px) clamp(14px,2.4vw,28px) clamp(40px,6vh,64px)', display: 'flex', flexDirection: 'column', gap: 'clamp(14px,1.8vw,18px)' }}>
 
-        {/* ── KPI STRIP ────────────────────────────────────────────────── */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(170px,1fr))', gap:10, marginBottom:'1.5rem' }}>
-          <KPI label="Page views"       value={pageViews.length.toLocaleString()}    color="#2d7dd2" icon={IC.eye}    sparkValues={dailyData('page_view').map(d=>d.value)}/>
-          <KPI label="Active clients"   value={uniqueEmails.length}                  color="#6366f1" icon={IC.users}  sparkValues={dailyData().map(d=>d.value)}/>
-          <KPI label="Product views"    value={productViews.length.toLocaleString()} color="#f59e0b" icon={IC.box}    sparkValues={dailyData('product_view').map(d=>d.value)}/>
-          <KPI label="Add to quote"     value={clicks.length.toLocaleString()}        color="#22c55e" icon={IC.zap}   sparkValues={dailyData('product_click').map(d=>d.value)}/>
-          <KPI label="Orders"           value={orders.length.toLocaleString()}        color="#14b8a6" icon={IC.cart}  sparkValues={orders.slice(-14).map(_=>1)}/>
-          <KPI label="Revenue"          value={`$${totalRevenue.toLocaleString()}`}   color="#e74c3c" icon={IC.dollar}/>
-          <KPI label="Avg order value"  value={`$${Math.round(avgOrderValue).toLocaleString()}`} color="#8b5cf6" icon={IC.dollar}/>
-          <KPI label="Searches"         value={searches.length.toLocaleString()}      color="#ec4899" icon={IC.search}/>
-        </div>
-
-        {/* ── CONVERSION FUNNEL ────────────────────────────────────────── */}
-        <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem', marginBottom:'1.5rem' }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'1rem' }}>Conversion funnel</div>
-          <div style={{ display:'flex', gap:0, alignItems:'stretch' }}>
-            {funnel.map((f, i) => (
-              <div key={f.label} style={{ flex:1, display:'flex', flexDirection:'column', gap:8, position:'relative' }}>
-                <div style={{ height:8, background: f.color, width:`${(f.value/funnelMax)*100}%`, borderRadius:4, transition:'width 0.6s ease', minWidth: f.value > 0 ? 8 : 0 }}/>
-                <div style={{ fontSize:20, fontWeight:900, color:'#111' }}>{f.value.toLocaleString()}</div>
-                <div style={{ fontSize:11, color:'#888' }}>{f.label}</div>
-                {i > 0 && funnel[i-1].value > 0 && (
-                  <div style={{ fontSize:10, color: f.value/funnel[i-1].value > 0.5 ? '#22c55e' : '#e74c3c', fontWeight:700 }}>
-                    {Math.round((f.value/funnel[i-1].value)*100)}% conv.
+            {hotLeads.length > 0 && (
+              <div style={{ background: '#ffffff', border: '1px solid #f3d9a4', borderRadius: 13, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 16px 15px', background: '#fffbf2', borderBottom: '1px solid #f3d9a4', borderLeft: '5px solid #f0b429' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                    <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 7, background: '#f0b429', color: '#ffffff', fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700 }}>!</span>
+                    <span>
+                      <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em', color: '#8a5a00' }}>{hotLeads.length} client{hotLeads.length === 1 ? '' : 's'} {hotLeads.length === 1 ? 'is' : 'are'} ready to buy</span>
+                      <span style={{ display: 'block', paddingTop: 3, fontSize: 13.5, color: '#47505e' }}>They put products in a quote and did not order — one message closes these</span>
+                    </span>
+                  </span>
+                </div>
+                <div data-scroll style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 900 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px,1.3fr) minmax(200px,1.5fr) 88px 128px 104px 176px', gap: 12, alignItems: 'center', padding: '10px 16px 11px', borderBottom: '1px solid #e2e4e9', background: '#fafbfc', fontSize: 13, fontWeight: 700, color: '#6b7280' }}>
+                      <span>Client</span><span>What they keep looking at</span><span style={{ textAlign: 'right' }}>Views</span><span style={{ textAlign: 'center' }}>Intent</span><span style={{ textAlign: 'right' }}>Last seen</span><span style={{ textAlign: 'center' }}>Close the sale</span>
+                    </div>
+                    {hotLeads.map(c => {
+                      const hot = c.score >= 70
+                      const msg = `Hi, this is Levam Corp Distributors in Doral. I saw you were looking at ${c.lastProduct || 'a few products'} in the portal. I can hold units and send you a quote today — how many do you need?`
+                      const phoneDigits = (c.phone || '').replace(/\D/g, '')
+                      const waHref = phoneDigits ? `https://wa.me/${phoneDigits.length === 10 ? '1' + phoneDigits : phoneDigits}?text=${encodeURIComponent(msg)}` : null
+                      const mailHref = `mailto:${c.email}?subject=${encodeURIComponent('Levam Corp — quote for ' + (c.lastProduct || 'your selection'))}&body=${encodeURIComponent(msg)}`
+                      return (
+                        <div key={c.email} style={{ display: 'grid', gridTemplateColumns: 'minmax(190px,1.3fr) minmax(200px,1.5fr) 88px 128px 104px 176px', gap: 12, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5', background: hot ? '#f7fbf8' : '#ffffff' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, background: hot ? '#dcfce7' : '#fef3c7', color: hot ? '#166534' : '#7c4a03', fontSize: 14, fontWeight: 700 }}>{(c.businessName || '?').charAt(0).toUpperCase()}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.businessName}</span>
+                              <span style={{ display: 'block', paddingTop: 3, fontSize: 12.5, color: '#8b909a' }}>{c.tier} · {c.orders} order{c.orders === 1 ? '' : 's'}</span>
+                            </span>
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.lastProduct || '—'}</span>
+                            <span style={{ display: 'block', paddingTop: 3, fontSize: 12.5, color: '#6b7280' }}>{c.quotes} item{c.quotes === 1 ? '' : 's'} in their quote · {c.searches} searches</span>
+                          </span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em' }}>{c.productViews}</span>
+                          <span>
+                            <span style={{ display: 'block', height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', borderRadius: 4, background: hot ? '#16a34a' : '#f0b429', width: `${c.score}%` }} /></span>
+                            <span className="lc-mono" style={{ display: 'block', paddingTop: 5, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: hot ? '#166534' : '#8a5a00' }}>{hot ? 'Hot' : 'Warm'} {c.score}</span>
+                          </span>
+                          <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: c.days <= 2 ? '#166534' : '#8a5a00' }}>{c.days === 0 ? 'Today' : `${c.days}d ago`}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                            {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" style={{ padding: '8px 11px 9px', borderRadius: 7, background: '#16a34a', color: '#ffffff', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>WhatsApp</a>}
+                            <a href={mailHref} style={{ padding: '8px 11px 9px', border: '1px solid #d9dce2', borderRadius: 7, color: '#47505e', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>Quote</a>
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
-                )}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* ── TABS ─────────────────────────────────────────────────────── */}
-        <div style={{ display:'flex', gap:0, borderBottom:'2px solid #eee', marginBottom:'1.5rem', background:'#fff', borderRadius:'8px 8px 0 0', padding:'0 1rem' }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={()=>setTab(t.id)}
-              style={{ padding:'12px 18px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', background:'transparent', border:'none',
-                color:tab===t.id?'#111':'#aaa', borderBottom:tab===t.id?'2px solid #111':'2px solid transparent', marginBottom:'-2px', transition:'all 0.15s' }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign:'center', padding:'4rem', color:'#aaa', fontSize:14 }}>Loading data...</div>
-        ) : (
-
-          <div className="insight-section">
-
-            {/* ── OVERVIEW ─────────────────────────────────────────────── */}
-            {tab === 'overview' && (
-              <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
-
-                {/* Activity over time */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'0.5rem' }}>Activity over time</div>
-                  <div style={{ fontSize:10, color:'#aaa', marginBottom:'1rem' }}>Page views per day · last {Math.min(days,14)} days</div>
-                  <BarChart data={dailyData('page_view')} color="#2d7dd2" height={120}/>
-                </div>
-
-                {/* Peak hours */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'0.5rem' }}>When clients browse</div>
-                  <div style={{ fontSize:10, color:'#aaa', marginBottom:'1rem' }}>Peak hour: {peakHour}:00 – {peakHour+1}:00</div>
-                  <BarChart data={hourData} color="#6366f1" height={120}/>
-                </div>
-
-                {/* Top products */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'1rem' }}>Top products by interest</div>
-                  {topProducts.slice(0,8).map((p,i) => (
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #f7f8fa' }}>
-                      <div style={{ fontSize:10, fontWeight:800, color:'#ccc', width:18 }}>#{i+1}</div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color:'#111', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
-                        <div style={{ fontSize:10, color:'#aaa' }}>{p.brand}</div>
-                      </div>
-                      <div style={{ display:'flex', gap:6 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'#2d7dd2', display:'flex', alignItems:'center', gap:3 }}>{IC.eye} {p.views}</div>
-                        <div style={{ fontSize:11, fontWeight:700, color:'#22c55e', display:'flex', alignItems:'center', gap:3 }}>{IC.zap} {p.clicks}</div>
-                      </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 'clamp(10px,1.2vw,14px)' }}>
+              {kpiDefs.map(d => (
+                <div key={d.k} style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ height: 4, background: d.bar }} />
+                  <div style={{ padding: '13px 14px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span className="lc-mono" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: '#6b7280' }}>{d.k}</span>
+                      <span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: 5, background: d.iBg, color: d.iInk, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700 }}>{d.k[0]}</span>
                     </div>
-                  ))}
-                </div>
-
-                {/* Brand breakdown donut */}
-                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem', flex:1 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'1rem' }}>Views by brand</div>
-                    {brandData.length > 0
-                      ? <DonutChart data={brandData}/>
-                      : <div style={{ fontSize:11, color:'#ccc', textAlign:'center', padding:'1rem' }}>No brand data yet</div>
-                    }
-                  </div>
-
-                  {/* Searches */}
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem', flex:1 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'1rem' }}>Top search terms</div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                      {topSearches.length > 0
-                        ? topSearches.map(([q,n]) => (
-                          <div key={q} style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 10px', background:'#f7f8fa', borderRadius:20, border:'1px solid #eee' }}>
-                            <span style={{ fontSize:11, color:'#333', fontWeight:600 }}>{q}</span>
-                            <span style={{ fontSize:10, fontWeight:700, color:'#2d7dd2', background:'rgba(45,125,210,0.1)', padding:'1px 6px', borderRadius:10 }}>{n}</span>
-                          </div>
-                        ))
-                        : <div style={{ fontSize:11, color:'#ccc' }}>No searches yet</div>
-                      }
-                    </div>
+                    <div className="lc-mono" style={{ paddingTop: 9, fontWeight: 700, fontSize: 'clamp(21px,2.1vw,27px)', letterSpacing: '-.04em' }}>{d.v.toLocaleString('en-US')}</div>
+                    <div style={{ paddingTop: 7, fontSize: 12, color: '#8b909a' }}>{d.sub}</div>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                {/* OPPORTUNITIES */}
-                {opportunities.length > 0 && (
-                  <div style={{ gridColumn:'1/-1', background:'#fff', border:'2px solid rgba(245,158,11,0.3)', borderRadius:10, overflow:'hidden' }}>
-                    <div style={{ padding:'1rem 1.5rem', background:'rgba(245,158,11,0.05)', borderBottom:'1px solid rgba(245,158,11,0.15)', display:'flex', alignItems:'center', gap:10 }}>
-                      <span>{IC.fire}</span>
-                      <div>
-                        <div style={{ fontSize:13, fontWeight:700, color:'#92400e' }}>Sales opportunities — {opportunities.length} products with interest but no action</div>
-                        <div style={{ fontSize:11, color:'#b45309' }}>These clients viewed but didn't add to quote — reach out and close the sale</div>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                <span>
+                  <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>From browsing to an order</span>
+                  <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Where partners drop off — fix the widest gap first</span>
+                </span>
+                <span className="lc-mono" style={{ fontSize: 13, fontWeight: 700, padding: '6px 11px 7px', borderRadius: 7, background: endRate < 2 ? '#fee2e2' : '#dcfce7', color: endRate < 2 ? '#991b1b' : '#166534' }}>{endRate.toFixed(1)}% end to end</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(172px, 1fr))' }}>
+                {funnel.map((f, i) => {
+                  const prev = i === 0 ? f.v : funnel[i - 1].v
+                  const dropPct = prev ? Math.round((1 - f.v / prev) * 100) : 0
+                  return (
+                    <div key={f.k} style={{ borderLeft: '1px solid #f1f2f5', padding: '15px 16px 17px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ display: 'grid', placeItems: 'center', width: 21, height: 21, borderRadius: 5, background: f.color, color: '#ffffff', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700 }}>{i + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#47505e' }}>{f.k}</span>
                       </div>
+                      <div className="lc-mono" style={{ paddingTop: 10, fontWeight: 700, fontSize: 'clamp(22px,2.2vw,28px)', letterSpacing: '-.04em' }}>{f.v.toLocaleString('en-US')}</div>
+                      <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 4, background: f.color, width: `${Math.max(3, Math.round((f.v / funnelTop) * 100))}%` }} /></div>
+                      <div style={{ paddingTop: 7, fontSize: 12.5, fontWeight: 700, color: i === 0 ? '#8b909a' : dropPct > 70 ? '#991b1b' : dropPct > 40 ? '#b45309' : '#166534' }}>{i === 0 ? 'starting point' : dropPct > 0 ? `${dropPct}% dropped off here` : 'no drop-off'}</div>
                     </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:0 }}>
-                      {opportunities.slice(0,6).map((p,i) => (
-                        <div key={i} style={{ padding:'1rem 1.25rem', borderRight:'1px solid #fef3c7', borderBottom:'1px solid #fef3c7' }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:2 }}>{p.name}</div>
-                          <div style={{ fontSize:10, color:'#aaa', marginBottom:6 }}>{p.brand}</div>
-                          <div style={{ fontSize:11, color:'#f59e0b', fontWeight:600 }}>{p.views} views · 0 quote requests</div>
-                          <div style={{ fontSize:10, color:'#bbb', marginTop:2 }}>Contact these clients and offer a deal</div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div data-scroll style={{ display: 'flex', gap: 4, overflowX: 'auto', borderBottom: '1px solid #e2e4e9' }}>
+              {tabDefs.map(t => { const on = t.key === tab
+                return (
+                  <button key={t.key} type="button" onClick={() => setTab(t.key)} style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, border: 0, borderBottom: `3px solid ${on ? ACCENT : 'transparent'}`, background: 'transparent', cursor: 'pointer', padding: '10px 13px 12px', fontSize: 14.5, fontWeight: on ? 700 : 500, color: on ? '#16181d' : '#6b7280', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'grid', placeItems: 'center', width: 21, height: 21, borderRadius: 5, background: on ? ACCENT : '#eef0f4', color: on ? '#ffffff' : '#6b7280', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700 }}>{t.icon}</span>
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {tab === 'Overview' && (
+              <div className="ain-2col">
+                <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Activity per day</div>
+                    <div style={{ paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Views in blue, added-to-quote in green</div>
+                  </div>
+                  <div style={{ padding: '16px 16px 18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px,.8vw,9px)', height: 190 }}>
+                      {days.map((d, i) => (
+                        <div key={i} title={`${d.label} · ${d.views} views · ${d.quotes} added to quote`} style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                          <span style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 2 }}>
+                            <span style={{ width: '100%', borderRadius: '3px 3px 0 0', background: '#16a34a', height: Math.max(0, d.quotes * 7) }} />
+                            <span style={{ width: '100%', borderRadius: d.quotes ? 0 : '3px 3px 0 0', background: i >= days.length - 3 ? ACCENT : '#93b8f5', height: Math.max(3, Math.round((d.views / maxDayViews) * 140)) }} />
+                          </span>
+                          <span className="lc-mono" style={{ paddingTop: 7, fontSize: 9.5, letterSpacing: '.04em', color: '#8b909a', whiteSpace: 'nowrap' }}>{d.label}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* ── PRODUCTS ─────────────────────────────────────────────── */}
-            {tab === 'products' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-
-                {/* Product views line chart */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'0.5rem' }}>Product view trend</div>
-                  <div style={{ fontSize:10, color:'#aaa', marginBottom:'1rem' }}>Daily product views · last {Math.min(days,14)} days</div>
-                  <LineChart data={dailyData('product_view')} color="#f59e0b" height={100}/>
                 </div>
 
-                {/* Full product table */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, overflow:'hidden' }}>
-                  <div style={{ padding:'1rem 1.5rem', borderBottom:'1px solid #f0f0f0', display:'flex', justifyContent:'space-between' }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>All products ranked by interest</div>
-                    <div style={{ fontSize:11, color:'#aaa' }}>{topProducts.length} products tracked</div>
-                  </div>
-                  <table>
-                    <thead>
-                      <tr style={{ background:'#f7f8fa' }}>
-                        {['#','Product','Brand','Views','Quote requests','Conversion','Revenue potential','Action'].map(h => (
-                          <th key={h} style={{ padding:'10px 14px', fontSize:9, fontWeight:700, color:'#888', letterSpacing:'0.06em', textTransform:'uppercase', borderBottom:'1px solid #eee' }}>{h}</th>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px,1.5vw,16px)' }}>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>When they browse</div>
+                      <div style={{ paddingTop: 4, fontSize: 13, color: '#6b7280' }}>Peak {peakHour}:00–{peakHour + 1}:00 — send offers an hour before</div>
+                    </div>
+                    <div style={{ padding: '14px 16px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 108 }}>
+                        {hourMap.map((v, i) => (
+                          <span key={i} title={`${i}:00 — ${v} events`} style={{ flex: '1 1 0', minWidth: 0, borderRadius: '2px 2px 0 0', background: i === peakHour ? '#7c3aed' : i >= 8 && i <= 18 ? '#a78bfa' : '#ddd6f3', height: Math.max(3, Math.round((v / maxHour) * 96)) }} />
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topProducts.map((p, i) => {
-                        const conv = p.views > 0 ? Math.round((p.clicks/p.views)*100) : 0
-                        return (
-                          <tr key={i} style={{ borderBottom:'1px solid #f7f8fa', background: i%2===0?'#fff':'#fafafa' }}>
-                            <td style={{ padding:'10px 14px', fontSize:11, color:'#ccc', fontWeight:700 }}>#{i+1}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:600, color:'#111' }}>{p.name}</td>
-                            <td style={{ padding:'10px 14px', fontSize:11, color:'#888' }}>{p.brand}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#2d7dd2' }}>{p.views}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#22c55e' }}>{p.clicks}</td>
-                            <td style={{ padding:'10px 14px' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                <div style={{ flex:1, height:6, background:'#f0f0f0', borderRadius:3, overflow:'hidden', maxWidth:80 }}>
-                                  <div style={{ height:'100%', width:`${conv}%`, background:conv>50?'#22c55e':conv>20?'#f59e0b':'#e74c3c', borderRadius:3, transition:'width 0.4s' }}/>
-                                </div>
-                                <span style={{ fontSize:11, color:'#888', minWidth:32 }}>{conv}%</span>
-                              </div>
-                            </td>
-                            <td style={{ padding:'10px 14px', fontSize:11, color:'#888' }}>
-                              {p.views > 0 ? `${p.views} potential orders` : '—'}
-                            </td>
-                            <td style={{ padding:'10px 14px' }}>
-                              {p.views >= 2 && p.clicks === 0
-                                ? <span style={{ fontSize:10, padding:'3px 8px', background:'rgba(245,158,11,0.1)', color:'#f59e0b', borderRadius:10, fontWeight:700 }}>Follow up</span>
-                                : p.clicks > 2
-                                ? <span style={{ fontSize:10, padding:'3px 8px', background:'rgba(34,197,94,0.1)', color:'#22c55e', borderRadius:10, fontWeight:700 }}>Hot product</span>
-                                : null
-                              }
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {topProducts.length === 0 && (
-                    <div style={{ padding:'3rem', textAlign:'center', color:'#ccc', fontSize:13 }}>No product view data yet. Make sure analytics tracking is active in the portal catalog.</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ── CLIENTS ──────────────────────────────────────────────── */}
-            {tab === 'clients' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                  {/* Client activity trend */}
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'0.5rem' }}>Daily active clients</div>
-                    <LineChart data={dailyLabels.map(label => ({
-                      label,
-                      value: [...new Set(events.filter(e => e.client_email && new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})===label).map(e=>e.client_email))].length
-                    }))} color="#6366f1" height={100}/>
+                      </div>
+                      <div className="lc-mono" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 7, fontSize: 9.5, color: '#8b909a' }}><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+                    </div>
                   </div>
 
-                  {/* Client engagement breakdown */}
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.25rem 1.5rem' }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#111', marginBottom:'1rem' }}>Client engagement breakdown</div>
-                    <DonutChart size={90} data={[
-                      { label:'Active buyers', value:topClients.filter(c=>c.clicks>0).length },
-                      { label:'Just browsing', value:topClients.filter(c=>c.clicks===0&&c.productViews>0).length },
-                      { label:'Reach out now', value:topClients.filter(c=>c.productViews>=3&&c.clicks===0).length },
-                    ].filter(d=>d.value>0)}/>
-                  </div>
-                </div>
-
-                {/* Client table */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, overflow:'hidden' }}>
-                  <div style={{ padding:'1rem 1.5rem', borderBottom:'1px solid #f0f0f0' }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>All client activity — last {range} days</div>
-                  </div>
-                  <table>
-                    <thead>
-                      <tr style={{ background:'#f7f8fa' }}>
-                        {['Client','Email','Page views','Product views','Quotes','Active days','Last seen','Status','Action'].map(h => (
-                          <th key={h} style={{ padding:'10px 14px', fontSize:9, fontWeight:700, color:'#888', letterSpacing:'0.06em', textTransform:'uppercase', borderBottom:'1px solid #eee' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topClients.map((c, i) => {
-                        const days = [...c.days].length
-                        const daysSince = Math.floor((Date.now()-new Date(c.lastSeen))/86400000)
-                        const isHot = c.clicks > 2
-                        const needsFollowup = c.productViews >= 3 && c.clicks === 0
-                        return (
-                          <tr key={i} style={{ borderBottom:'1px solid #f7f8fa', background: needsFollowup?'rgba(245,158,11,0.02)':isHot?'rgba(34,197,94,0.02)':'#fff' }}>
-                            <td style={{ padding:'10px 14px' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                <div style={{ width:28,height:28,borderRadius:'50%',background:`hsl(${i*47},60%,55%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0 }}>
-                                  {(c.name||'?').charAt(0).toUpperCase()}
-                                </div>
-                                <span style={{ fontSize:12, fontWeight:600, color:'#111' }}>{c.name}</span>
-                              </div>
-                            </td>
-                            <td style={{ padding:'10px 14px', fontSize:11, color:'#666' }}>{c.email}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#333' }}>{c.pageViews}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#6366f1' }}>{c.productViews}</td>
-                            <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#22c55e' }}>{c.clicks}</td>
-                            <td style={{ padding:'10px 14px', fontSize:12, color:'#888' }}>{days} day{days!==1?'s':''}</td>
-                            <td style={{ padding:'10px 14px', fontSize:11, color:'#aaa' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                                {IC.clock} {daysSince===0?'Today':daysSince===1?'Yesterday':`${daysSince}d ago`}
-                              </div>
-                            </td>
-                            <td style={{ padding:'10px 14px' }}>
-                              {isHot
-                                ? <span style={{ fontSize:10,padding:'3px 8px',background:'rgba(34,197,94,0.1)',color:'#22c55e',borderRadius:10,fontWeight:700 }}>Active buyer</span>
-                                : needsFollowup
-                                ? <span style={{ fontSize:10,padding:'3px 8px',background:'rgba(245,158,11,0.1)',color:'#f59e0b',borderRadius:10,fontWeight:700 }}>Reach out</span>
-                                : <span style={{ fontSize:10,padding:'3px 8px',background:'rgba(0,0,0,0.04)',color:'#aaa',borderRadius:10,fontWeight:700 }}>Browsing</span>
-                              }
-                            </td>
-                            <td style={{ padding:'10px 14px' }}>
-                              <a href={`mailto:${c.email}`} style={{ fontSize:10, color:'#2d7dd2', textDecoration:'none', fontWeight:600, padding:'4px 10px', border:'1px solid rgba(45,125,210,0.25)', borderRadius:10, background:'rgba(45,125,210,0.04)' }}>
-                                Email →
-                              </a>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {topClients.length === 0 && (
-                    <div style={{ padding:'3rem', textAlign:'center', color:'#ccc', fontSize:13 }}>No client activity yet in this period.</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ── REVENUE ──────────────────────────────────────────────── */}
-            {tab === 'revenue' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.5rem', textAlign:'center', borderTop:'3px solid #22c55e' }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Total revenue</div>
-                    <div style={{ fontSize:36, fontWeight:900, color:'#111', letterSpacing:'-0.02em' }}>${totalRevenue.toLocaleString()}</div>
-                    <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>Last {range} days</div>
-                  </div>
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.5rem', textAlign:'center', borderTop:'3px solid #2d7dd2' }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Orders placed</div>
-                    <div style={{ fontSize:36, fontWeight:900, color:'#111', letterSpacing:'-0.02em' }}>{orders.length}</div>
-                    <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>Completed orders</div>
-                  </div>
-                  <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, padding:'1.5rem', textAlign:'center', borderTop:'3px solid #8b5cf6' }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:'#888', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Avg order value</div>
-                    <div style={{ fontSize:36, fontWeight:900, color:'#111', letterSpacing:'-0.02em' }}>${Math.round(avgOrderValue).toLocaleString()}</div>
-                    <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>Per order</div>
-                  </div>
-                </div>
-
-                {/* Orders table */}
-                <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, overflow:'hidden' }}>
-                  <div style={{ padding:'1rem 1.5rem', borderBottom:'1px solid #f0f0f0' }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>Recent orders</div>
-                  </div>
-                  <table>
-                    <thead>
-                      <tr style={{ background:'#f7f8fa' }}>
-                        {['Order #','Client','Date','Items','Total','Status'].map(h => (
-                          <th key={h} style={{ padding:'10px 14px', fontSize:9, fontWeight:700, color:'#888', letterSpacing:'0.06em', textTransform:'uppercase', borderBottom:'1px solid #eee' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.slice(0,20).map((o,i) => (
-                        <tr key={i} style={{ borderBottom:'1px solid #f7f8fa' }}>
-                          <td style={{ padding:'10px 14px', fontSize:12, fontWeight:700, color:'#2d7dd2' }}>#{o.order_number||o.id?.slice(0,8)}</td>
-                          <td style={{ padding:'10px 14px', fontSize:12, color:'#555' }}>{o.client_email||o.notes?.split('Email: ')[1]?.split(' |')[0]||'—'}</td>
-                          <td style={{ padding:'10px 14px', fontSize:11, color:'#888' }}>{new Date(o.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
-                          <td style={{ padding:'10px 14px', fontSize:12, color:'#555' }}>{o.order_items?.length||'—'} items</td>
-                          <td style={{ padding:'10px 14px', fontSize:13, fontWeight:700, color:'#111' }}>${(o.total||0).toLocaleString()}</td>
-                          <td style={{ padding:'10px 14px' }}>
-                            <span style={{ fontSize:10, padding:'3px 10px', borderRadius:10, fontWeight:700,
-                              background:o.status==='completed'?'rgba(34,197,94,0.1)':o.status==='new'?'rgba(45,125,210,0.1)':'rgba(245,158,11,0.1)',
-                              color:o.status==='completed'?'#22c55e':o.status==='new'?'#2d7dd2':'#f59e0b' }}>
-                              {o.status||'new'}
-                            </span>
-                          </td>
-                        </tr>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>What they search for</div>
+                      <div style={{ paddingTop: 4, fontSize: 13, color: '#6b7280' }}>Red means we have nothing to sell them</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', padding: '14px 16px 16px' }}>
+                      {topSearches.length === 0 ? <div style={{ fontSize: 12.5, color: '#8b909a' }}>No searches yet in this period</div> : topSearches.map(s => (
+                        <span key={s.term} title={s.carried ? `${s.n} searches · we carry this` : `${s.n} searches · nothing in the catalog to sell them`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 11px 8px', border: `1px solid ${s.carried ? '#d9dce2' : '#f3c9c9'}`, borderRadius: 999, background: s.carried ? '#ffffff' : '#fff6f6', color: s.carried ? '#47505e' : '#991b1b', fontSize: 13, fontWeight: 600 }}>
+                          {s.term}<span className="lc-mono" style={{ fontSize: 11.5, fontWeight: 700 }}>{s.n}</span>
+                        </span>
                       ))}
-                    </tbody>
-                  </table>
-                  {orders.length === 0 && (
-                    <div style={{ padding:'3rem', textAlign:'center', color:'#ccc', fontSize:13 }}>No orders in this period.</div>
-                  )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* ── LIVE FEED ─────────────────────────────────────────────── */}
-            {tab === 'activity' && (
-              <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:10, overflow:'hidden' }}>
-                <div style={{ padding:'1rem 1.5rem', borderBottom:'1px solid #f0f0f0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>Live activity feed</div>
-                  <div style={{ fontSize:10, color:'#aaa' }}>{events.length} events in last {range} days</div>
+            {tab === 'Products' && (
+              <div className="ain-2col">
+                <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Most wanted products</div>
+                    <div style={{ paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Views, quotes and whether you can actually fill the demand</div>
+                  </div>
+                  {topProducts.length === 0 ? <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No product view data yet for this period</div> : topProducts.slice(0, 12).map((p, i) => {
+                    const oos = p.stock === 0
+                    const hot = p.quotes > 0
+                    return (
+                      <div key={p.id || p.name} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0,1fr) 96px 78px 118px', gap: 11, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5', background: oos ? '#fffafa' : '#ffffff' }}>
+                        <span className="lc-mono" style={{ fontSize: 12, fontWeight: 700, color: '#8b909a' }}>#{i + 1}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span className="lc-mono" style={{ display: 'block', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: oos ? '#991b1b' : DEEP }}>{p.brand || '—'}</span>
+                          <span style={{ display: 'block', paddingTop: 4, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                          <span style={{ display: 'block', marginTop: 7, height: 6, borderRadius: 3, background: '#f1f2f5', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', borderRadius: 3, background: oos ? '#dc2626' : hot ? '#16a34a' : ACCENT, width: `${Math.round((p.views / maxViews) * 100)}%` }} /></span>
+                        </span>
+                        <span style={{ textAlign: 'right' }}>
+                          <span className="lc-mono" style={{ display: 'block', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em' }}>{p.views}</span>
+                          <span style={{ display: 'block', paddingTop: 3, fontSize: 11.5, color: '#8b909a' }}>views</span>
+                        </span>
+                        <span style={{ textAlign: 'right' }}>
+                          <span className="lc-mono" style={{ display: 'block', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em', color: hot ? '#166534' : '#c9ced6' }}>{p.quotes}</span>
+                          <span style={{ display: 'block', paddingTop: 3, fontSize: 11.5, color: '#8b909a' }}>quotes</span>
+                        </span>
+                        <span style={{ textAlign: 'center' }}>
+                          <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '4px 9px 5px', borderRadius: 5, background: oos ? '#fee2e2' : hot ? '#dcfce7' : '#f1f2f5', color: oos ? '#991b1b' : hot ? '#166534' : '#6b7280' }}>{p.stock === null ? 'Not in catalog' : oos ? 'Out of stock' : hot ? 'Hot — follow up' : 'Interest only'}</span>
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-                {events.slice(0,50).map((e,i) => {
-                  const types = {
-                    page_view:      { label:'Page view',        color:'#6366f1', bg:'rgba(99,102,241,0.08)' },
-                    product_view:   { label:'Viewed product',   color:'#2d7dd2', bg:'rgba(45,125,210,0.08)' },
-                    product_click:  { label:'Added to quote',   color:'#22c55e', bg:'rgba(34,197,94,0.08)'  },
-                    catalog_search: { label:'Searched',         color:'#f59e0b', bg:'rgba(245,158,11,0.08)' },
-                    order_started:  { label:'Order started',    color:'#ec4899', bg:'rgba(236,72,153,0.08)' },
-                  }
-                  const ev = types[e.event_type]||{label:e.event_type,color:'#aaa',bg:'#f7f8fa'}
-                  const time = new Date(e.created_at)
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px,1.5vw,16px)' }}>
+                  {unfilled.length > 0 && (
+                    <div style={{ background: '#ffffff', border: '1px solid #f6d5d5', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #f6d5d5', background: '#fff6f6', borderLeft: '5px solid #dc2626' }}>
+                        <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em', color: '#991b1b' }}>Demand you cannot fill</div>
+                        <div style={{ paddingTop: 4, fontSize: 13, color: '#47505e' }}>People want these and you have zero stock</div>
+                      </div>
+                      {unfilled.map(u => (
+                        <div key={u.id || u.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5' }}>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                            <span style={{ display: 'block', paddingTop: 3, fontSize: 12, color: '#8b909a' }}>{u.views} views · {u.quotes} quotes waiting</span>
+                          </span>
+                          <span className="lc-mono" style={{ flex: 'none', fontSize: 14.5, fontWeight: 700, color: '#991b1b' }}>{u.views}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>Interest by brand</div>
+                      <div style={{ paddingTop: 4, fontSize: 13, color: '#6b7280' }}>{brandTotal} product views</div>
+                    </div>
+                    <div style={{ padding: '14px 16px 16px' }}>
+                      {brands.length === 0 ? <div style={{ fontSize: 12.5, color: '#8b909a' }}>No data yet</div> : brands.map(b => (
+                        <div key={b.k} style={{ paddingBottom: 13 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingBottom: 6 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: b.color }} />{b.k}</span>
+                            <span className="lc-mono" style={{ fontSize: 13, fontWeight: 700 }}>{b.v} · {b.pct}%</span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 4, background: b.color, width: `${b.pct}%` }} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'Clients' && (
+              <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                  <span>
+                    <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Every client's activity</span>
+                    <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Sorted by intent — the top of this list is your call sheet</span>
+                  </span>
+                  <span data-scroll style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 8, overflowX: 'auto', background: '#f7f8fa' }}>
+                    {['Intent', 'Views', 'Recent'].map(s => { const on = s === clientSort
+                      return <button key={s} type="button" onClick={() => setClientSort(s)} style={{ flex: '0 0 auto', border: 0, cursor: 'pointer', padding: '8px 12px 9px', background: on ? '#16181d' : 'transparent', color: on ? '#ffffff' : '#6b7280', fontSize: 13, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap' }}>{s}</button>
+                    })}
+                  </span>
+                </div>
+                <div data-scroll style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 1020 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px,1.5fr) 92px 122px 96px 130px 84px 132px 104px', gap: 12, alignItems: 'center', padding: '10px 16px 11px', borderBottom: '1px solid #e2e4e9', background: '#fafbfc', fontSize: 13, fontWeight: 700, color: '#6b7280' }}>
+                      <span>Client</span><span style={{ textAlign: 'right' }}>Sessions</span><span style={{ textAlign: 'right' }}>Product views</span><span style={{ textAlign: 'right' }}>Searches</span><span style={{ textAlign: 'right' }}>Added to quote</span><span style={{ textAlign: 'right' }}>Orders</span><span style={{ textAlign: 'center' }}>Intent</span><span style={{ textAlign: 'right' }}>Last seen</span>
+                    </div>
+                    {sortedClients.length === 0 ? <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No client activity yet in this period</div> : sortedClients.map(c => {
+                      const hot = c.score >= 70, warm = c.score >= 45 && c.score < 70
+                      return (
+                        <div key={c.email} style={{ display: 'grid', gridTemplateColumns: 'minmax(200px,1.5fr) 92px 122px 96px 130px 84px 132px 104px', gap: 12, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5', background: hot ? '#f7fbf8' : '#ffffff' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 8, background: hot ? '#dcfce7' : warm ? '#fef3c7' : '#f1f2f5', color: hot ? '#166534' : warm ? '#7c4a03' : '#8b909a', fontSize: 13.5, fontWeight: 700 }}>{(c.businessName || '?').charAt(0).toUpperCase()}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.businessName}</span>
+                              <span style={{ display: 'block', paddingTop: 3, fontSize: 12, color: '#8b909a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.lastProduct || c.email}</span>
+                            </span>
+                          </span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 13.5, color: '#47505e' }}>{c.pageViews}</span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, fontWeight: 700 }}>{c.productViews}</span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 13.5, color: '#47505e' }}>{c.searches}</span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, fontWeight: 700, color: c.quotes ? '#166534' : '#c9ced6' }}>{c.quotes}</span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, fontWeight: 700, color: c.orders ? '#16181d' : '#991b1b' }}>{c.orders}</span>
+                          <span>
+                            <span style={{ display: 'block', height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', borderRadius: 4, background: hot ? '#16a34a' : warm ? '#f0b429' : '#c9ced6', width: `${c.score}%` }} /></span>
+                            <span className="lc-mono" style={{ display: 'block', paddingTop: 5, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: hot ? '#166534' : warm ? '#8a5a00' : '#8b909a' }}>{hot ? 'Hot' : warm ? 'Warm' : 'Cold'} {c.score}</span>
+                          </span>
+                          <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: c.days <= 2 ? '#166534' : c.days <= 7 ? '#8a5a00' : '#8b909a' }}>{c.days === 0 ? 'Today' : `${c.days}d ago`}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'Revenue' && (
+              <div className="ain-2col">
+                <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Who actually spends</div>
+                    <div style={{ paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Revenue in this period — protect the top, grow the middle</div>
+                  </div>
+                  {revClients.length === 0 ? <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No confirmed orders in this period</div> : revClients.map((r, i) => {
+                    const t = TIER_STYLE[r.tier] || TIER_STYLE.Standard
+                    return (
+                      <div key={r.email} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0,1fr) 128px 96px', gap: 11, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5' }}>
+                        <span className="lc-mono" style={{ fontSize: 12, fontWeight: 700, color: '#8b909a' }}>#{i + 1}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.biz}</span>
+                          <span style={{ display: 'block', marginTop: 7, height: 7, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', borderRadius: 4, background: i === 0 ? '#16a34a' : ACCENT, width: `${Math.round((r.revenue / revMax) * 100)}%` }} /></span>
+                        </span>
+                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em' }}>{money(r.revenue)}</span>
+                        <span style={{ textAlign: 'right' }}><span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '4px 9px 5px', borderRadius: 5, background: t.bg, color: t.ink }}>{r.tier}</span></span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px,1.5vw,16px)' }}>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>Revenue per month</div>
+                      <div style={{ paddingTop: 4, fontSize: 13, color: '#6b7280' }}>From confirmed orders, most recent months with activity</div>
+                    </div>
+                    <div style={{ padding: '15px 16px 17px' }}>
+                      {revMonths.length === 0 ? <div style={{ fontSize: 12.5, color: '#8b909a' }}>No confirmed orders yet</div> : (
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(8px,1.4vw,16px)', height: 150 }}>
+                          {revMonths.map((m, i) => (
+                            <div key={m.key} style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                              <span className="lc-mono" style={{ fontSize: 11, fontWeight: 700, color: '#166534', paddingBottom: 6, whiteSpace: 'nowrap' }}>{money(m.total)}</span>
+                              <span style={{ width: '100%', borderRadius: '5px 5px 0 0', background: i === revMonths.length - 1 ? '#93b8f5' : '#16a34a', height: Math.max(8, Math.round((m.total / revMonthMax) * 112)) }} />
+                              <span className="lc-mono" style={{ paddingTop: 7, fontSize: 10.5, textTransform: 'uppercase', color: '#8b909a' }}>{m.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ padding: '13px 16px 14px', borderBottom: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>What sells, by category</div>
+                    </div>
+                    <div style={{ padding: '14px 16px 16px' }}>
+                      {revCats.length === 0 ? <div style={{ fontSize: 12.5, color: '#8b909a' }}>No category data yet</div> : revCats.map(c => (
+                        <div key={c.k} style={{ paddingBottom: 13 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingBottom: 6 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: c.color }} />{c.k}</span>
+                            <span className="lc-mono" style={{ fontSize: 13, fontWeight: 700 }}>{money(c.v)}</span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 4, background: c.color, width: `${Math.round((c.v / revCatMax) * 100)}%` }} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'Live' && (
+              <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                  <span>
+                    <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>What is happening right now</span>
+                    <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Every action in the portal, newest first — a quote added is a call you should make today</span>
+                  </span>
+                  <span className="lc-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#166534' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', animation: 'lvm-live 2.4s ease-in-out infinite' }} />{feed.length} events
+                  </span>
+                </div>
+                {feed.length === 0 ? <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No events yet in this period. Clients need to browse the portal for data to appear.</div> : feed.map((f, i) => {
+                  const phoneDigits = (f.phone || '').replace(/\D/g, '')
+                  const waHref = f.showAction && phoneDigits ? `https://wa.me/${phoneDigits.length === 10 ? '1' + phoneDigits : phoneDigits}?text=${encodeURIComponent(`Hi, this is Levam Corp Distributors. I saw you added ${f.detail} to your quote — I can hold units and send you a price today, how many do you need?`)}` : null
                   return (
-                    <div key={i} style={{ padding:'0.75rem 1.5rem', borderBottom:'1px solid #f7f8fa', display:'flex', alignItems:'center', gap:12 }}>
-                      <div style={{ fontSize:9, fontWeight:700, padding:'3px 8px', background:ev.bg, color:ev.color, borderRadius:10, whiteSpace:'nowrap', letterSpacing:'0.05em', flexShrink:0 }}>
-                        {ev.label}
-                      </div>
-                      <div style={{ flex:1, minWidth:0, fontSize:12, color:'#555' }}>
-                        <span style={{ fontWeight:600, color:'#111' }}>{e.client_name||e.client_email||'Unknown'}</span>
-                        {e.product_name && <span style={{ color:'#888' }}> → {e.product_name}</span>}
-                        {e.page && !e.product_name && <span style={{ color:'#aaa' }}> {e.page}</span>}
-                        {e.metadata?.query && <span style={{ color:'#aaa' }}> "{e.metadata.query}"</span>}
-                      </div>
-                      <div style={{ fontSize:10, color:'#ccc', whiteSpace:'nowrap', flexShrink:0 }}>
-                        {time.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · {time.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
-                      </div>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0,1fr) auto', gap: 12, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5', borderLeft: `3px solid ${f.edge}` }}>
+                      <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 7, background: f.iBg, color: f.iInk, fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700 }}>{f.icon}</span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 14, color: '#16181d' }}><span style={{ fontWeight: 600 }}>{f.who}</span> — {f.label}{f.detail ? `: ${f.detail}` : ''}</span>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 11px 8px', borderRadius: 7, background: '#16a34a', color: '#ffffff', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>Call now</a>}
+                        <span className="lc-mono" style={{ fontSize: 12, color: '#8b909a', whiteSpace: 'nowrap' }}>{f.when}</span>
+                      </span>
                     </div>
                   )
                 })}
-                {events.length === 0 && (
-                  <div style={{ padding:'3rem', textAlign:'center', color:'#ccc', fontSize:13 }}>No events yet. Clients need to browse the portal for data to appear.</div>
-                )}
               </div>
             )}
 
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
