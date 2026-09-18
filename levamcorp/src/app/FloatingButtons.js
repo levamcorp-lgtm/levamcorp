@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation'
 
 export default function FloatingButtons() {
   const path = usePathname()
-  if (path?.startsWith('/mobile')) return null
+  if (path !== '/') return null
 
   const waUrl = `https://wa.me/17864909005?text=${encodeURIComponent('Hi! I found you on levamcorp.com and I have a question.')}`
 

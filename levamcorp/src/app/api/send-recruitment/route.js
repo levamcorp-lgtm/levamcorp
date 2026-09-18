@@ -2,10 +2,40 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Four real, functional outreach angles — the shared header/how-it-works/what-you-get/CTA/footer
+// sections stay identical; only the badge + headline + opening paragraph vary by audience.
+const TEMPLATES = {
+  cold_intro: {
+    subject: 'Wholesale partnership opportunity — Levam Corp Distributors',
+    badge: 'Wholesale Partnership Opportunity',
+    headline: 'Grow your business with<br>wholesale electronics',
+    intro: 'We partner with serious distributors, resellers, and retailers across the U.S. to provide premium wholesale pricing on electronics, home appliances, and kitchen products.',
+  },
+  marketplace: {
+    subject: "Stop buying at retail — wholesale pricing for your Amazon listings",
+    badge: 'For Amazon & Marketplace Sellers',
+    headline: 'Buy direct at wholesale —<br>not at retail',
+    intro: 'Most sellers we work with came to us doing retail arbitrage, and the math stopped working once fees and returns were counted. We supply commercial invoices that meet marketplace seller-verification requirements, with live pricing and stock in your own portal.',
+  },
+  retail: {
+    subject: 'Direct wholesale supply for your store — Levam Corp Distributors',
+    badge: 'For Retail Stores',
+    headline: 'Direct wholesale supply<br>for your store',
+    intro: 'We supply retailers across Florida and the southeast — buy by the pallet with MOQs that match your shelf space, freight quoted to your door or pickup at our Doral warehouse.',
+  },
+  follow_up: {
+    subject: 'Following up — wholesale access with Levam Corp',
+    badge: 'Following Up',
+    headline: 'Still open — wholesale<br>access with Levam Corp',
+    intro: 'We wrote a little while ago about wholesale supply from Levam Corp Distributors and did not hear back — no problem, inboxes get full. The application is still open and takes about five minutes.',
+  },
+}
+
 export async function POST(req) {
   try {
-    const { emails, subject, customNote } = await req.json()
+    const { emails, subject, customNote, template } = await req.json()
     if (!emails?.length) return Response.json({ error: 'No emails provided' }, { status: 400 })
+    const tpl = TEMPLATES[template] || TEMPLATES.cold_intro
 
     const html = `<!DOCTYPE html>
 <html>
@@ -27,10 +57,10 @@ export async function POST(req) {
 
   <!-- INTRO BADGE -->
   <div style="background:#fff;padding:36px 32px 28px;border-left:1px solid #eee;border-right:1px solid #eee;text-align:center">
-    <div style="display:inline-block;background:rgba(45,125,210,0.07);border:0.5px solid rgba(45,125,210,0.2);color:#2d7dd2;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:20px">Wholesale Partnership Opportunity</div>
-    <h1 style="font-size:26px;font-weight:900;color:#111;margin:0 0 14px;letter-spacing:-0.02em;line-height:1.25">Grow your business with<br>wholesale electronics</h1>
+    <div style="display:inline-block;background:rgba(45,125,210,0.07);border:0.5px solid rgba(45,125,210,0.2);color:#2d7dd2;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:20px">${tpl.badge}</div>
+    <h1 style="font-size:26px;font-weight:900;color:#111;margin:0 0 14px;letter-spacing:-0.02em;line-height:1.25">${tpl.headline}</h1>
     <p style="font-size:14px;color:#777;line-height:1.8;margin:0;max-width:440px;margin-left:auto;margin-right:auto">
-      We partner with serious distributors, resellers, and retailers across the U.S. to provide premium wholesale pricing on electronics, home appliances, and kitchen products.
+      ${tpl.intro}
     </p>
   </div>
 
@@ -135,7 +165,7 @@ export async function POST(req) {
         resend.emails.send({
           from: 'Levam Corp <partners@levamcorp.com>',
           to: email,
-          subject: subject || 'Wholesale partnership opportunity — Levam Corp Distributors',
+          subject: subject || tpl.subject,
           html,
         })
       )
