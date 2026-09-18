@@ -119,6 +119,7 @@ export default function AdminInsights() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [period, setPeriod] = useState('30')
   const [tab, setTab] = useState('Overview')
+  const [expandedStep, setExpandedStep] = useState(null)
   const [clientSort, setClientSort] = useState('Intent')
 
   useEffect(() => {
@@ -225,12 +226,20 @@ export default function AdminInsights() {
   const peakHour = hourMap.indexOf(Math.max(...hourMap))
   const maxHour = Math.max(...hourMap, 1)
 
+  // Who + what per funnel step — real, from the same events/orders already loaded (both fetched newest-first)
+  const whoFor = (e) => e.client_name || e.client_email || 'Unknown'
+  const phoneFor = (email) => clients.find(rc => rc.email === email)?.phone || ''
   const funnel = [
-    { k: 'Visited the portal', v: pageViews.length, color: ACCENT },
-    { k: 'Opened a product', v: productViews.length, color: '#7c3aed' },
-    { k: 'Searched something', v: searchEvents.length, color: '#f0b429' },
-    { k: 'Added to quote', v: quoteAdds.length, color: '#16a34a' },
-    { k: 'Placed an order', v: confirmedOrders.length, color: '#0ea5e9' },
+    { k: 'Visited the portal', v: pageViews.length, color: ACCENT,
+      details: pageViews.map(e => ({ who: whoFor(e), what: e.page ? `Opened ${e.page}` : 'Opened the portal', when: e.created_at, email: e.client_email, phone: phoneFor(e.client_email) })) },
+    { k: 'Opened a product', v: productViews.length, color: '#7c3aed',
+      details: productViews.map(e => ({ who: whoFor(e), what: e.product_name || 'a product', when: e.created_at, email: e.client_email, phone: phoneFor(e.client_email) })) },
+    { k: 'Searched something', v: searchEvents.length, color: '#f0b429',
+      details: searchEvents.map(e => ({ who: whoFor(e), what: e.metadata?.query ? `"${e.metadata.query}"` : 'something', when: e.created_at, email: e.client_email, phone: phoneFor(e.client_email) })) },
+    { k: 'Added to quote', v: quoteAdds.length, color: '#16a34a',
+      details: quoteAdds.map(e => ({ who: whoFor(e), what: e.product_name || 'a product', when: e.created_at, email: e.client_email, phone: phoneFor(e.client_email) })) },
+    { k: 'Placed an order', v: confirmedOrders.length, color: '#0ea5e9',
+      details: confirmedOrders.map(o => { const email = emailFor(o); return { who: clientNameFor(o) || email || 'Client', what: (o.order_items || []).map(i => `${i.quantity}× ${i.product_name}`).join(', ') || 'an order', when: o.submitted_at, email, phone: phoneFor(email) } }) },
   ]
   const funnelTop = funnel[0].v || 1
   const endRate = pageViews.length ? (confirmedOrders.length / pageViews.length) * 100 : 0
@@ -455,8 +464,10 @@ export default function AdminInsights() {
                 {funnel.map((f, i) => {
                   const prev = i === 0 ? f.v : funnel[i - 1].v
                   const dropPct = prev ? Math.round((1 - f.v / prev) * 100) : 0
+                  const on = expandedStep === f.k
                   return (
-                    <div key={f.k} style={{ borderLeft: '1px solid #f1f2f5', padding: '15px 16px 17px' }}>
+                    <button key={f.k} type="button" onClick={() => setExpandedStep(on ? null : f.k)}
+                      style={{ textAlign: 'left', cursor: 'pointer', border: 0, borderLeft: `1px solid ${on ? 'transparent' : '#f1f2f5'}`, borderRight: on ? `1px solid ${f.color}` : 0, background: on ? '#f7f8fa' : '#ffffff', boxShadow: on ? `inset 0 2px 0 ${f.color}` : 'none', padding: '15px 16px 17px', fontFamily: 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'grid', placeItems: 'center', width: 21, height: 21, borderRadius: 5, background: f.color, color: '#ffffff', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700 }}>{i + 1}</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#47505e' }}>{f.k}</span>
@@ -464,10 +475,45 @@ export default function AdminInsights() {
                       <div className="lc-mono" style={{ paddingTop: 10, fontWeight: 700, fontSize: 'clamp(22px,2.2vw,28px)', letterSpacing: '-.04em' }}>{f.v.toLocaleString('en-US')}</div>
                       <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: '#f1f2f5', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 4, background: f.color, width: `${Math.max(3, Math.round((f.v / funnelTop) * 100))}%` }} /></div>
                       <div style={{ paddingTop: 7, fontSize: 12.5, fontWeight: 700, color: i === 0 ? '#8b909a' : dropPct > 70 ? '#991b1b' : dropPct > 40 ? '#b45309' : '#166534' }}>{i === 0 ? 'starting point' : dropPct > 0 ? `${dropPct}% dropped off here` : 'no drop-off'}</div>
-                    </div>
+                      <div style={{ paddingTop: 6, fontSize: 11.5, fontWeight: 700, color: f.color }}>{on ? '▾ hide who & what' : '▸ tap to see who & what'}</div>
+                    </button>
                   )
                 })}
               </div>
+
+              {expandedStep && (() => {
+                const step = funnel.find(f => f.k === expandedStep)
+                const rows = step?.details || []
+                return (
+                  <div style={{ borderTop: '1px solid #e2e4e9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px 11px', background: '#fafbfc', borderBottom: '1px solid #e2e4e9' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: '#47505e' }}>{expandedStep} — who and what ({rows.length})</span>
+                      <button type="button" onClick={() => setExpandedStep(null)} style={{ border: 0, background: 'transparent', color: '#6b7280', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Close ✕</button>
+                    </div>
+                    <div data-scroll style={{ maxHeight: 340, overflowY: 'auto' }}>
+                      {rows.length === 0 ? (
+                        <div style={{ padding: '2rem', textAlign: 'center', fontSize: 13, color: '#8b909a' }}>No activity yet in this period.</div>
+                      ) : rows.slice(0, 100).map((d, i) => {
+                        const phoneDigits = (d.phone || '').replace(/\D/g, '')
+                        const waHref = phoneDigits ? `https://wa.me/${phoneDigits.length === 10 ? '1' + phoneDigits : phoneDigits}?text=${encodeURIComponent(`Hi, this is Levam Corp Distributors. I saw you were checking out ${d.what} in the portal — I can send you a quote today, how many do you need?`)}` : null
+                        return (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) minmax(160px,1.5fr) 108px auto', gap: 12, alignItems: 'center', padding: '10px 16px', borderTop: i > 0 ? '1px solid #f1f2f5' : 'none' }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.who}</span>
+                            <span style={{ fontSize: 13, color: '#47505e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.what}</span>
+                            <span className="lc-mono" style={{ fontSize: 12, color: '#8b909a', textAlign: 'right' }}>{fmtShort(d.when)} · {fmtTime(d.when)}</span>
+                            <span style={{ textAlign: 'right' }}>
+                              {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 10px 7px', borderRadius: 6, background: '#16a34a', color: '#ffffff', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>WhatsApp</a>}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {rows.length > 100 && (
+                        <div style={{ padding: '10px 16px', fontSize: 12, color: '#8b909a', textAlign: 'center', borderTop: '1px solid #f1f2f5' }}>Showing the latest 100 of {rows.length} — the Live feed tab or CSV export has the rest.</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             <div data-scroll style={{ display: 'flex', gap: 4, overflowX: 'auto', borderBottom: '1px solid #e2e4e9' }}>
