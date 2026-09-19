@@ -148,10 +148,11 @@ export default function AdminProfit() {
   const getDefaultMonth = () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 7) }
   const [month, setMonth] = useState(getDefaultMonth())
   const [tab, setTab] = useState('Overview')
-  const [allTime, setAllTime] = useState(false)
+  const [allTime, setAllTime] = useState(true)
   const [saving, setSaving] = useState(false)
   const [orderFilter, setOrderFilter] = useState('All')
   const [expandedOrderId, setExpandedOrderId] = useState(null)
+  const [orderSearch, setOrderSearch] = useState('')
 
   const [showAddExpense, setShowAddExpense] = useState(false)
   const [showAddInv, setShowAddInv] = useState(false)
@@ -241,8 +242,11 @@ export default function AdminProfit() {
   const margin = revenue ? (grossProfit / revenue) * 100 : 0
 
   // ── DISTINCT REAL MONTHS (for the month picker + trend + partner split) ──
+  // Built from every real order regardless of status, not just confirmed ones — otherwise a month
+  // with only pending/cancelled orders in it would never even appear as a selectable month button,
+  // making those orders impossible to find via the month picker at all.
   const monthKeys = Array.from(new Set([
-    ...confirmedOrders.map(o => o.submitted_at && new Date(o.submitted_at).toISOString().slice(0, 7)).filter(Boolean),
+    ...orders.map(o => o.submitted_at && new Date(o.submitted_at).toISOString().slice(0, 7)).filter(Boolean),
     ...expenses.map(e => e.date && e.date.slice(0, 7)).filter(Boolean),
   ])).sort().reverse().slice(0, 12)
   if (monthKeys.length === 0) monthKeys.push(month)
@@ -539,10 +543,13 @@ export default function AdminProfit() {
                       <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Profit per order — {periodLabel}</span>
                       <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Every order, confirmed or not — click one to see the cost breakdown by product. Only confirmed / dispatched / completed count toward the totals above.</span>
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 8, overflow: 'hidden', background: '#f7f8fa' }}>
-                      {['All', 'Confirmed only'].map(label => { const on = label === orderFilter
-                        return <button key={label} type="button" onClick={() => setOrderFilter(label)} style={{ border: 0, cursor: 'pointer', padding: '8px 12px 9px', background: on ? '#16181d' : 'transparent', color: on ? '#ffffff' : '#6b7280', fontSize: 12.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</button>
-                      })}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <input value={orderSearch} onChange={e => setOrderSearch(e.target.value)} placeholder="Search order # or client…" style={{ ...inputStyle, width: 200 }} />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 8, overflow: 'hidden', background: '#f7f8fa' }}>
+                        {['All', 'Confirmed only'].map(label => { const on = label === orderFilter
+                          return <button key={label} type="button" onClick={() => setOrderFilter(label)} style={{ border: 0, cursor: 'pointer', padding: '8px 12px 9px', background: on ? '#16181d' : 'transparent', color: on ? '#ffffff' : '#6b7280', fontSize: 12.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</button>
+                        })}
+                      </span>
                     </span>
                   </div>
                   <div data-scroll style={{ overflowX: 'auto' }}>
@@ -551,8 +558,10 @@ export default function AdminProfit() {
                         <span>Order / client</span><span style={{ textAlign: 'right' }}>Revenue</span><span style={{ textAlign: 'right' }}>Cost paid</span><span style={{ textAlign: 'right' }}>Gross profit</span><span style={{ textAlign: 'right' }}>Margin</span><span style={{ textAlign: 'center' }}>Stage</span><span style={{ textAlign: 'center' }}>Account</span>
                       </div>
                       {(() => {
-                        const list = (orderFilter === 'Confirmed only' ? monthOrders : scopedOrders).slice().sort((a, b) => (b.total - orderCogs(b)) - (a.total - orderCogs(a)))
-                        if (list.length === 0) return <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No orders in {periodLabel}</div>
+                        const q = orderSearch.trim().toLowerCase()
+                        const base = orderFilter === 'Confirmed only' ? monthOrders : scopedOrders
+                        const list = base.filter(o => !q || (o.order_number || '').toLowerCase().includes(q) || clientNameFor(o).toLowerCase().includes(q)).slice().sort((a, b) => (b.total - orderCogs(b)) - (a.total - orderCogs(a)))
+                        if (list.length === 0) return <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>{q ? `No orders matching "${orderSearch}" in ${periodLabel}` : `No orders in ${periodLabel}`}</div>
                         return list.map(o => {
                           const p = o.total - orderCogs(o)
                           const m = o.total ? (p / o.total) * 100 : 0
