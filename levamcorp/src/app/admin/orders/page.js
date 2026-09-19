@@ -55,6 +55,14 @@ const NAV_GROUPS_BASE = [
 const fmt  = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
 const fmtL = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '—'
 const money = (n) => '$'+(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+
+function ItemThumb({ url, name, size = 44 }) {
+  return url ? (
+    <img src={url} alt={name || ''} style={{ width: size, height: size, objectFit: 'contain', background: '#fff', border: '1px solid #e2e4e9', borderRadius: 8, flexShrink: 0 }} />
+  ) : (
+    <div style={{ width: size, height: size, display: 'grid', placeItems: 'center', background: '#f1f2f5', border: '1px solid #e2e4e9', borderRadius: 8, flexShrink: 0, fontSize: size > 36 ? 13 : 10, fontWeight: 700, color: '#8b909a' }}>{(name || '?').charAt(0).toUpperCase()}</div>
+  )
+}
 const short = (n) => '$'+Math.round(n||0).toLocaleString('en-US')
 const inp = { width:'100%', background:'#f7f8fa', border:'1px solid #d9dce2', color:'#16181d', fontSize:13, padding:'9px 11px', borderRadius:7, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
 
@@ -191,7 +199,7 @@ function AdminOrdersInner() {
     const [{ data: o }, { data: c }, { data: p }, { data: pay }] = await Promise.all([
       sb.from('orders').select('*, order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('clients').select('*'),
-      sb.from('products').select('id,name,sku,price').order('name'),
+      sb.from('products').select('id,name,sku,price,image_url').order('name'),
       sb.from('payments').select('*').order('created_at',{ascending:false}),
     ])
     setOrders(o||[])
@@ -346,6 +354,9 @@ function AdminOrdersInner() {
     const email = (order.notes||'').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim() || ''
     return clients.find(c => c.email?.toLowerCase() === email.toLowerCase()) || null
   }
+
+  // real product photo for a line item — order_items doesn't store one, so join back to products
+  const imageFor = (item) => (products.find(p => p.id === item.product_id) || products.find(p => p.name === item.product_name))?.image_url || null
 
   const updateStatus = async (orderId, status) => {
     const sb = createClient()
@@ -721,7 +732,10 @@ function AdminOrdersInner() {
                           <span style={{ display: 'block', fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: dim ? '#8b909a' : '#16181d' }}>{c?.business_name || 'Unknown client'}</span>
                           <span style={{ display: 'block', paddingTop: 4, fontSize: 12.5, color: '#8b909a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c?.contact_name || '—'}</span>
                         </span>
-                        <span style={{ minWidth: 0, fontSize: 14, color: dim ? '#a2a7b0' : '#47505e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.order_items?.length ? o.order_items[0].product_name + (o.order_items.length > 1 ? ` +${o.order_items.length - 1} more` : '') : 'No products added'}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                          {o.order_items?.length > 0 && <ItemThumb url={imageFor(o.order_items[0])} name={o.order_items[0].product_name} size={30} />}
+                          <span style={{ minWidth: 0, fontSize: 14, color: dim ? '#a2a7b0' : '#47505e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.order_items?.length ? o.order_items[0].product_name + (o.order_items.length > 1 ? ` +${o.order_items.length - 1} more` : '') : 'No products added'}</span>
+                        </span>
                         <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, fontWeight: 700, color: dim ? '#a2a7b0' : '#47505e' }}>{units || '—'}</span>
                         <span className="lc-mono" style={{ textAlign: 'right', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em', color: dim ? '#a2a7b0' : '#16181d' }}>{o.total ? money(o.total) : '—'}</span>
                         <span><span style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 700, padding: '4px 9px 5px', borderRadius: 5, background: py.bg, color: py.ink }}>{payLabel}</span></span>
@@ -814,7 +828,10 @@ function AdminOrdersInner() {
                         {addItemForm.search && !addItemForm.productId && (
                           <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #e2e4e9', borderRadius: 6, marginBottom: 8, background: '#fff' }}>
                             {products.filter(p => p.name?.toLowerCase().includes(addItemForm.search.toLowerCase()) || p.sku?.toLowerCase().includes(addItemForm.search.toLowerCase())).slice(0,20).map(p => (
-                              <div key={p.id} onClick={() => setAddItemForm(f=>({...f,productId:p.id,search:p.name,unitPrice:String(p.price||0)}))} style={{ padding: '7px 10px', fontSize: 12.5, cursor: 'pointer', borderBottom: '1px solid #f1f2f5' }}>{p.name} <span style={{ color: '#8b909a' }}>· {p.sku||'no sku'} · {money(p.price)}</span></div>
+                              <div key={p.id} onClick={() => setAddItemForm(f=>({...f,productId:p.id,search:p.name,unitPrice:String(p.price||0)}))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', fontSize: 12.5, cursor: 'pointer', borderBottom: '1px solid #f1f2f5' }}>
+                                <ItemThumb url={p.image_url} name={p.name} size={24} />
+                                <span>{p.name} <span style={{ color: '#8b909a' }}>· {p.sku||'no sku'} · {money(p.price)}</span></span>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -835,7 +852,7 @@ function AdminOrdersInner() {
                       <div style={{ border: '1px solid #e2e4e9', borderRadius: 10, padding: '13px 14px 14px', marginBottom: 12, background: '#f7f9fc' }}>
                         {unitItems.map((it,i) => (
                           <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 90px 28px', gap: 8, alignItems: 'center', padding: '6px 0' }}>
-                            <span style={{ fontSize: 12.5 }}>{it.product_name}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, fontSize: 12.5 }}><ItemThumb url={imageFor(it)} name={it.product_name} size={22} />{it.product_name}</span>
                             <input type="number" value={it.quantity} onChange={e => setUnitItems(prev => prev.map((x,xi)=>xi===i?{...x,quantity:e.target.value}:x))} style={{...inp, padding:'6px 7px', fontSize:12}} />
                             <input type="number" step="0.01" value={it.unit_price} onChange={e => setUnitItems(prev => prev.map((x,xi)=>xi===i?{...x,unit_price:e.target.value}:x))} style={{...inp, padding:'6px 7px', fontSize:12}} />
                             <button onClick={() => removeOrderItem(it.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16 }}>×</button>
@@ -853,9 +870,12 @@ function AdminOrdersInner() {
                     ) : sel.order_items?.length > 0 ? sel.order_items.map(li => (
                       <div key={li.id} style={{ border: '1px solid #e2e4e9', borderRadius: 10, padding: '13px 14px 14px', marginBottom: 9 }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                          <span style={{ minWidth: 0 }}>
-                            <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: '#16181d' }}>{li.product_name}</span>
-                            <span className="lc-mono" style={{ display: 'block', paddingTop: 5, fontSize: 12.5, color: '#6b7280' }}>{li.product_sku || '—'} · {li.quantity} units × {money(li.unit_price)}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+                            <ItemThumb url={imageFor(li)} name={li.product_name} />
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: '#16181d' }}>{li.product_name}</span>
+                              <span className="lc-mono" style={{ display: 'block', paddingTop: 5, fontSize: 12.5, color: '#6b7280' }}>{li.product_sku || '—'} · {li.quantity} units × {money(li.unit_price)}</span>
+                            </span>
                           </span>
                           <span className="lc-mono" style={{ flex: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em' }}>{money(li.unit_price * li.quantity)}</span>
                         </div>
