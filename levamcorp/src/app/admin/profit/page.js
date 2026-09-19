@@ -18,6 +18,17 @@ const ACCOUNTS = [
   { key: 'world_family', label: 'World Family', color: '#f0b429', icon: 'WF' },
 ]
 
+// Same status set as /admin/orders — only these three count toward real revenue/profit anywhere on this page.
+const COUNTED_STATUSES = ['confirmed', 'dispatched', 'completed']
+const ORDER_STATUS_BADGE = {
+  new:        { bg: '#fee2e2', ink: '#991b1b', label: 'New' },
+  review:     { bg: '#fde68a', ink: '#7c4a03', label: 'In review' },
+  confirmed:  { bg: '#e8f0ff', ink: '#1B5FD1', label: 'Confirmed' },
+  dispatched: { bg: '#e8f0ff', ink: '#1B5FD1', label: 'Dispatched' },
+  completed:  { bg: '#dcfce7', ink: '#166534', label: 'Completed' },
+  cancelled:  { bg: '#f1f2f5', ink: '#6b7280', label: 'Cancelled' },
+}
+
 const NAV_GROUPS_BASE = [
   { label: 'Day to day work', items: [
     { label: 'Dashboard', code: 'DB', href: '/admin/dashboard' },
@@ -115,6 +126,14 @@ const monthShort = (key) => { const [y, m] = key.split('-'); return new Date(y, 
 const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '9px 10px', border: '1px solid #d9dce2', borderRadius: 6, fontSize: 12.5, color: '#16181d', background: '#f7f8fa', fontFamily: 'inherit' }
 const labelStyle = { fontSize: 10.5, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.08em', display: 'block', marginBottom: 5, fontWeight: 700 }
 
+function MiniThumb({ url, name, size = 30 }) {
+  return url ? (
+    <img src={url} alt={name || ''} style={{ width: size, height: size, objectFit: 'contain', background: '#fff', border: '1px solid #e2e4e9', borderRadius: 6, flexShrink: 0 }} />
+  ) : (
+    <div style={{ width: size, height: size, display: 'grid', placeItems: 'center', background: '#f1f2f5', border: '1px solid #e2e4e9', borderRadius: 6, flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#8b909a' }}>{(name || '?').charAt(0).toUpperCase()}</div>
+  )
+}
+
 export default function AdminProfit() {
   const pathname = usePathname()
   const [orders, setOrders] = useState([])
@@ -131,6 +150,8 @@ export default function AdminProfit() {
   const [tab, setTab] = useState('Overview')
   const [allTime, setAllTime] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [orderFilter, setOrderFilter] = useState('All')
+  const [expandedOrderId, setExpandedOrderId] = useState(null)
 
   const [showAddExpense, setShowAddExpense] = useState(false)
   const [showAddInv, setShowAddInv] = useState(false)
@@ -176,10 +197,38 @@ export default function AdminProfit() {
     return s + ((prod?.cost_price || 0) * item.quantity)
   }, 0)
 
-  const confirmedOrders = orders.filter(o => ['confirmed', 'dispatched', 'completed'].includes(o.status))
+  const confirmedOrders = orders.filter(o => COUNTED_STATUSES.includes(o.status))
 
   // ── SCOPE (month or all-time) ───────────────────────────
   const monthOrders = confirmedOrders.filter(o => inMonthTS(o.submitted_at))
+  // Every real order in scope regardless of status — for "where profit is coming from" visibility.
+  // Only monthOrders (confirmed/dispatched/completed) ever feed the P&L totals above; this is display-only.
+  const scopedOrders = orders.filter(o => inMonthTS(o.submitted_at))
+
+  const itemBreakdown = (item) => {
+    const prod = products.find(p => p.id === item.product_id || p.name === item.product_name)
+    const unitCost = prod?.cost_price || 0
+    const lineRevenue = (item.unit_price || 0) * (item.quantity || 0)
+    const lineCost = unitCost * (item.quantity || 0)
+    const lineProfit = lineRevenue - lineCost
+    return { ...item, unitCost, lineRevenue, lineCost, lineProfit, margin: lineRevenue ? (lineProfit / lineRevenue) * 100 : 0, image: prod?.image_url }
+  }
+
+  // ── Real per-product profit, from confirmed orders' actual line items — what's actually driving margin ──
+  const productProfitMap = {}
+  monthOrders.forEach(o => (o.order_items || []).forEach(item => {
+    const key = item.product_id || item.product_name
+    if (!key) return
+    const b = itemBreakdown(item)
+    if (!productProfitMap[key]) productProfitMap[key] = { name: item.product_name, image: b.image, qty: 0, revenue: 0, cost: 0 }
+    productProfitMap[key].qty += item.quantity || 0
+    productProfitMap[key].revenue += b.lineRevenue
+    productProfitMap[key].cost += b.lineCost
+  }))
+  const productProfits = Object.values(productProfitMap)
+    .map(p => ({ ...p, profit: p.revenue - p.cost, margin: p.revenue ? ((p.revenue - p.cost) / p.revenue) * 100 : 0 }))
+    .sort((a, b) => b.profit - a.profit)
+  const productProfitMax = Math.max(...productProfits.map(p => Math.abs(p.profit)), 1)
   const revenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0)
   const collected = monthOrders.reduce((s, o) => s + (parseFloat(o.amount_paid) || 0), 0)
   const outstanding = monthOrders.reduce((s, o) => s + Math.max(0, (o.total || 0) - (parseFloat(o.amount_paid) || 0)), 0)
@@ -488,51 +537,123 @@ export default function AdminProfit() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
                     <span>
                       <span style={{ display: 'block', fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Profit per order — {periodLabel}</span>
-                      <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>What each order actually left you</span>
+                      <span style={{ display: 'block', paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>Every order, confirmed or not — click one to see the cost breakdown by product. Only confirmed / dispatched / completed count toward the totals above.</span>
                     </span>
-                    <span style={{ fontSize: 13.5, color: '#6b7280' }}>{monthOrders.length} order{monthOrders.length === 1 ? '' : 's'}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 8, overflow: 'hidden', background: '#f7f8fa' }}>
+                      {['All', 'Confirmed only'].map(label => { const on = label === orderFilter
+                        return <button key={label} type="button" onClick={() => setOrderFilter(label)} style={{ border: 0, cursor: 'pointer', padding: '8px 12px 9px', background: on ? '#16181d' : 'transparent', color: on ? '#ffffff' : '#6b7280', fontSize: 12.5, fontWeight: on ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</button>
+                      })}
+                    </span>
                   </div>
                   <div data-scroll style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 880 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(230px,1.7fr) 128px 128px 140px 104px 118px', gap: 12, alignItems: 'center', padding: '10px 16px 11px', borderBottom: '1px solid #e2e4e9', background: '#fafbfc', fontSize: 13, fontWeight: 700, color: '#6b7280' }}>
-                        <span>Order / client</span><span style={{ textAlign: 'right' }}>Revenue</span><span style={{ textAlign: 'right' }}>Cost</span><span style={{ textAlign: 'right' }}>Gross profit</span><span style={{ textAlign: 'right' }}>Margin</span><span style={{ textAlign: 'center' }}>Account</span>
+                    <div style={{ minWidth: 960 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px,1.5fr) 118px 118px 130px 90px 108px 108px', gap: 12, alignItems: 'center', padding: '10px 16px 11px', borderBottom: '1px solid #e2e4e9', background: '#fafbfc', fontSize: 13, fontWeight: 700, color: '#6b7280' }}>
+                        <span>Order / client</span><span style={{ textAlign: 'right' }}>Revenue</span><span style={{ textAlign: 'right' }}>Cost paid</span><span style={{ textAlign: 'right' }}>Gross profit</span><span style={{ textAlign: 'right' }}>Margin</span><span style={{ textAlign: 'center' }}>Stage</span><span style={{ textAlign: 'center' }}>Account</span>
                       </div>
-                      {monthOrders.length === 0 ? (
-                        <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No confirmed orders in {periodLabel}</div>
-                      ) : monthOrders.slice().sort((a, b) => (b.total - orderCogs(b)) - (a.total - orderCogs(a))).map(o => {
-                        const p = o.total - orderCogs(o)
-                        const m = o.total ? (p / o.total) * 100 : 0
-                        const acc = ACCOUNTS.find(a => a.key === (o.payment_account || 'company'))
-                        return (
-                          <div key={o.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(230px,1.7fr) 128px 128px 140px 104px 118px', gap: 12, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5' }}>
-                            <span style={{ minWidth: 0 }}>
-                              <span className="lc-mono" style={{ display: 'block', fontSize: 13.5, fontWeight: 700, letterSpacing: '-.02em' }}>#{o.order_number}</span>
-                              <span style={{ display: 'block', paddingTop: 3, fontSize: 13, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{clientNameFor(o)}</span>
-                            </span>
-                            <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: DEEP }}>{money(o.total)}</span>
-                            <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: '#991b1b' }}>{orderCogs(o) > 0 ? money(orderCogs(o)) : '—'}</span>
-                            <span className="lc-mono" style={{ textAlign: 'right', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em', color: '#166534' }}>{signed(p)}</span>
-                            <span style={{ textAlign: 'right' }}>
-                              <span className="lc-mono" style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, padding: '4px 8px 5px', borderRadius: 5, background: m < 6 ? '#fee2e2' : m < 8 ? '#fef3c7' : '#dcfce7', color: m < 6 ? '#991b1b' : m < 8 ? '#7c4a03' : '#166534' }}>{orderCogs(o) > 0 ? m.toFixed(1) + '%' : '—'}</span>
-                            </span>
-                            <span style={{ textAlign: 'center' }}>
-                              <span style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 700, padding: '4px 9px 5px', borderRadius: 5, background: acc?.key === 'company' ? '#e8f0ff' : '#ede9fe', color: acc?.key === 'company' ? DEEP : '#5b21b6' }}>{acc?.label || 'Company'}</span>
-                            </span>
-                          </div>
-                        )
-                      })}
-                      {monthOrders.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(230px,1.7fr) 128px 128px 140px 104px 118px', gap: 12, alignItems: 'center', padding: '13px 16px 14px', background: '#fafbfc', fontWeight: 700 }}>
-                          <span style={{ fontSize: 14 }}>{monthOrders.length} order{monthOrders.length === 1 ? '' : 's'}</span>
-                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, color: DEEP }}>{money(revenue)}</span>
-                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, color: '#991b1b' }}>{money(cogs)}</span>
-                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 16, letterSpacing: '-.02em', color: '#166534' }}>{signed(grossProfit)}</span>
-                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: '#8a5a00' }}>{margin.toFixed(1)}%</span>
-                          <span />
-                        </div>
-                      )}
+                      {(() => {
+                        const list = (orderFilter === 'Confirmed only' ? monthOrders : scopedOrders).slice().sort((a, b) => (b.total - orderCogs(b)) - (a.total - orderCogs(a)))
+                        if (list.length === 0) return <div style={{ padding: '3rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No orders in {periodLabel}</div>
+                        return list.map(o => {
+                          const p = o.total - orderCogs(o)
+                          const m = o.total ? (p / o.total) * 100 : 0
+                          const acc = ACCOUNTS.find(a => a.key === (o.payment_account || 'company'))
+                          const counted = COUNTED_STATUSES.includes(o.status)
+                          const stBadge = ORDER_STATUS_BADGE[o.status] || ORDER_STATUS_BADGE.new
+                          const expanded = expandedOrderId === o.id
+                          const items = o.order_items || []
+                          return (
+                            <div key={o.id}>
+                              <div role="button" tabIndex={0} onClick={() => setExpandedOrderId(expanded ? null : o.id)}
+                                style={{ display: 'grid', gridTemplateColumns: 'minmax(210px,1.5fr) 118px 118px 130px 90px 108px 108px', gap: 12, alignItems: 'center', padding: '12px 16px 13px', borderBottom: '1px solid #f1f2f5', cursor: items.length ? 'pointer' : 'default', background: expanded ? '#f7f9fc' : counted ? '#ffffff' : '#fcfcfd', opacity: counted ? 1 : 0.72 }}>
+                                <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                                  {items.length > 0 && <span style={{ flex: 'none', fontSize: 11, color: '#8b909a', transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .1s' }}>▸</span>}
+                                  <span style={{ minWidth: 0 }}>
+                                    <span className="lc-mono" style={{ display: 'block', fontSize: 13.5, fontWeight: 700, letterSpacing: '-.02em' }}>#{o.order_number}</span>
+                                    <span style={{ display: 'block', paddingTop: 3, fontSize: 13, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{clientNameFor(o)}</span>
+                                  </span>
+                                </span>
+                                <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: DEEP }}>{money(o.total)}</span>
+                                <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: '#991b1b' }}>{orderCogs(o) > 0 ? money(orderCogs(o)) : '—'}</span>
+                                <span className="lc-mono" style={{ textAlign: 'right', fontSize: 15, fontWeight: 700, letterSpacing: '-.02em', color: '#166534' }}>{signed(p)}</span>
+                                <span style={{ textAlign: 'right' }}>
+                                  <span className="lc-mono" style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, padding: '4px 8px 5px', borderRadius: 5, background: m < 6 ? '#fee2e2' : m < 8 ? '#fef3c7' : '#dcfce7', color: m < 6 ? '#991b1b' : m < 8 ? '#7c4a03' : '#166534' }}>{orderCogs(o) > 0 ? m.toFixed(1) + '%' : '—'}</span>
+                                </span>
+                                <span style={{ textAlign: 'center' }}>
+                                  <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '4px 8px 5px', borderRadius: 5, background: stBadge.bg, color: stBadge.ink }}>{stBadge.label}</span>
+                                </span>
+                                <span style={{ textAlign: 'center' }}>
+                                  <span style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 700, padding: '4px 9px 5px', borderRadius: 5, background: acc?.key === 'company' ? '#e8f0ff' : '#ede9fe', color: acc?.key === 'company' ? DEEP : '#5b21b6' }}>{acc?.label || 'Company'}</span>
+                                </span>
+                              </div>
+                              {expanded && items.length > 0 && (
+                                <div style={{ background: '#f7f9fc', borderBottom: '1px solid #e2e4e9', padding: '10px 16px 13px 42px' }}>
+                                  {!counted && (
+                                    <div style={{ marginBottom: 8, fontSize: 12, color: '#8a5a00' }}>This order is <strong>{stBadge.label.toLowerCase()}</strong> — not counted in revenue or profit until it's confirmed.</div>
+                                  )}
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px,1.6fr) 60px 90px 90px 90px 90px 80px', gap: 10, padding: '6px 8px', fontSize: 11, fontWeight: 700, color: '#8b909a', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                                    <span>Product</span><span style={{ textAlign: 'right' }}>Qty</span><span style={{ textAlign: 'right' }}>Unit cost</span><span style={{ textAlign: 'right' }}>Unit price</span><span style={{ textAlign: 'right' }}>Line cost</span><span style={{ textAlign: 'right' }}>Line profit</span><span style={{ textAlign: 'right' }}>Margin</span>
+                                  </div>
+                                  {items.map(item => {
+                                    const b = itemBreakdown(item)
+                                    return (
+                                      <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px,1.6fr) 60px 90px 90px 90px 90px 80px', gap: 10, alignItems: 'center', padding: '7px 8px', background: '#ffffff', borderRadius: 7, marginBottom: 3 }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                          <MiniThumb url={b.image} name={item.product_name} size={26} />
+                                          <span style={{ fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</span>
+                                        </span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 12 }}>{item.quantity}</span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 12, color: '#991b1b' }}>{b.unitCost ? money(b.unitCost) : '—'}</span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 12, color: DEEP }}>{money(item.unit_price)}</span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 12, color: '#991b1b' }}>{b.lineCost ? money(b.lineCost) : '—'}</span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 12.5, fontWeight: 700, color: '#166534' }}>{signed(b.lineProfit)}</span>
+                                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 11.5, fontWeight: 700, color: b.unitCost ? (b.margin < 6 ? '#991b1b' : b.margin < 8 ? '#7c4a03' : '#166534') : '#8b909a' }}>{b.unitCost ? b.margin.toFixed(1) + '%' : '—'}</span>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
+                      })()}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px,1.5fr) 118px 118px 130px 90px 108px 108px', gap: 12, alignItems: 'center', padding: '13px 16px 14px', background: '#fafbfc', fontWeight: 700 }}>
+                        <span style={{ fontSize: 14 }}>Confirmed total ({monthOrders.length})</span>
+                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, color: DEEP }}>{money(revenue)}</span>
+                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, color: '#991b1b' }}>{money(cogs)}</span>
+                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 16, letterSpacing: '-.02em', color: '#166534' }}>{signed(grossProfit)}</span>
+                        <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14, color: '#8a5a00' }}>{margin.toFixed(1)}%</span>
+                        <span /><span />
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px 15px', borderBottom: '1px solid #e2e4e9' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.02em' }}>Most profitable products — {periodLabel}</div>
+                    <div style={{ paddingTop: 4, fontSize: 13.5, color: '#6b7280' }}>What's actually driving the number above, from confirmed orders</div>
+                  </div>
+                  {productProfits.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', color: '#8b909a', fontSize: 13.5 }}>No confirmed order items in {periodLabel}</div>
+                  ) : (
+                    <div>
+                      {productProfits.slice(0, 8).map(p => (
+                        <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0,1fr) 90px 100px 90px', gap: 11, alignItems: 'center', padding: '11px 16px 12px', borderBottom: '1px solid #f1f2f5' }}>
+                          <MiniThumb url={p.image} name={p.name} size={30} />
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                            <span style={{ display: 'block', marginTop: 6, height: 6, borderRadius: 3, background: '#f1f2f5', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', borderRadius: 3, background: p.profit >= 0 ? '#16a34a' : '#dc2626', width: `${Math.round((Math.abs(p.profit) / productProfitMax) * 100)}%` }} /></span>
+                            <span style={{ display: 'block', paddingTop: 4, fontSize: 11.5, color: '#8b909a' }}>{p.qty} units sold</span>
+                          </span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 13, color: '#47505e' }}>{money(p.revenue)}</span>
+                          <span className="lc-mono" style={{ textAlign: 'right', fontSize: 14.5, fontWeight: 700, color: p.profit >= 0 ? '#166534' : '#991b1b' }}>{signed(p.profit)}</span>
+                          <span style={{ textAlign: 'right' }}>
+                            <span className="lc-mono" style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 700, padding: '4px 8px 5px', borderRadius: 5, background: p.margin < 6 ? '#fee2e2' : p.margin < 8 ? '#fef3c7' : '#dcfce7', color: p.margin < 6 ? '#991b1b' : p.margin < 8 ? '#7c4a03' : '#166534' }}>{p.margin.toFixed(1)}%</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
