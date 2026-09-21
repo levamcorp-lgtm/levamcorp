@@ -103,7 +103,7 @@ export async function POST(request) {
   </tr>
   <tr>
     <td class="lvm-pad" style="padding: 14px 28px 30px 28px; font-family: Helvetica, Arial, sans-serif; font-size: 15px; color: #3f3d39; mso-line-height-rule: exactly; line-height: 25px;">
-      Sign in at <a href="https://www.levamcorp.com/portal" style="color: #08090b; text-decoration: none; border-bottom: 1px solid #2F7DF6;">levamcorp.com/portal</a> with <a href="mailto:${email}" style="color: #08090b; text-decoration: none; border-bottom: 1px solid #2F7DF6;">${email}</a> to see live wholesale pricing, stock levels and place your first order.
+      Sign in at <a href="https://www.levamcorp.com/portal" style="color: #08090b; text-decoration: none; border-bottom: 1px solid #2F7DF6;">levamcorp.com/portal</a> with <a href="mailto:${email}" style="color: #08090b; text-decoration: none; border-bottom: 1px solid #2F7DF6;">${email}</a> to see live wholesale pricing, stock levels and place your first order. A separate email with your temporary password is on its way right after this one.
     </td>
   </tr>
   </table>
@@ -218,7 +218,7 @@ export async function POST(request) {
         <td width="46" style="width: 46px; padding: 14px 0 16px 0; border-top: 1px solid rgba(8,9,11,0.2); vertical-align: top; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 1px; color: #1f5dc7; mso-line-height-rule: exactly; line-height: 18px;">01</td>
         <td style="padding: 14px 0 16px 0; border-top: 1px solid rgba(8,9,11,0.2); vertical-align: top;">
           <div style="font-family: Helvetica, Arial, sans-serif; font-size: 16px; color: #08090b; mso-line-height-rule: exactly; line-height: 21px;">Sign in to your portal</div>
-          <div style="padding-top: 5px; font-family: Helvetica, Arial, sans-serif; font-size: 14px; color: #6d6a64; mso-line-height-rule: exactly; line-height: 21px;">Set your password on first sign-in. Live pricing on all 500+ SKUs.</div>
+          <div style="padding-top: 5px; font-family: Helvetica, Arial, sans-serif; font-size: 14px; color: #6d6a64; mso-line-height-rule: exactly; line-height: 21px;">Use the temporary password from the credentials email we sent separately. Live pricing on all 500+ SKUs.</div>
         </td>
       </tr>
       <tr>

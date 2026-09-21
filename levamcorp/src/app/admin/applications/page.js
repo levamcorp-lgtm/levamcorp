@@ -167,28 +167,37 @@ export default function AdminApplications() {
 
   const approveApp = async (app) => {
     setApproving(app.id)
-    const supabase = createClient()
-    await supabase.from('applications').update({ status: 'approved' }).eq('id', app.id)
-    await supabase.from('clients').upsert([{
-      email: app.email,
-      business_name: app.business_name,
-      contact_name: app.contact_name,
-      phone: app.phone,
-      address: app.address,
-      business_type: app.business_type,
-      monthly_volume: app.monthly_volume,
-      years_in_business: app.years_in_business,
-      ein_number: app.ein_number,
-      resale_tax_number: app.resale_tax_number,
-      ein_document_url: app.ein_document_url,
-      resale_tax_document_url: app.resale_tax_document_url,
-    }])
-    const emailRes = await fetch('/api/send-approval-email', {
+    // Creates the real Supabase Auth login (service role — the browser's anon key can't do
+    // this), the clients record, and marks the application approved, all in one request.
+    const provision = await fetch('/api/approve-application', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: app.email, contactName: app.contact_name, businessName: app.business_name })
-    })
-    if (!emailRes.ok) alert('Client approved, but the approval email failed to send. Please notify them manually.')
+      body: JSON.stringify({
+        applicationId: app.id, email: app.email, businessName: app.business_name, contactName: app.contact_name,
+        phone: app.phone, address: app.address, businessType: app.business_type, monthlyVolume: app.monthly_volume,
+        yearsInBusiness: app.years_in_business, einNumber: app.ein_number, resaleTaxNumber: app.resale_tax_number,
+        einDocumentUrl: app.ein_document_url, resaleTaxDocumentUrl: app.resale_tax_document_url,
+      })
+    }).then(r => r.json()).catch(() => ({ success: false }))
+
+    if (!provision.success) {
+      alert(`Couldn't approve this client: ${provision.error || 'unknown error'}`)
+      setApproving(null)
+      return
+    }
+
+    const supabase = createClient()
+    const [welcomeRes, credsRes] = await Promise.all([
+      fetch('/api/send-approval-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: app.email, contactName: app.contact_name, businessName: app.business_name })
+      }),
+      fetch('/api/send-credentials-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: app.email, password: provision.tempPassword, businessName: app.business_name, contactName: app.contact_name })
+      }),
+    ])
+    if (!welcomeRes.ok || !credsRes.ok) alert('Client approved and their login was created, but an email failed to send. Please share their credentials manually.')
     await loadApps(supabase)
     setApproving(null)
   }
