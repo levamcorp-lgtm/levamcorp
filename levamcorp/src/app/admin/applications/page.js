@@ -9,6 +9,24 @@ const ACCENT = '#2F7DF6'
 const DEEP = '#1B5FD1'
 const CHIP = '#E8F0FF'
 
+// Same options as the /apply form's "Where did you hear about us?" step — kept in sync by hand
+// since each admin page is self-contained, but the values must match what apply/page.js writes.
+const HEARD_ABOUT_OPTIONS = [
+  ['google', 'Found you on Google'],
+  ['instagram', 'Found you on Instagram (@levamdistributors)'],
+  ['facebook', 'Found you on Facebook'],
+  ['friend', 'A friend recommended me'],
+  ['broker', 'A broker referred me'],
+  ['existing_client', 'An existing Levam client referred me'],
+  ['trade_show', 'Met you at a trade show or event'],
+  ['whatsapp', 'Found you on WhatsApp'],
+  ['youtube', 'Found you on YouTube'],
+  ['tiktok', 'Found you on TikTok'],
+  ['amazon_seller', 'Amazon seller community / forum'],
+  ['walmart_seller', 'Walmart seller community / forum'],
+  ['other', 'Other'],
+]
+
 // Marks a document as confirmed outside the portal (WhatsApp, email, in person) instead of
 // uploaded — written into the same ein_document_url/resale_tax_document_url columns rather than
 // a fake storage path, so the approve gate (which just checks "is this field truthy") unblocks
@@ -401,6 +419,7 @@ export default function AdminApplications() {
                   { k: 'Years operating', v: sel.years_in_business, flag: sel.years_in_business === 'Less than 1 year' ? 'New business' : null, flagBg: '#fde68a', flagInk: '#7c4a03' },
                   { k: 'Monthly volume', v: sel.monthly_volume, size: 16, weight: 700, flag: sel.monthly_volume === '$100,000+' ? 'High value' : null, flagBg: '#dcfce7', flagInk: '#166534' },
                   { k: 'Interested in', v: sel.categories?.length ? sel.categories.join(', ') : '—' },
+                  { k: 'Heard about us', v: sel.heard_about ? (HEARD_ABOUT_OPTIONS.find(([val]) => val === sel.heard_about)?.[1] || sel.heard_about) + (sel.heard_about_detail ? ` — ${sel.heard_about_detail}` : '') : null },
                 ],
               },
               {
