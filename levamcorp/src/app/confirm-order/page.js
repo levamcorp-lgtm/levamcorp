@@ -15,6 +15,13 @@ const globalStyle = `
   input, textarea, button { font-family: inherit; }
   input:focus, textarea:focus { outline: 2px solid ${ACCENT}; outline-offset: -2px; }
   input::placeholder, textarea::placeholder { color: rgba(8,9,11,0.35); }
+  /* 16px minimum on real inputs — under that, iOS Safari auto-zooms the page on focus */
+  input[type="tel"], input[type="text"], textarea { font-size: 16px !important; }
+  @media (max-width: 420px) {
+    .tb-sub { display: none; }
+    .tb-wa-long { display: none; }
+    .tb-wa-short { display: inline !important; }
+  }
 `
 
 const money = (n) => '$' + (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -23,33 +30,37 @@ const clientNameFor = (notes) => (notes || '').split('Business: ')[1]?.split(/[|
 
 function TopBar() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px clamp(16px,4vw,48px)', borderBottom: '1px solid rgba(242,239,230,0.14)' }}>
-      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none', color: '#F2EFE6' }}>
-        <span style={{ display: 'inline-block', width: 15, height: 15, border: '1px solid rgba(242,239,230,0.6)', borderLeft: `3px solid ${ACCENT}` }} />
-        <span className="lc-mono" style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase' }}>Levamcorp</span>
-        <span className="lc-mono" style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6F6D67' }}>Doral · FL</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px clamp(16px,4vw,48px)', borderBottom: '1px solid rgba(242,239,230,0.14)' }}>
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, textDecoration: 'none', color: '#F2EFE6' }}>
+        <span style={{ flexShrink: 0, display: 'inline-block', width: 15, height: 15, border: '1px solid rgba(242,239,230,0.6)', borderLeft: `3px solid ${ACCENT}` }} />
+        <span className="lc-mono" style={{ flexShrink: 0, fontWeight: 700, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase' }}>Levamcorp</span>
+        <span className="tb-sub lc-mono" style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6F6D67', whiteSpace: 'nowrap' }}>Doral · FL</span>
       </Link>
-      <a href="https://wa.me/17864909005" className="lc-mono" style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F2EFE6', border: '1px solid rgba(242,239,230,0.3)', padding: '9px 14px', textDecoration: 'none' }}>Question? WhatsApp →</a>
+      <a href="https://wa.me/17864909005" className="lc-mono" style={{ flexShrink: 0, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#F2EFE6', border: '1px solid rgba(242,239,230,0.3)', padding: '11px 14px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <span className="tb-wa-long">Question? WhatsApp →</span>
+        <span className="tb-wa-short" style={{ display: 'none' }}>WhatsApp →</span>
+      </a>
     </div>
   )
 }
 
 function Chip({ label, desc, on, onClick }) {
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', marginBottom: 6, border: `1.5px solid ${on ? ACCENT : 'rgba(8,9,11,0.14)'}`, background: on ? '#E8F0FF' : '#FFFFFF', cursor: 'pointer' }}>
+    <div role="radio" aria-checked={on} tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '13px 14px', marginBottom: 8, border: `1.5px solid ${on ? ACCENT : 'rgba(8,9,11,0.14)'}`, background: on ? '#E8F0FF' : '#FFFFFF', cursor: 'pointer' }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#08090B' }}>{label}</div>
-        {desc && <div style={{ fontSize: 11.5, color: '#8A8780' }}>{desc}</div>}
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#08090B' }}>{label}</div>
+        {desc && <div style={{ fontSize: 12.5, marginTop: 2, color: '#8A8780' }}>{desc}</div>}
       </div>
-      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${on ? ACCENT : '#D8D4C8'}`, background: on ? ACCENT : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {on && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${on ? ACCENT : '#D8D4C8'}`, background: on ? ACCENT : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {on && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />}
       </div>
     </div>
   )
 }
 
 function Lbl({ text }) {
-  return <div className="lc-mono" style={{ fontSize: 10, fontWeight: 700, color: '#5C5A55', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>{text}</div>
+  return <div className="lc-mono" style={{ fontSize: 11, fontWeight: 700, color: '#5C5A55', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>{text}</div>
 }
 
 function ConfirmOrderInner() {
@@ -165,7 +176,7 @@ function ConfirmOrderInner() {
     <div style={{ minHeight: '100vh', background: '#08090B', color: '#F2EFE6', fontFamily: '"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
       <style>{globalStyle}</style>
       <TopBar />
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vh,56px) clamp(16px,4vw,48px) clamp(60px,9vh,110px)' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vh,56px) clamp(16px,4vw,48px) 140px' }}>
         <div className="lc-mono" style={{ fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6F6D67', paddingBottom: 10 }}>Order confirmation · Form 05</div>
         <h1 style={{ margin: 0, fontSize: 'clamp(28px,3.6vw,42px)', fontWeight: 400, letterSpacing: '-0.04em', lineHeight: 1.05, color: '#F5F2E9' }}>
           Let's lock this in<span style={{ color: ACCENT }}>.</span>
@@ -210,7 +221,7 @@ function ConfirmOrderInner() {
                     <span className="lc-mono" style={{ fontSize: 13, fontWeight: 700 }}>{v}</span>
                   </div>
                 ))}
-                <div style={{ padding: '10px 14px', fontSize: 11.5, color: '#8A8780' }}>Include your order number, #{order.order_number}, in the wire memo so we can match your payment.</div>
+                <div style={{ padding: '10px 14px', fontSize: 12.5, color: '#8A8780', lineHeight: 1.5 }}>Include your order number, #{order.order_number}, in the wire memo so we can match your payment.</div>
               </div>
             ) : (
               <div style={{ marginTop: 6, padding: '10px 14px', background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.3)', fontSize: 12.5, color: '#F5F1E8' }}>Your rep will send the account to wire into — WhatsApp them if you don't have it yet.</div>
@@ -225,14 +236,14 @@ function ConfirmOrderInner() {
           <Chip label="Shipping" desc="We'll ship to your address · Additional cost applies" on={fulfillment === 'shipping'} onClick={() => setFulfillment('shipping')} />
           {fulfillment === 'pickup' && (
             <div style={{ padding: '10px 14px', background: 'rgba(18,183,106,0.06)', border: '1px solid rgba(18,183,106,0.25)', marginTop: 4 }}>
-              <div style={{ fontSize: 12, color: '#5C5A55', lineHeight: 1.7 }}>Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178<br />Mon–Fri · 9:00 AM – 6:00 PM ET</div>
+              <div style={{ fontSize: 13, color: '#5C5A55', lineHeight: 1.7 }}>Levam Corp Distributors · 6315 NW 99th Ave, Doral, FL 33178<br />Mon–Fri · 9:00 AM – 6:00 PM ET</div>
             </div>
           )}
           {fulfillment === 'shipping' && (
             <div style={{ marginTop: 6 }}>
-              <textarea value={address} onChange={e => setAddress(e.target.value)} rows={3} placeholder="Full shipping address…"
-                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid rgba(242,239,230,0.16)', background: '#F2EFE6', fontSize: 13.5, padding: '10px 12px', resize: 'vertical', color: '#08090B' }} />
-              <div style={{ fontSize: 11.5, color: '#9A968E', marginTop: 6 }}>An additional shipping cost applies and will be confirmed by your rep before dispatch.</div>
+              <textarea value={address} onChange={e => setAddress(e.target.value)} rows={3} placeholder="Full shipping address…" autoComplete="street-address"
+                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid rgba(242,239,230,0.16)', background: '#F2EFE6', padding: '12px 12px', resize: 'vertical', color: '#08090B' }} />
+              <div style={{ fontSize: 12.5, color: '#9A968E', marginTop: 6, lineHeight: 1.5 }}>An additional shipping cost applies and will be confirmed by your rep before dispatch.</div>
             </div>
           )}
         </div>
@@ -240,22 +251,26 @@ function ConfirmOrderInner() {
         {/* PHONE */}
         <div style={{ marginTop: 22 }}>
           <Lbl text="Best phone for delivery/pickup coordination (optional)" />
-          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(305) 000-0000"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid rgba(242,239,230,0.16)', background: '#F2EFE6', fontSize: 14, padding: '11px 12px', color: '#08090B' }} />
+          <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(305) 000-0000"
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid rgba(242,239,230,0.16)', background: '#F2EFE6', padding: '13px 12px', color: '#08090B' }} />
         </div>
 
         {/* TERMS */}
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 24, fontSize: 13, color: '#C9C6BC', cursor: 'pointer', lineHeight: 1.6 }}>
-          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
-          I understand this order is <strong style={{ color: '#F2EFE6' }}>final sale and non-refundable</strong> once confirmed.
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 26, padding: '4px 2px', fontSize: 14, color: '#C9C6BC', cursor: 'pointer', lineHeight: 1.6 }}>
+          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 2, width: 20, height: 20, accentColor: ACCENT, flexShrink: 0 }} />
+          <span>I understand this order is <strong style={{ color: '#F2EFE6' }}>final sale and non-refundable</strong> once confirmed.</span>
         </label>
+      </div>
 
-        {err && <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
-
-        <button onClick={submit} disabled={submitting} className="lc-mono" style={{ width: '100%', marginTop: 20, padding: 15, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: submitting ? '#5C5A55' : '#F2EFE6', color: submitting ? '#F2EFE6' : '#08090B', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer' }}>
-          <span>{submitting ? 'Confirming…' : 'Confirm my order'}</span>
-          {!submitting && <span>→</span>}
-        </button>
+      {/* STICKY CTA — always one thumb-tap away, since most clients open this from a WhatsApp link on their phone */}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, paddingTop: 24, paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))', background: 'linear-gradient(to top, #08090B 65%, rgba(8,9,11,0))' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 clamp(16px,4vw,48px)' }}>
+          {err && <div style={{ marginBottom: 10, padding: '10px 14px', background: 'rgba(220,38,38,0.14)', border: '1px solid rgba(220,38,38,0.35)', color: '#fca5a5', fontSize: 13.5 }}>{err}</div>}
+          <button onClick={submit} disabled={submitting} className="lc-mono" style={{ width: '100%', minHeight: 52, padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: submitting ? '#5C5A55' : '#F2EFE6', color: submitting ? '#F2EFE6' : '#08090B', fontSize: 11.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', border: 'none', boxShadow: '0 -4px 20px rgba(0,0,0,0.35)', cursor: submitting ? 'not-allowed' : 'pointer' }}>
+            <span>{submitting ? 'Confirming…' : 'Confirm my order'}</span>
+            {!submitting && <span>→</span>}
+          </button>
+        </div>
       </div>
     </div>
   )
