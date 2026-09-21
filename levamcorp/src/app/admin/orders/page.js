@@ -164,6 +164,7 @@ function AdminOrdersInner() {
   const [unitItems,    setUnitItems]    = useState([])
   const [addItemForm,  setAddItemForm]  = useState({productId:'',search:'',quantity:'1',unitPrice:''})
   const [saving,       setSaving]       = useState(false)
+  const [sendingConfirmEmail, setSendingConfirmEmail] = useState(false)
   // new order (admin entering a WhatsApp/off-portal deal for an existing client)
   const [showNewOrder,   setShowNewOrder]   = useState(false)
   const [creatingOrder,  setCreatingOrder]  = useState(false)
@@ -397,6 +398,39 @@ function AdminOrdersInner() {
     }
     setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: 'paid' } : p))
     setSaving(false)
+  }
+
+  const generateConfirmLink = async () => {
+    setSaving(true)
+    const sb = createClient()
+    const token = crypto.randomUUID().replace(/-/g, '')
+    const now = new Date().toISOString()
+    const { error } = await sb.from('orders').update({ confirm_token: token, confirm_sent_at: now }).eq('id', sel.id)
+    if (error) {
+      console.error('generate confirm link failed', error)
+      alert(`Couldn't generate the link: ${error.message}`)
+      setSaving(false)
+      return
+    }
+    setOrders(prev => prev.map(o => o.id === sel.id ? { ...o, confirm_token: token, confirm_sent_at: now } : o))
+    setSel(prev => ({ ...prev, confirm_token: token, confirm_sent_at: now }))
+    setSaving(false)
+  }
+
+  const sendConfirmLinkEmail = async () => {
+    const confirmUrl = `https://www.levamcorp.com/confirm-order?token=${sel.confirm_token}`
+    const email = selClient?.email || (sel.notes || '').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim()
+    if (!email) { alert("No email on file for this client."); return }
+    setSendingConfirmEmail(true)
+    await fetch('/api/send-order-confirm-link-email', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email, businessName: selClient?.business_name, contactName: selClient?.contact_name,
+        orderNumber: sel.order_number, confirmUrl, total: sel.total, itemCount: sel.order_items?.length || 0,
+      }),
+    }).catch(() => {})
+    setSendingConfirmEmail(false)
+    alert(`Sent to ${email}.`)
   }
 
   const saveUnits = async () => {
@@ -787,6 +821,11 @@ function AdminOrdersInner() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', paddingTop: 13 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, padding: '5px 10px 6px', borderRadius: 6, background: st.bg, color: st.ink }}>{STATUS_LABEL[sel.status]}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, padding: '5px 10px 6px', borderRadius: 6, background: py.bg, color: py.ink }}>{payLabel}</span>
+                  {sel.client_confirmed_at ? (
+                    <span style={{ fontSize: 13, fontWeight: 700, padding: '5px 10px 6px', borderRadius: 6, background: '#dcfce7', color: '#166534' }}>✓ Client confirmed</span>
+                  ) : sel.confirm_token ? (
+                    <span style={{ fontSize: 13, fontWeight: 700, padding: '5px 10px 6px', borderRadius: 6, background: '#fde68a', color: '#7c4a03' }}>Awaiting client</span>
+                  ) : null}
                   <span className="lc-mono" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.02em', marginLeft: 'auto' }}>{money(sel.total)}</span>
                 </div>
               </div>
@@ -803,7 +842,7 @@ function AdminOrdersInner() {
               </div>
 
               <div style={{ display: 'flex', gap: 4, padding: '18px 20px 0', borderBottom: '1px solid #e2e4e9' }}>
-                {['Items','Client','Payment','Shipping'].map(label => {
+                {['Items','Client','Payment','Shipping','Confirm'].map(label => {
                   const on = tab === label
                   return <button key={label} type="button" onClick={() => setTab(label)} style={{ border: 0, borderBottom: `3px solid ${on ? ACCENT : 'transparent'}`, background: 'transparent', cursor: 'pointer', padding: '9px 12px 11px', fontSize: 14.5, fontWeight: on ? 700 : 500, color: on ? '#16181d' : '#6b7280' }}>{label}</button>
                 })}
@@ -1036,6 +1075,58 @@ function AdminOrdersInner() {
                     )}
                   </div>
                 )}
+
+                {tab === 'Confirm' && (() => {
+                  const confirmUrl = sel.confirm_token ? `https://www.levamcorp.com/confirm-order?token=${sel.confirm_token}` : null
+                  const phoneDigits = (selClient?.phone || '').replace(/\D/g, '')
+                  const waMessage = `Hi${selClient?.contact_name ? ' ' + selClient.contact_name : ''}! Please confirm a couple final details for order #${sel.order_number} so we can get it moving: ${confirmUrl}`
+                  const waHref = confirmUrl && phoneDigits ? `https://wa.me/${phoneDigits.length === 10 ? '1' + phoneDigits : phoneDigits}?text=${encodeURIComponent(waMessage)}` : null
+                  return (
+                    <div>
+                      {sel.client_confirmed_at ? (
+                        <div>
+                          <div style={{ padding: '13px 14px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: 16 }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#166534' }}>✓ Client confirmed on {fmt(sel.client_confirmed_at)}</div>
+                            <div style={{ paddingTop: 4, fontSize: 13, color: '#47505e' }}>They accepted this order is final sale and non-refundable.</div>
+                          </div>
+                          {[
+                            ['Payment method', PAYMENT_METHODS.find(m => m.value === sel.confirmed_payment_method)?.label || sel.confirmed_payment_method],
+                            ['Fulfillment', sel.confirmed_fulfillment === 'pickup' ? 'Pickup — Doral, FL' : sel.confirmed_fulfillment === 'shipping' ? 'Shipping' : '—'],
+                            ...(sel.confirmed_address ? [['Ship to', sel.confirmed_address]] : []),
+                            ...(sel.confirmed_phone ? [['Phone', sel.confirmed_phone]] : []),
+                          ].map(([k, v]) => (
+                            <div key={k} style={{ display: 'grid', gridTemplateColumns: 'clamp(112px,30%,156px) minmax(0,1fr)', gap: 12, alignItems: 'baseline', padding: '12px 0 13px', borderBottom: '1px solid #f1f2f5' }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#6b7280' }}>{k}</span>
+                              <span style={{ fontSize: 14.5, color: '#16181d', wordBreak: 'break-word' }}>{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : sel.confirm_token ? (
+                        <div>
+                          <div style={{ padding: '13px 14px 14px', borderRadius: 10, background: '#fffbf2', border: '1px solid #f3d9a4', marginBottom: 16 }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#8a5a00' }}>Waiting on the client</div>
+                            <div style={{ paddingTop: 4, fontSize: 13, color: '#47505e' }}>Link generated {fmt(sel.confirm_sent_at)}. They haven't confirmed yet.</div>
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f7f9fc', border: '1px solid #e2e4e9', borderRadius: 8, fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all', color: '#47505e', marginBottom: 12 }}>{confirmUrl}</div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <button onClick={() => { navigator.clipboard.writeText(confirmUrl); alert('Link copied.') }} style={{ flex: '1 1 140px', padding: 11, background: '#f7f9fc', color: '#47505e', fontSize: 13.5, fontWeight: 700, border: '1px solid #d9dce2', borderRadius: 8, cursor: 'pointer' }}>Copy link</button>
+                            <a href={waHref || undefined} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 140px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 11, background: waHref ? '#16a34a' : '#c9ced6', color: '#ffffff', fontSize: 13.5, fontWeight: 700, borderRadius: 8, pointerEvents: waHref ? 'auto' : 'none' }}>Send on WhatsApp</a>
+                            <button onClick={sendConfirmLinkEmail} disabled={sendingConfirmEmail} style={{ flex: '1 1 140px', padding: 11, background: sendingConfirmEmail ? '#8b909a' : '#16181d', color: '#ffffff', fontSize: 13.5, fontWeight: 700, border: 'none', borderRadius: 8, cursor: sendingConfirmEmail ? 'not-allowed' : 'pointer' }}>{sendingConfirmEmail ? 'Sending…' : 'Send by email'}</button>
+                          </div>
+                          {!waHref && <div style={{ paddingTop: 10, fontSize: 12.5, color: '#8b909a' }}>WhatsApp needs a phone on file for this client — email works right now.</div>}
+                          <button onClick={generateConfirmLink} disabled={saving} style={{ marginTop: 14, padding: 0, background: 'none', border: 'none', color: DEEP, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate a new link (invalidates this one's status)</button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: 14, color: '#47505e', lineHeight: 1.6, marginBottom: 16 }}>
+                            Generate a link so the client can confirm how they'll pay, how they want the order delivered, and accept that it's final sale — before it ships.
+                          </div>
+                          <button onClick={generateConfirmLink} disabled={saving} style={{ width: '100%', padding: 13, background: saving ? '#8b909a' : ACCENT, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Generating…' : '+ Generate confirmation link'}</button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </div>
