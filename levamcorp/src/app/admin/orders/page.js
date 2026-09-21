@@ -165,10 +165,7 @@ function AdminOrdersInner() {
   const [addItemForm,  setAddItemForm]  = useState({productId:'',search:'',quantity:'1',unitPrice:''})
   const [saving,       setSaving]       = useState(false)
   const [sendingConfirmEmail, setSendingConfirmEmail] = useState(false)
-  const [bankAccounts, setBankAccounts] = useState([])
-  const [selectedBankId, setSelectedBankId] = useState('')
-  const [showAddBank,  setShowAddBank]  = useState(false)
-  const [bankForm,     setBankForm]     = useState({ label: '', bank_name: '', account_name: '', account_number: '', routing_number: '' })
+  const [linkBankForm, setLinkBankForm] = useState({ bank_name: '', account_name: '', account_number: '', routing_number: '' })
   // new order (admin entering a WhatsApp/off-portal deal for an existing client)
   const [showNewOrder,   setShowNewOrder]   = useState(false)
   const [creatingOrder,  setCreatingOrder]  = useState(false)
@@ -201,18 +198,16 @@ function AdminOrdersInner() {
 
   const reload = async (sb) => {
     sb = sb || createClient()
-    const [{ data: o }, { data: c }, { data: p }, { data: pay }, { data: ba }] = await Promise.all([
+    const [{ data: o }, { data: c }, { data: p }, { data: pay }] = await Promise.all([
       sb.from('orders').select('*, order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('clients').select('*'),
       sb.from('products').select('id,name,sku,price,image_url').order('name'),
       sb.from('payments').select('*').order('created_at',{ascending:false}),
-      sb.from('bank_accounts').select('*').order('created_at',{ascending:false}),
     ])
     setOrders(o||[])
     setClients(c||[])
     setProducts(p||[])
     setPayments(pay||[])
-    setBankAccounts(ba||[])
     setLoading(false)
   }
 
@@ -406,35 +401,16 @@ function AdminOrdersInner() {
     setSaving(false)
   }
 
-  const addBankAccount = async () => {
-    if (!bankForm.label || !bankForm.bank_name || !bankForm.account_name || !bankForm.account_number) { alert('Fill in label, bank, account name and account number.'); return }
-    setSaving(true)
-    const sb = createClient()
-    const { data: newAccount, error } = await sb.from('bank_accounts').insert([bankForm]).select().single()
-    if (error) {
-      console.error('add bank account failed', error)
-      alert(`Couldn't save the account: ${error.message}`)
-      setSaving(false)
-      return
-    }
-    setBankAccounts(prev => [newAccount, ...prev])
-    setSelectedBankId(newAccount.id)
-    setBankForm({ label: '', bank_name: '', account_name: '', account_number: '', routing_number: '' })
-    setShowAddBank(false)
-    setSaving(false)
-  }
-
   const generateConfirmLink = async () => {
-    const account = bankAccounts.find(a => a.id === selectedBankId)
-    if (!account) { alert('Pick which bank account the client should pay into first.'); return }
+    if (!linkBankForm.bank_name || !linkBankForm.account_name || !linkBankForm.account_number) { alert('Fill in the bank, account name and account number the client should pay into.'); return }
     setSaving(true)
     const sb = createClient()
     const token = crypto.randomUUID().replace(/-/g, '')
     const now = new Date().toISOString()
     const patch = {
       confirm_token: token, confirm_sent_at: now,
-      confirm_bank_name: account.bank_name, confirm_bank_account_name: account.account_name,
-      confirm_bank_account_number: account.account_number, confirm_bank_routing: account.routing_number || null,
+      confirm_bank_name: linkBankForm.bank_name, confirm_bank_account_name: linkBankForm.account_name,
+      confirm_bank_account_number: linkBankForm.account_number, confirm_bank_routing: linkBankForm.routing_number || null,
     }
     const { error } = await sb.from('orders').update(patch).eq('id', sel.id)
     if (error) {
@@ -445,6 +421,7 @@ function AdminOrdersInner() {
     }
     setOrders(prev => prev.map(o => o.id === sel.id ? { ...o, ...patch } : o))
     setSel(prev => ({ ...prev, ...patch }))
+    setLinkBankForm({ bank_name: '', account_name: '', account_number: '', routing_number: '' })
     setSaving(false)
   }
 
@@ -786,7 +763,7 @@ function AdminOrdersInner() {
                     const py = PAY_BADGE[payLabel]
                     const units = (o.order_items||[]).reduce((s,i)=>s+i.quantity,0)
                     return (
-                      <div key={o.id} role="button" tabIndex={0} onClick={() => { setSel(o); setTab('Items'); setShowETA(false); setShowPayment(false); setShowUnits(false); setShowAddItem(false); setSelectedBankId(''); setShowAddBank(false) }} onKeyDown={e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setSel(o) } }}
+                      <div key={o.id} role="button" tabIndex={0} onClick={() => { setSel(o); setTab('Items'); setShowETA(false); setShowPayment(false); setShowUnits(false); setShowAddItem(false); setLinkBankForm({ bank_name: '', account_name: '', account_number: '', routing_number: '' }) }} onKeyDown={e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setSel(o) } }}
                         style={{ display: 'grid', gridTemplateColumns: cols, gap: 12, alignItems: 'center', padding: '14px 16px 15px', borderBottom: '1px solid #f1f2f5', cursor: 'pointer', background: dim ? '#fcfcfd' : '#ffffff', borderLeft: `4px solid ${st.edge}` }}>
                         <span>
                           <span className="lc-mono" style={{ display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: '-.02em', color: dim ? '#8b909a' : '#16181d' }}>{o.order_number}</span>
@@ -1154,7 +1131,7 @@ function AdminOrdersInner() {
                           </div>
                           {!waHref && <div style={{ paddingTop: 10, fontSize: 12.5, color: '#8b909a' }}>WhatsApp needs a phone on file for this client — email works right now.</div>}
                           <button onClick={() => printInvoice(sel)} style={{ marginTop: 14, width: '100%', padding: 11, background: '#f7f9fc', color: '#47505e', fontSize: 13.5, fontWeight: 700, border: '1px solid #d9dce2', borderRadius: 8, cursor: 'pointer' }}>↓ Print / download payment instructions</button>
-                          <button onClick={() => { setSelectedBankId(''); setSel(prev => ({ ...prev, confirm_token: null })) }} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: DEEP, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate a new link</button>
+                          <button onClick={() => setSel(prev => ({ ...prev, confirm_token: null }))} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: DEEP, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate a new link</button>
                         </div>
                       ) : (
                         <div>
@@ -1163,39 +1140,16 @@ function AdminOrdersInner() {
                           </div>
 
                           <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 6, fontWeight: 700 }}>Send payment to</div>
-                          {bankAccounts.length > 0 && (
-                            <div style={{ marginBottom: 8 }}>
-                              {bankAccounts.map(a => (
-                                <div key={a.id} onClick={() => setSelectedBankId(a.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 6, border: `1.5px solid ${selectedBankId === a.id ? ACCENT : '#e2e4e9'}`, background: selectedBankId === a.id ? '#e8f0ff' : '#ffffff', borderRadius: 8, cursor: 'pointer' }}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{a.label}</div>
-                                    <div style={{ fontSize: 12, color: '#6b7280' }}>{a.bank_name} · {a.account_number}</div>
-                                  </div>
-                                  <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${selectedBankId === a.id ? ACCENT : '#d9dce2'}`, background: selectedBankId === a.id ? ACCENT : '#fff', flexShrink: 0 }} />
-                                </div>
-                              ))}
+                          <div style={{ border: '1px solid #e2e4e9', borderRadius: 10, padding: '13px 14px 14px', marginBottom: 16, background: '#f7f9fc' }}>
+                            <input value={linkBankForm.bank_name} onChange={e => setLinkBankForm(f => ({ ...f, bank_name: e.target.value }))} placeholder="Bank name" style={{ ...inp, marginBottom: 6 }} />
+                            <input value={linkBankForm.account_name} onChange={e => setLinkBankForm(f => ({ ...f, account_name: e.target.value }))} placeholder="Account name" style={{ ...inp, marginBottom: 6 }} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                              <input value={linkBankForm.account_number} onChange={e => setLinkBankForm(f => ({ ...f, account_number: e.target.value }))} placeholder="Account #" style={inp} />
+                              <input value={linkBankForm.routing_number} onChange={e => setLinkBankForm(f => ({ ...f, routing_number: e.target.value }))} placeholder="Wire routing # (optional)" style={inp} />
                             </div>
-                          )}
-                          {!showAddBank ? (
-                            <button onClick={() => setShowAddBank(true)} style={{ fontSize: 13, fontWeight: 700, color: DEEP, background: '#e8f0ff', border: `1px solid ${ACCENT}40`, padding: '6px 11px', borderRadius: 6, cursor: 'pointer', marginBottom: 16 }}>+ Add bank account</button>
-                          ) : (
-                            <div style={{ border: '1px solid #e2e4e9', borderRadius: 10, padding: '13px 14px 14px', marginBottom: 16, background: '#f7f9fc' }}>
-                              <input value={bankForm.label} onChange={e => setBankForm(f => ({ ...f, label: e.target.value }))} placeholder="Label — e.g. Bank of America (main)" style={{ ...inp, marginBottom: 6 }} />
-                              <input value={bankForm.bank_name} onChange={e => setBankForm(f => ({ ...f, bank_name: e.target.value }))} placeholder="Bank name" style={{ ...inp, marginBottom: 6 }} />
-                              <input value={bankForm.account_name} onChange={e => setBankForm(f => ({ ...f, account_name: e.target.value }))} placeholder="Account name" style={{ ...inp, marginBottom: 6 }} />
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                                <input value={bankForm.account_number} onChange={e => setBankForm(f => ({ ...f, account_number: e.target.value }))} placeholder="Account #" style={inp} />
-                                <input value={bankForm.routing_number} onChange={e => setBankForm(f => ({ ...f, routing_number: e.target.value }))} placeholder="Wire routing #" style={inp} />
-                              </div>
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <button onClick={addBankAccount} disabled={saving} style={{ flex: 1, padding: 9, background: ACCENT, color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 6, cursor: 'pointer' }}>{saving ? 'Saving…' : 'Save account'}</button>
-                                <button onClick={() => setShowAddBank(false)} style={{ padding: '9px 14px', background: 'transparent', color: '#6b7280', fontSize: 13, border: '1px solid #d9dce2', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
-                              </div>
-                            </div>
-                          )}
+                          </div>
 
-                          <button onClick={generateConfirmLink} disabled={saving || !selectedBankId} style={{ width: '100%', padding: 13, background: saving || !selectedBankId ? '#c9ced6' : ACCENT, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 8, cursor: saving || !selectedBankId ? 'not-allowed' : 'pointer' }}>{saving ? 'Generating…' : '+ Generate confirmation link'}</button>
-                          {!selectedBankId && bankAccounts.length > 0 && <div style={{ paddingTop: 8, fontSize: 12.5, color: '#8b909a' }}>Pick which account they should pay into first.</div>}
+                          <button onClick={generateConfirmLink} disabled={saving} style={{ width: '100%', padding: 13, background: saving ? '#8b909a' : ACCENT, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 8, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Generating…' : '+ Generate confirmation link'}</button>
                         </div>
                       )}
                     </div>
