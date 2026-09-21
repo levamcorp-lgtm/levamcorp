@@ -65,13 +65,13 @@ function ChipGroup({ options, value, onChange }) {
   )
 }
 
-function FileUpload({ label, file, error, onChange }) {
+function FileUpload({ label, file, error, onChange, req = true }) {
   const [drag, setDrag] = useState(false)
   const id = `file-${label.replace(/\s/g,'')}`
   const good = file && !file._err
   return (
     <div>
-      <Lbl text={label} req error={error}/>
+      <Lbl text={label} req={req} error={error} note={!req ? 'Optional — not registered yet' : null}/>
       <label htmlFor={id}
         onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
         onDrop={e=>{e.preventDefault();setDrag(false);const f=e.dataTransfer.files[0];if(f)onChange(f)}}
@@ -155,8 +155,16 @@ export default function Apply() {
       if (!form.monthly_volume) p.monthly_volume = 'Required'
       if (!form.ein_number.trim()) p.ein_number = 'Required'
       if (!form.resale_tax_number.trim()) p.resale_tax_number = 'Required'
-      if (!einFile || einFile._err) p.einFile = einFile?._err || 'Required'
-      if (!resaleFile || resaleFile._err) p.resaleFile = resaleFile?._err || 'Required'
+      // Not yet registered — there's no EIN/SS-4 letter or resale certificate to upload yet.
+      // The "No LLC yet?" note below tells applicants to write "pending" in the number fields
+      // instead; we still review these individually rather than blocking them at this step.
+      if (form.business_type !== 'Not yet registered') {
+        if (!einFile || einFile._err) p.einFile = einFile?._err || 'Required'
+        if (!resaleFile || resaleFile._err) p.resaleFile = resaleFile?._err || 'Required'
+      } else {
+        if (einFile?._err) p.einFile = einFile._err
+        if (resaleFile?._err) p.resaleFile = resaleFile._err
+      }
     }
     if (s === 2 && !agreed) p.agree = 'Please confirm before submitting'
     return p
@@ -443,8 +451,8 @@ export default function Apply() {
                 </div>
 
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'clamp(14px,2.2vw,24px)', paddingBottom:16 }}>
-                  <FileUpload label="EIN / SS-4 document" file={einFile} error={shown('einFile')} onChange={f=>{ pickFile(setEinFile,f); setTouched(p=>({...p,einFile:true})) }}/>
-                  <FileUpload label="Resale tax certificate" file={resaleFile} error={shown('resaleFile')} onChange={f=>{ pickFile(setResaleFile,f); setTouched(p=>({...p,resaleFile:true})) }}/>
+                  <FileUpload label="EIN / SS-4 document" file={einFile} error={shown('einFile')} req={form.business_type !== 'Not yet registered'} onChange={f=>{ pickFile(setEinFile,f); setTouched(p=>({...p,einFile:true})) }}/>
+                  <FileUpload label="Resale tax certificate" file={resaleFile} error={shown('resaleFile')} req={form.business_type !== 'Not yet registered'} onChange={f=>{ pickFile(setResaleFile,f); setTouched(p=>({...p,resaleFile:true})) }}/>
                 </div>
 
                 <div style={{ borderLeft:`3px solid ${ACCENT}`, padding:'2px 0 3px 13px', marginBottom:6 }}>
