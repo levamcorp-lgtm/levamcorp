@@ -1,12 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const PAYMENT_LABELS = { credit_card: 'Credit Card', debit_card: 'Debit Card', ach: 'ACH Transfer', wire: 'Wire Transfer' }
 
 export async function POST(request) {
@@ -18,6 +12,12 @@ export async function POST(request) {
     if (fulfillment === 'shipping' && !address?.trim()) {
       return Response.json({ success: false, error: 'Shipping address is required' }, { status: 400 })
     }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const { data: order } = await supabase.from('orders').select('id, order_number').eq('confirm_token', token).single()
     if (!order) return Response.json({ success: false, error: 'Order not found' }, { status: 404 })
