@@ -12,7 +12,7 @@ export async function POST(request) {
 
     const { data: order, error } = await supabase
       .from('orders')
-      .select('order_number, total, submitted_at, notes, client_confirmed_at, confirmed_payment_method, confirmed_fulfillment, confirmed_address, confirmed_phone, order_items(product_name, quantity, unit_price)')
+      .select('order_number, total, submitted_at, notes, client_confirmed_at, confirmed_payment_method, confirmed_fulfillment, confirmed_address, confirmed_phone, confirm_bank_name, confirm_bank_account_name, confirm_bank_account_number, confirm_bank_routing, order_items(product_name, quantity, unit_price)')
       .eq('confirm_token', token)
       .single()
 

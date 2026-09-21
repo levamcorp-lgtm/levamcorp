@@ -7,9 +7,6 @@ const ACCENT = '#2F7DF6'
 const mono = "'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace"
 
 const PAYMENT_METHODS = [
-  { value: 'credit_card', label: 'Credit Card', desc: 'Visa, Mastercard, Amex' },
-  { value: 'debit_card', label: 'Debit Card', desc: 'Bank debit card' },
-  { value: 'ach', label: 'ACH Bank Transfer', desc: '1–3 business days · No fees' },
   { value: 'wire', label: 'Wire Transfer', desc: 'Same day · Bank fees may apply' },
 ]
 
@@ -39,7 +36,7 @@ function TopBar() {
 
 function Chip({ label, desc, on, onClick }) {
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', marginBottom: 6, border: `1.5px solid ${on ? ACCENT : 'rgba(8,9,11,0.14)'}`, background: on ? 'rgba(47,125,246,0.05)' : '#FFFFFF', cursor: 'pointer' }}>
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', marginBottom: 6, border: `1.5px solid ${on ? ACCENT : 'rgba(8,9,11,0.14)'}`, background: on ? '#E8F0FF' : '#FFFFFF', cursor: 'pointer' }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: '#08090B' }}>{label}</div>
         {desc && <div style={{ fontSize: 11.5, color: '#8A8780' }}>{desc}</div>}
@@ -140,6 +137,7 @@ function ConfirmOrderInner() {
           <div style={{ marginTop: 24, borderTop: '1px solid rgba(8,9,11,0.9)' }}>
             {[
               ['Payment method', paymentLabel(order.confirmed_payment_method)],
+              ...(order.confirm_bank_name ? [['Pay to', `${order.confirm_bank_name} · ${order.confirm_bank_account_number}`]] : []),
               ['Fulfillment', fulfillLabel[order.confirmed_fulfillment] || order.confirmed_fulfillment],
               ...(order.confirmed_address ? [['Ship to', order.confirmed_address]] : []),
               ...(order.confirmed_phone ? [['Phone on file', order.confirmed_phone]] : []),
@@ -197,6 +195,27 @@ function ConfirmOrderInner() {
         <div style={{ marginTop: 26 }}>
           <Lbl text="Payment method *" />
           {PAYMENT_METHODS.map(m => <Chip key={m.value} label={m.label} desc={m.desc} on={paymentMethod === m.value} onClick={() => setPaymentMethod(m.value)} />)}
+          {paymentMethod === 'wire' && (
+            order.confirm_bank_name ? (
+              <div style={{ marginTop: 6, background: '#F2EFE6', color: '#08090B' }}>
+                <div className="lc-mono" style={{ padding: '10px 14px', borderBottom: '1px solid rgba(8,9,11,0.14)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5C5A55' }}>Wire the payment here</div>
+                {[
+                  ['Bank', order.confirm_bank_name],
+                  ['Account name', order.confirm_bank_account_name],
+                  ['Account #', order.confirm_bank_account_number],
+                  ...(order.confirm_bank_routing ? [['Wire routing', order.confirm_bank_routing]] : []),
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 14px', borderBottom: '1px solid rgba(8,9,11,0.08)' }}>
+                    <span style={{ fontSize: 12.5, color: '#5C5A55' }}>{k}</span>
+                    <span className="lc-mono" style={{ fontSize: 13, fontWeight: 700 }}>{v}</span>
+                  </div>
+                ))}
+                <div style={{ padding: '10px 14px', fontSize: 11.5, color: '#8A8780' }}>Include your order number, #{order.order_number}, in the wire memo so we can match your payment.</div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 6, padding: '10px 14px', background: 'rgba(240,180,41,0.1)', border: '1px solid rgba(240,180,41,0.3)', fontSize: 12.5, color: '#F5F1E8' }}>Your rep will send the account to wire into — WhatsApp them if you don't have it yet.</div>
+            )
+          )}
         </div>
 
         {/* FULFILLMENT */}
@@ -233,7 +252,7 @@ function ConfirmOrderInner() {
 
         {err && <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
 
-        <button onClick={submit} disabled={submitting} className="lc-mono" style={{ width: '100%', marginTop: 20, padding: 15, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: submitting ? '#3f3d39' : '#F2EFE6', color: '#08090B', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer' }}>
+        <button onClick={submit} disabled={submitting} className="lc-mono" style={{ width: '100%', marginTop: 20, padding: 15, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: submitting ? '#5C5A55' : '#F2EFE6', color: submitting ? '#F2EFE6' : '#08090B', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer' }}>
           <span>{submitting ? 'Confirming…' : 'Confirm my order'}</span>
           {!submitting && <span>→</span>}
         </button>
