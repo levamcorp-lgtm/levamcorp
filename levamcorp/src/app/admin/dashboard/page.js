@@ -398,6 +398,7 @@ export default function AdminDashboard() {
                 ))}
               </span>
               <span style={{ fontSize: 13, color: '#8b909a' }}>{now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+              <Link href="/admin/m" title="Simplified mobile view — approve clients, review applications, upload BOL and serial numbers from your phone" style={{ padding: '9px 14px 10px', border: '1px solid #d9dce2', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#47505e' }}>📱 Mobile</Link>
               <button onClick={handleLogout} style={{ padding: '9px 14px 10px', border: '1px solid #d9dce2', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#47505e', background: 'transparent', cursor: 'pointer' }}>Sign out</button>
             </div>
           </div>
