@@ -164,6 +164,7 @@ function AdminOrdersInner() {
   const [unitItems,    setUnitItems]    = useState([])
   const [addItemForm,  setAddItemForm]  = useState({productId:'',search:'',quantity:'1',unitPrice:''})
   const [saving,       setSaving]       = useState(false)
+  const [uploadingBol, setUploadingBol]  = useState(false)
   const [sendingConfirmEmail, setSendingConfirmEmail] = useState(false)
   const [linkBankForm, setLinkBankForm] = useState({ bank_name: '', account_name: '', account_number: '', routing_number: '' })
   // new order (admin entering a WhatsApp/off-portal deal for an existing client)
@@ -482,6 +483,32 @@ function AdminOrdersInner() {
     let r = await sb.storage.from('Documents').createSignedUrl(path,3600)
     if (!r.data?.signedUrl) r = await sb.storage.from('documents').createSignedUrl(path,3600)
     if (r.data?.signedUrl) window.open(r.data.signedUrl,'_blank')
+  }
+
+  const uploadBol = async (file) => {
+    if (!file || !sel) return
+    if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) { alert('Please upload a PDF or a photo.'); return }
+    if (file.size > 15 * 1024 * 1024) { alert('Max file size is 15MB.'); return }
+    setUploadingBol(true)
+    const sb = createClient()
+    const path = `bol/${sel.order_number}-${Date.now()}-${file.name}`
+    const { data, error } = await sb.storage.from('Documents').upload(path, file, { contentType: file.type })
+    if (error) {
+      console.error('BOL upload failed', error)
+      alert(`Couldn't upload: ${error.message}`)
+      setUploadingBol(false)
+      return
+    }
+    const { error: updateError } = await sb.from('orders').update({ bol_url: data.path }).eq('id', sel.id)
+    if (updateError) {
+      console.error('saving bol_url failed', updateError)
+      alert(`Uploaded, but couldn't save it to the order: ${updateError.message}`)
+      setUploadingBol(false)
+      return
+    }
+    setOrders(prev => prev.map(o => o.id === sel.id ? { ...o, bol_url: data.path } : o))
+    setSel(prev => ({ ...prev, bol_url: data.path }))
+    setUploadingBol(false)
   }
 
   const printInvoice = (order) => {
@@ -1081,12 +1108,23 @@ function AdminOrdersInner() {
                         <span style={{ fontSize: 14.5, color: '#16181d', wordBreak: 'break-word' }}>{v}</span>
                       </div>
                     ))}
-                    {(sel.bol_url || sel.labels_url) && (
+                    {sel.labels_url && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                        {sel.bol_url && <button onClick={() => openDoc(sel.bol_url)} style={{ flex: 1, padding: 11, background: '#f0fdf4', color: '#166534', fontSize: 13.5, fontWeight: 700, border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer' }}>BOL</button>}
-                        {sel.labels_url && <button onClick={() => openDoc(sel.labels_url)} style={{ flex: 1, padding: 11, background: '#e8f0ff', color: DEEP, fontSize: 13.5, fontWeight: 700, border: `1px solid ${ACCENT}40`, borderRadius: 8, cursor: 'pointer' }}>Labels</button>}
+                        <button onClick={() => openDoc(sel.labels_url)} style={{ flex: 1, padding: 11, background: '#e8f0ff', color: DEEP, fontSize: 13.5, fontWeight: 700, border: `1px solid ${ACCENT}40`, borderRadius: 8, cursor: 'pointer' }}>Labels</button>
                       </div>
                     )}
+
+                    <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e4e9' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>Proof of delivery</div>
+                      <div style={{ fontSize: 12.5, color: '#8b909a', marginBottom: 10 }}>Signed BOL or delivery invoice confirming the merchandise shipped and was received — PDF or a photo.</div>
+                      {sel.bol_url && (
+                        <button onClick={() => openDoc(sel.bol_url)} style={{ width: '100%', marginBottom: 8, padding: 11, background: '#f0fdf4', color: '#166534', fontSize: 13.5, fontWeight: 700, border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer' }}>✓ View proof of delivery</button>
+                      )}
+                      <label style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 11, textAlign: 'center', background: uploadingBol ? '#f1f2f5' : '#f7f9fc', color: '#47505e', fontSize: 13.5, fontWeight: 700, border: '1px dashed #d9dce2', borderRadius: 8, cursor: uploadingBol ? 'not-allowed' : 'pointer' }}>
+                        {uploadingBol ? 'Uploading…' : sel.bol_url ? '↻ Replace — upload new PDF or take a photo' : '+ Upload BOL / take a photo'}
+                        <input type="file" accept="application/pdf,image/*" capture="environment" disabled={uploadingBol} onChange={e => uploadBol(e.target.files[0])} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} />
+                      </label>
+                    </div>
                   </div>
                 )}
 
