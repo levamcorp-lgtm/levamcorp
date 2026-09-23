@@ -114,6 +114,7 @@ export default function MobileAdmin() {
   const [applications, setApplications] = useState([])
   const [orders, setOrders] = useState([])
   const [clients, setClients] = useState([])
+  const [products, setProducts] = useState([])
 
   const [tab, setTab] = useState('home')
   const [appFilter, setAppFilter] = useState('Pending')
@@ -140,14 +141,16 @@ export default function MobileAdmin() {
 
   const loadAll = async (sb) => {
     sb = sb || createClient()
-    const [{ data: a }, { data: o }, { data: c }] = await Promise.all([
+    const [{ data: a }, { data: o }, { data: c }, { data: p }] = await Promise.all([
       sb.from('applications').select('*').order('id', { ascending: false }),
       sb.from('orders').select('*, order_items(*)').order('submitted_at', { ascending: false }),
       sb.from('clients').select('*'),
+      sb.from('products').select('id,name,cost_price'),
     ])
     setApplications(a || [])
     setOrders(o || [])
     setClients(c || [])
+    setProducts(p || [])
     setReady(true)
   }
 
@@ -156,6 +159,12 @@ export default function MobileAdmin() {
   const clientFor = (order) => {
     const email = (order.notes || '').split('Email: ')[1]?.split(/[\s,|]/)[0]?.trim() || ''
     return clients.find(c => c.email?.toLowerCase() === email.toLowerCase()) || null
+  }
+
+  // what we pay the supplier for a line item — null when the product's cost price was never set
+  const costFor = (item) => {
+    const p = products.find(p => p.id === item.product_id) || products.find(p => p.name === item.product_name)
+    return p && p.cost_price != null ? parseFloat(p.cost_price) : null
   }
 
   // ---- applications ----
@@ -400,6 +409,30 @@ export default function MobileAdmin() {
             ))}
             {!(openOrder.order_items || []).length && <div style={{ padding: '15px', fontSize: 13, color: '#8b909a' }}>No items on this order</div>}
           </div>
+
+          {openOrder.order_items?.length > 0 && (() => {
+            const known = openOrder.order_items.filter(i => costFor(i) != null)
+            const unknown = openOrder.order_items.filter(i => costFor(i) == null)
+            const totalCost = known.reduce((s, i) => s + costFor(i) * i.quantity, 0)
+            const profit = openOrder.total - totalCost
+            const marginPct = openOrder.total > 0 ? (profit / openOrder.total) * 100 : 0
+            return (
+              <div style={{ background: '#ffffff', border: '1px solid #e4e7ec', borderRadius: 13, overflow: 'hidden' }}>
+                <div style={{ padding: '13px 15px 12px', borderBottom: '1px solid #f1f2f5', fontSize: 14.5, fontWeight: 700 }}>Cost &amp; profit</div>
+                <div style={{ padding: '0 15px' }}>
+                  <InfoRow k="Pay the supplier" v={money(totalCost)} />
+                  <InfoRow k="Client pays" v={money(openOrder.total)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '12px 15px 13px' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: profit >= 0 ? '#166534' : '#991b1b' }}>{profit >= 0 ? 'Falls into your account' : 'Shortfall'}</span>
+                  <span className="lc-mono" style={{ fontSize: 16, fontWeight: 700, color: profit >= 0 ? '#166534' : '#991b1b' }}>{money(profit)} <span style={{ fontSize: 12, fontWeight: 600, color: '#8b909a' }}>({marginPct.toFixed(1)}%)</span></span>
+                </div>
+                {unknown.length > 0 && (
+                  <div style={{ padding: '9px 15px 10px', background: '#fffdf5', borderTop: '1px solid #f3e4bd', fontSize: 12, color: '#7c4a03' }}>⚠ Cost price missing for {unknown.length} item{unknown.length !== 1 ? 's' : ''} — set it on the Products page for an accurate number.</div>
+                )}
+              </div>
+            )
+          })()}
 
           <div style={{ background: '#ffffff', border: '1px solid #e4e7ec', borderRadius: 13, padding: '14px 15px' }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 3 }}>Proof of delivery</div>

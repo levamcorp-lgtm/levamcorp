@@ -202,7 +202,7 @@ function AdminOrdersInner() {
     const [{ data: o }, { data: c }, { data: p }, { data: pay }] = await Promise.all([
       sb.from('orders').select('*, order_items(*)').order('submitted_at',{ascending:false}),
       sb.from('clients').select('*'),
-      sb.from('products').select('id,name,sku,price,image_url').order('name'),
+      sb.from('products').select('id,name,sku,price,cost_price,image_url').order('name'),
       sb.from('payments').select('*').order('created_at',{ascending:false}),
     ])
     setOrders(o||[])
@@ -360,6 +360,15 @@ function AdminOrdersInner() {
 
   // real product photo for a line item — order_items doesn't store one, so join back to products
   const imageFor = (item) => (products.find(p => p.id === item.product_id) || products.find(p => p.name === item.product_name))?.image_url || null
+
+  // what we pay the supplier for a line item — order_items doesn't store cost either, so join
+  // back to the same product record and read its cost_price (set on the Products page); null
+  // when the product was deleted/renamed since or never had a cost set, so it can be called out
+  // instead of silently treated as $0 profit
+  const costFor = (item) => {
+    const p = products.find(p => p.id === item.product_id) || products.find(p => p.name === item.product_name)
+    return p && p.cost_price != null ? parseFloat(p.cost_price) : null
+  }
 
   const updateStatus = async (orderId, status) => {
     const sb = createClient()
@@ -979,6 +988,36 @@ function AdminOrdersInner() {
                         <span className="lc-mono" style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-.03em' }}>{money(sel.status === 'cancelled' ? 0 : sel.total)}</span>
                       </div>
                     </div>
+
+                    {sel.order_items?.length > 0 && (() => {
+                      const known = sel.order_items.filter(i => costFor(i) != null)
+                      const unknown = sel.order_items.filter(i => costFor(i) == null)
+                      const totalCost = known.reduce((s, i) => s + costFor(i) * i.quantity, 0)
+                      const profit = sel.total - totalCost
+                      const marginPct = sel.total > 0 ? (profit / sel.total) * 100 : 0
+                      return (
+                        <div style={{ marginTop: 14, border: '1px solid #e2e4e9', borderRadius: 10, overflow: 'hidden' }}>
+                          <div style={{ padding: '12px 14px 11px', background: '#f7f9fc', borderBottom: '1px solid #e2e4e9', fontSize: 13.5, fontWeight: 700 }}>Cost &amp; profit</div>
+                          <div style={{ padding: '3px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '10px 0 11px', borderBottom: '1px solid #f1f2f5' }}>
+                              <span style={{ fontSize: 14, color: '#47505e' }}>What you pay the supplier</span>
+                              <span className="lc-mono" style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: '-.02em' }}>{money(totalCost)}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '10px 0 11px', borderBottom: '1px solid #f1f2f5' }}>
+                              <span style={{ fontSize: 14, color: '#47505e' }}>What the client pays</span>
+                              <span className="lc-mono" style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: '-.02em' }}>{money(sel.total)}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '11px 0 12px' }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: profit >= 0 ? '#166534' : '#991b1b' }}>{profit >= 0 ? 'Falls into your account' : 'Shortfall'}</span>
+                              <span className="lc-mono" style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: '-.02em', color: profit >= 0 ? '#166534' : '#991b1b' }}>{money(profit)} <span style={{ fontSize: 12.5, fontWeight: 600, color: '#6b7280' }}>({marginPct.toFixed(1)}%)</span></span>
+                            </div>
+                          </div>
+                          {unknown.length > 0 && (
+                            <div style={{ padding: '9px 14px 10px', background: '#fffdf5', borderTop: '1px solid #f3e4bd', fontSize: 12.5, color: '#7c4a03' }}>⚠ Cost price missing for {unknown.length} item{unknown.length !== 1 ? 's' : ''} ({unknown.map(i => i.product_name).join(', ')}) — set it on the <Link href="/admin/products" style={{ color: '#7c4a03', fontWeight: 700, textDecoration: 'underline' }}>Products page</Link> for an accurate number. Shown profit excludes {unknown.length !== 1 ? 'these items' : 'this item'}.</div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
 
