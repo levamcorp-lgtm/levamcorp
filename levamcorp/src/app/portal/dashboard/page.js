@@ -54,6 +54,20 @@ function initials(name) {
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || name[0].toUpperCase()
 }
 
+// Most clients apply with one shared company inbox, but reps often need their own login —
+// admin can grant that from the Clients page, which links a second Supabase Auth account to
+// the same `clients` row via `client_users` instead of creating a separate client record. If
+// the logged-in email doesn't match a `clients` row directly, check whether it's an authorized
+// user of one before giving up, so a rep sees the exact same account as the main contact.
+async function resolveClient(sb, email) {
+  const { data: direct } = await sb.from('clients').select('*').eq('email', email).maybeSingle()
+  if (direct) return direct
+  const { data: link } = await sb.from('client_users').select('client_id').eq('email', email).maybeSingle()
+  if (!link?.client_id) return null
+  const { data: viaLink } = await sb.from('clients').select('*').eq('id', link.client_id).maybeSingle()
+  return viaLink || null
+}
+
 function PortalNav({ user, displayName, onLogout }) {
   const pathname = usePathname()
   return (
@@ -105,10 +119,11 @@ export default function Dashboard() {
       if (adminEmails.includes(data.user.email)) { window.location.href = '/admin/dashboard'; return }
       setUser(data.user)
       trackPageView('/portal/dashboard')
-      const [{ data: o }, { data: cl }] = await Promise.all([
-        sb.from('orders').select('*, order_items(*)').order('submitted_at', { ascending: false }).limit(10),
-        sb.from('clients').select('*').eq('email', data.user.email).single(),
-      ])
+      const cl = await resolveClient(sb, data.user.email)
+      const scopeEmail = cl?.email || data.user.email
+      const { data: o } = await sb.from('orders').select('*, order_items(*)')
+        .or(`user_id.eq.${cl?.user_id || data.user.id},user_id.eq.${data.user.id},notes.ilike.%${scopeEmail}%`)
+        .order('submitted_at', { ascending: false }).limit(10)
       setOrders(o || [])
       setClient(cl || null)
       setLoading(false)

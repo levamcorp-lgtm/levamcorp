@@ -143,17 +143,23 @@ export default function AdminClients() {
   const [copied, setCopied] = useState('')
   const [docUrls, setDocUrls] = useState({})
   const [docLoading, setDocLoading] = useState(false)
+  const [authorizedUsers, setAuthorizedUsers] = useState([])
+  const [authUserForm, setAuthUserForm] = useState({ name: '', email: '' })
+  const [creatingAuthUser, setCreatingAuthUser] = useState(false)
+  const [authAddedFor, setAuthAddedFor] = useState(null)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user || !ADMIN_EMAILS.includes(data.user.email)) { window.location.href = '/admin'; return }
-      const [{ data: clientsData }, { data: ordersData }] = await Promise.all([
+      const [{ data: clientsData }, { data: ordersData }, { data: authUsersData }] = await Promise.all([
         supabase.from('clients').select('*').order('id', { ascending: false }),
         supabase.from('orders').select('*, order_items(*)').order('submitted_at', { ascending: false }),
+        supabase.from('client_users').select('*').order('created_at', { ascending: false }),
       ])
       setClients(clientsData || [])
       setOrders(ordersData || [])
+      setAuthorizedUsers(authUsersData || [])
       setLoading(false)
     })
   }, [])
@@ -186,6 +192,41 @@ export default function AdminClients() {
       else alert('Error: ' + data.error)
     } catch (e) { alert('Error: ' + e.message) }
     setSending(false)
+  }
+
+  const addAuthorizedUser = async (client) => {
+    const email = authUserForm.email.trim().toLowerCase()
+    if (!email) return
+    setCreatingAuthUser(true)
+    try {
+      const provision = await fetch('/api/create-authorized-user', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, email, name: authUserForm.name }),
+      }).then(r => r.json()).catch(() => ({ success: false }))
+      if (!provision.success) { alert(`Couldn't create this login: ${provision.error || 'unknown error'}`); setCreatingAuthUser(false); return }
+
+      const credsRes = await fetch('/api/send-credentials-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: provision.tempPassword, businessName: client.business_name, contactName: authUserForm.name || client.contact_name }),
+      })
+      if (!credsRes.ok) alert('Login created, but the credentials email failed to send. Share the password manually.')
+
+      const supabase = createClient()
+      const { data: refreshed } = await supabase.from('client_users').select('*').order('created_at', { ascending: false })
+      setAuthorizedUsers(refreshed || [])
+      setAuthUserForm({ name: '', email: '' })
+      setAuthAddedFor(client.id)
+      setTimeout(() => setAuthAddedFor(prev => prev === client.id ? null : prev), 4000)
+    } catch (e) { alert('Error: ' + e.message) }
+    setCreatingAuthUser(false)
+  }
+
+  const removeAuthorizedUser = async (authUser) => {
+    if (!confirm(`Remove ${authUser.name || authUser.email}'s access to the portal? This does not delete their login, just this account's link to it.`)) return
+    const supabase = createClient()
+    const { error } = await supabase.from('client_users').delete().eq('id', authUser.id)
+    if (error) { alert(`Couldn't remove access: ${error.message}`); return }
+    setAuthorizedUsers(prev => prev.filter(u => u.id !== authUser.id))
   }
 
   const genPw = () => {
@@ -641,6 +682,42 @@ export default function AdminClients() {
                           </div>
                         </div>
                       </div>
+
+                      {(() => {
+                        const clientAuthUsers = authorizedUsers.filter(u => u.client_id === sel.id)
+                        return (
+                          <div style={{ background: '#ffffff', border: '1px solid #ddd6f3', borderRadius: 12, overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 15px', borderBottom: '1px solid #ddd6f3', background: '#f7f5fe', borderLeft: '5px solid #7c3aed' }}>
+                              <span className="lc-mono" style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 700 }}>+</span>
+                              <span>
+                                <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em', color: '#4c1d95' }}>Authorized users on this account</span>
+                                <span style={{ display: 'block', paddingTop: 3, fontSize: 13.5, color: '#6b7280' }}>Extra logins for reps at this company — each one sees the same orders, invoices and pricing as {sel.contact_name || 'the main contact'}</span>
+                              </span>
+                            </div>
+                            <div style={{ padding: '15px 16px 17px' }}>
+                              {clientAuthUsers.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                                  {clientAuthUsers.map(u => (
+                                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #e2e4e9', borderRadius: 9, padding: '10px 12px' }}>
+                                      <span style={{ minWidth: 0, flex: 1 }}>
+                                        <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{u.name || 'No name on file'}</span>
+                                        <span className="lc-mono" style={{ display: 'block', fontSize: 12.5, color: '#6b7280' }}>{u.email}</span>
+                                      </span>
+                                      <button type="button" onClick={() => removeAuthorizedUser(u)} style={{ flex: 'none', border: '1px solid #f3c9c9', borderRadius: 7, background: '#ffffff', color: '#991b1b', fontSize: 12.5, fontWeight: 700, padding: '7px 11px', cursor: 'pointer' }}>Remove access</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+                                <input value={authUserForm.name} onChange={e => setAuthUserForm(f => ({ ...f, name: e.target.value }))} placeholder="Representative's name" style={{ padding: '11px 12px', border: '1px solid #d9dce2', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                                <input value={authUserForm.email} onChange={e => setAuthUserForm(f => ({ ...f, email: e.target.value }))} placeholder="their@email.com" style={{ padding: '11px 12px', border: '1px solid #d9dce2', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                              </div>
+                              <button type="button" onClick={() => addAuthorizedUser(sel)} disabled={creatingAuthUser || !authUserForm.email.trim()} style={{ marginTop: 10, width: '100%', padding: '12px 15px 13px', borderRadius: 9, background: creatingAuthUser || !authUserForm.email.trim() ? '#c9ced6' : '#7c3aed', color: '#ffffff', fontSize: 14, fontWeight: 700, border: 'none', cursor: creatingAuthUser || !authUserForm.email.trim() ? 'not-allowed' : 'pointer' }}>{creatingAuthUser ? 'Creating…' : '+ Create login & send credentials'}</button>
+                              {authAddedFor === sel.id && <div style={{ marginTop: 10, padding: '9px 12px', background: '#f3faf5', border: '1px solid #cfe8d7', borderRadius: 8, fontSize: 12.5, color: '#166534' }}>✓ Login created and credentials emailed.</div>}
+                            </div>
+                          </div>
+                        )
+                      })()}
 
                       <div className="acl-access-cols">
                         <div style={{ background: '#ffffff', border: '1px solid #cfe8d7', borderRadius: 12, overflow: 'hidden' }}>

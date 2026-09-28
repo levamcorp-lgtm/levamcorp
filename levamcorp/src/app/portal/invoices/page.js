@@ -19,6 +19,17 @@ const REMIT = [
   { k: 'Wire routing', v: '026009593' },
 ]
 
+// Falls back to `client_users` when the logged-in email isn't the main contact on a `clients`
+// row — an authorized rep the admin added from the Clients page, sharing that same account.
+async function resolveClient(sb, email) {
+  const { data: direct } = await sb.from('clients').select('*').eq('email', email).maybeSingle()
+  if (direct) return direct
+  const { data: link } = await sb.from('client_users').select('client_id').eq('email', email).maybeSingle()
+  if (!link?.client_id) return null
+  const { data: viaLink } = await sb.from('clients').select('*').eq('id', link.client_id).maybeSingle()
+  return viaLink || null
+}
+
 function seededBars(seed, count) {
   let s = seed
   const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
@@ -81,10 +92,11 @@ export default function InvoicesPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
-      const [{ data: ordersData }, { data: clientData }] = await Promise.all([
-        supabase.from('orders').select('*, order_items(*)').eq('user_id', data.user.id).order('submitted_at', { ascending: false }),
-        supabase.from('clients').select('*').eq('email', data.user.email).single(),
-      ])
+      const clientData = await resolveClient(supabase, data.user.email)
+      const scopeEmail = clientData?.email || data.user.email
+      const { data: ordersData } = await supabase.from('orders').select('*, order_items(*)')
+        .or(`user_id.eq.${clientData?.user_id || data.user.id},user_id.eq.${data.user.id},notes.ilike.%${scopeEmail}%`)
+        .order('submitted_at', { ascending: false })
       setOrders(ordersData || [])
       setClient(clientData || null)
       const orderIds = (ordersData || []).map(o => o.id)
