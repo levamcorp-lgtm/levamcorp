@@ -33,6 +33,17 @@ function initials(name) {
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || name[0].toUpperCase()
 }
 
+// Falls back to `client_users` when the logged-in email isn't the main contact on a `clients`
+// row — an authorized rep the admin added from the Clients page, sharing that same account.
+async function resolveClient(sb, email) {
+  const { data: direct } = await sb.from('clients').select('*').eq('email', email).maybeSingle()
+  if (direct) return direct
+  const { data: link } = await sb.from('client_users').select('client_id').eq('email', email).maybeSingle()
+  if (!link?.client_id) return null
+  const { data: viaLink } = await sb.from('clients').select('*').eq('id', link.client_id).maybeSingle()
+  return viaLink || null
+}
+
 function money(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function short(n) { return '$' + Math.round(n || 0).toLocaleString('en-US') }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' }
@@ -89,10 +100,12 @@ export default function PaymentsPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/portal'; return }
       setUser(data.user)
-      const [{ data: paymentsData }, { data: clientData }, { data: ordersData }] = await Promise.all([
-        supabase.from('payments').select('*, orders(order_number, total, submitted_at, amount_paid, order_items(*))').eq('user_id', data.user.id).order('created_at', { ascending: false }),
-        supabase.from('clients').select('*').eq('email', data.user.email).single(),
-        supabase.from('orders').select('id, order_number, submitted_at').eq('user_id', data.user.id).order('submitted_at', { ascending: false }),
+      const clientData = await resolveClient(supabase, data.user.email)
+      const scopeEmail = clientData?.email || data.user.email
+      const ownerUserId = clientData?.user_id || data.user.id
+      const [{ data: paymentsData }, { data: ordersData }] = await Promise.all([
+        supabase.from('payments').select('*, orders(order_number, total, submitted_at, amount_paid, order_items(*))').or(`user_id.eq.${ownerUserId},user_id.eq.${data.user.id}`).order('created_at', { ascending: false }),
+        supabase.from('orders').select('id, order_number, submitted_at').or(`user_id.eq.${ownerUserId},user_id.eq.${data.user.id},notes.ilike.%${scopeEmail}%`).order('submitted_at', { ascending: false }),
       ])
       setPayments(paymentsData || [])
       setClient(clientData || null)
