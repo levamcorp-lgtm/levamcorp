@@ -226,7 +226,7 @@ export default function Apply() {
   `
 
   const stepInput = { width:'100%', boxSizing:'border-box', border:0, borderBottom:'1px solid rgba(8,9,11,0.3)', background:'transparent', padding:'8px 2px 9px', fontSize:16, letterSpacing:'-0.01em', color:'#08090B' }
-  const stepInputMono = { ...stepInput, fontFamily:mono, fontSize:15, letterSpacing:'0.04em' }
+  const stepInputMono = { ...stepInput, fontFamily:mono, fontSize:16, letterSpacing:'0.04em' }
   const errBorder = { borderBottom:'1px solid #C2410C' }
 
   // ── SUCCESS ─────────────────────────────────────────────────────────────
@@ -262,9 +262,9 @@ export default function Apply() {
               ['Submitted', new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})],
               ['Decision by', '1–2 business days'],
             ].map(([k,v]) => (
-              <div key={k} style={{ display:'grid', gridTemplateColumns:'clamp(112px,15vw,168px) 1fr', gap:'10px 14px', alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
+              <div key={k} style={{ display:'grid', gridTemplateColumns:'clamp(112px,15vw,168px) minmax(0,1fr)', gap:'10px 14px', alignItems:'baseline', padding:'11px 0 12px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
                 <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55' }}>{k}</span>
-                <span className="lc-mono" style={{ fontSize:12.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'#08090B' }}>{v}</span>
+                <span className="lc-mono" style={{ fontSize:12.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'#08090B', overflowWrap:'anywhere' }}>{v}</span>
               </div>
             ))}
           </div>
@@ -274,7 +274,7 @@ export default function Apply() {
             ['02','You get a decision by email, approved or not. No silence.'],
             ['03','If approved, your portal credentials arrive in the same thread.'],
           ].map(([n,v]) => (
-            <div key={n} style={{ display:'grid', gridTemplateColumns:'26px 1fr', gap:14, alignItems:'baseline', padding:'9px 0 10px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
+            <div key={n} style={{ display:'grid', gridTemplateColumns:'26px minmax(0,1fr)', gap:14, alignItems:'baseline', padding:'9px 0 10px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
               <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.1em', color:ACCENT }}>{n}</span>
               <span style={{ fontSize:14.5, lineHeight:1.55, color:'#3F3D39' }}>{v}</span>
             </div>
@@ -299,7 +299,7 @@ export default function Apply() {
   return (
     <div style={{ minHeight:'100vh', background:'#08090B', color:'#F2EFE6', fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
       <style>{globalStyle}</style>
-      <style>{`@media(max-width:860px){ .apply-shell{ grid-template-columns:1fr !important; } }`}</style>
+      <style>{`@media(max-width:860px){ .apply-shell{ grid-template-columns:minmax(0,1fr) !important; } }`}</style>
 
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'16px clamp(16px,4vw,48px)', borderBottom:'1px solid rgba(242,239,230,0.14)' }}>
         <Link href="/" style={{ display:'flex', alignItems:'center', gap:11, textDecoration:'none', color:'#F2EFE6' }}>
@@ -399,7 +399,7 @@ export default function Apply() {
                 <div style={{ paddingBottom:18 }}>
                   <Lbl text="Where did you hear about us?" req error={shown('heard_about')}/>
                   <select value={form.heard_about} onChange={e=>upd('heard_about',e.target.value)}
-                    style={{ width:'100%', boxSizing:'border-box', border:`0 0 1px 0`, borderBottom:`1px solid ${shown('heard_about')?'#C2410C':'rgba(8,9,11,0.3)'}`, background:'transparent', padding:'8px 2px 9px', fontSize:15, color:'#08090B', appearance:'none', cursor:'pointer' }}>
+                    style={{ width:'100%', boxSizing:'border-box', border:`0 0 1px 0`, borderBottom:`1px solid ${shown('heard_about')?'#C2410C':'rgba(8,9,11,0.3)'}`, background:'transparent', padding:'8px 2px 9px', fontSize:16, color:'#08090B', appearance:'none', cursor:'pointer' }}>
                     <option value="">Select an option...</option>
                     {HEARD_ABOUT_OPTIONS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
@@ -422,7 +422,7 @@ export default function Apply() {
                 <label style={{ display:'block', paddingBottom:6 }}>
                   <Lbl text="Additional notes"/>
                   <textarea rows={4} value={form.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Where you sell, who your customers are, volume you expect…"
-                    style={{ width:'100%', boxSizing:'border-box', border:'1px solid rgba(8,9,11,0.3)', background:'transparent', padding:'11px 12px', fontSize:15, lineHeight:1.6, color:'#08090B', resize:'vertical' }}/>
+                    style={{ width:'100%', boxSizing:'border-box', border:'1px solid rgba(8,9,11,0.3)', background:'transparent', padding:'11px 12px', fontSize:16, lineHeight:1.6, color:'#08090B', resize:'vertical' }}/>
                 </label>
               </div>
             )}
@@ -484,10 +484,10 @@ export default function Apply() {
                   ['Resale document', resaleFile && !resaleFile._err ? resaleFile.name : ''],
                   ['Notes', form.notes],
                 ].map(([k,v],i) => (
-                  <div key={k} style={{ display:'grid', gridTemplateColumns:'26px clamp(112px,15vw,176px) 1fr', gap:'8px 14px', alignItems:'baseline', padding:'10px 0 11px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
+                  <div key={k} style={{ display:'grid', gridTemplateColumns:'26px clamp(112px,15vw,176px) minmax(0,1fr)', gap:'8px 14px', alignItems:'baseline', padding:'10px 0 11px', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
                     <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.1em', color:'#8D8981' }}>{i+1<10?'0':''}{i+1}</span>
                     <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', borderRight:'1px solid rgba(8,9,11,0.14)', paddingRight:14, color:'#5C5A55' }}>{k}</span>
-                    <span style={{ fontSize:15, lineHeight:1.5, color: v ? '#08090B' : '#9A968E' }}>{v || '—'}</span>
+                    <span style={{ fontSize:15, lineHeight:1.5, color: v ? '#08090B' : '#9A968E', overflowWrap:'anywhere' }}>{v || '—'}</span>
                   </div>
                 ))}
 
