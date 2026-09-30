@@ -1003,7 +1003,7 @@ function CompanyRecord() {
       <div style={{ height:3 }}/>
       <div style={{ height:1, background:'rgba(245,241,232,0.14)' }}/>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))' }}>
+      <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))' }}>
         <div style={{ padding:'clamp(34px,5vh,56px) clamp(20px,3.5vw,46px) clamp(30px,4vh,44px) 0' }}>
           <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(32px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.03em', lineHeight:1, color:'#F5F2E9' }}>
             A different kind<br/>of distributor.
@@ -1125,7 +1125,7 @@ function LanguageDeclaration() {
         <span style={{ color:'#5C5A55' }}>Form 03 · Duplicate copy</span>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(24px,3.5vw,54px)', padding:'clamp(24px,3.6vh,40px) 0 clamp(22px,3.2vh,34px)' }}>
+      <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(24px,3.5vw,54px)', padding:'clamp(24px,3.6vh,40px) 0 clamp(22px,3.2vh,34px)' }}>
         <div>
           <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(32px,4vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:0.98, color:'#08090B' }}>
             English &amp; Español<span style={{ color:'#2F7DF6' }}>.</span>
@@ -1346,7 +1346,7 @@ function CatalogSheet() {
       </div>
       <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+      <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
         <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
           Premium brands at wholesale prices<span style={{ color:'#2F7DF6' }}>.</span>
         </h2>
@@ -1412,7 +1412,7 @@ function FoundersRecord() {
       </div>
       <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(26px,4vh,42px)' }}>
+      <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(26px,4vh,42px)' }}>
         <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4vw,50px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
           Built by people who know the business<span style={{ color:'#2F7DF6' }}>.</span>
         </h2>
@@ -1421,7 +1421,7 @@ function FoundersRecord() {
         </p>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))', gap:1, background:'rgba(245,241,232,0.16)', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
+      <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(330px,1fr))', gap:1, background:'rgba(245,241,232,0.16)', borderTop:'1px solid rgba(245,241,232,0.16)' }}>
         {FOUNDERS_PEOPLE.map(p => (
           <div key={p.name} style={{ background:'#000000', padding:'clamp(20px,3vh,28px) clamp(18px,2.4vw,26px) clamp(20px,3vh,26px)' }}>
             <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, paddingBottom:'clamp(16px,2.4vh,22px)', fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:'#7C7A73' }}>
@@ -1543,7 +1543,7 @@ function FAQRecord() {
           </div>
           <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
 
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+          <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
             <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
               Frequently asked questions<span style={{ color:'#2F7DF6' }}>.</span>
             </h2>
@@ -1726,7 +1726,7 @@ function DispatchDesk() {
             </div>
             <div style={{ height:1, background:'rgba(245,241,232,0.3)' }}/>
 
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
+            <div className="lc-autogrid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'clamp(20px,3vw,48px)', padding:'clamp(28px,4.4vh,46px) 0 clamp(24px,3.6vh,38px)' }}>
               <h2 className="lc-display" style={{ margin:0, fontSize:'clamp(30px,4.2vw,52px)', fontWeight:400, letterSpacing:'-0.04em', lineHeight:1, color:'#F5F2E9' }}>
                 Get in touch<span style={{ color:'#2F7DF6' }}>.</span>
               </h2>
@@ -2111,7 +2111,11 @@ export default function Home() {
         @media(max-width:768px) {
           .lc-ham   { display:flex !important; }
           .lc-links { display:none !important; }
-          .g2,.g3,.g4 { grid-template-columns:1fr !important; }
+          .g2,.g3,.g4 { grid-template-columns:minmax(0,1fr) !important; }
+          /* these auto-fit grids floor each column at 320-340px, which is wider than a phone
+             viewport once section padding is subtracted — force a single full-width column
+             instead of letting the hard floor push content past the edge of the screen */
+          .lc-autogrid { grid-template-columns:minmax(0,1fr) !important; }
           .hero-h  { font-size:clamp(36px,10vw,58px) !important; }
           .hero-btns { flex-direction:column !important; align-items:stretch; }
           .hero-btns a { justify-content:center; }
@@ -2190,13 +2194,13 @@ export default function Home() {
           <HeroTiltGroup sectionRef={heroSectionRef}>
             <div style={{ maxWidth:640 }}>
               {/* Badge — shipping label, with a live Doral-time clock */}
-              <div className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 14px',
+              <div className="lc-mono" style={{ display:'inline-flex', flexWrap:'wrap', alignItems:'center', gap:10, padding:'6px 14px',
                 border:'1.5px dashed rgba(242,183,5,0.5)', borderRadius:4, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(6px)',
                 marginBottom:'1.75rem', animation:'fadeUp 0.6s 0.1s ease both' }}>
                 <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.22em', color:'#2F7DF6', textTransform:'uppercase' }}>
                   B2B WHOLESALE · DORAL FL · <LiveClock/> ET
                 </span>
-                <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#2F7DF6', color:'#000000', borderRadius:2, letterSpacing:'0.1em' }}>PARTNERS ONLY</span>
+                <span style={{ fontSize:9, fontWeight:700, padding:'4px 10px', background:'#2F7DF6', color:'#000000', borderRadius:2, letterSpacing:'0.1em', whiteSpace:'nowrap' }}>PARTNERS ONLY</span>
               </div>
 
               {/* Headline — masked line-reveal, heavy weight for contrast against the footage */}
