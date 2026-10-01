@@ -372,12 +372,8 @@ function SiteNav() {
       <div style={{ position:'fixed', left:0, right:0, top:0, zIndex:9999, pointerEvents:barPe, opacity:barOpacity, transform:`translateY(${barShift})` }}>
         <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 clamp(16px,3vw,40px)', background:'#08090b' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24, padding:'22px 0 18px' }}>
-            <Link href="/" style={{ display:'flex', alignItems:'center', gap:12, color:'#f2efe6', textDecoration:'none' }}>
-              <span style={{ display:'inline-block', width:18, height:18, border:'1px solid rgba(242,239,230,0.7)', borderLeft:`4px solid ${accent}` }}/>
-              <span>
-                <span className="lc-mono" style={{ display:'block', fontWeight:700, fontSize:13, letterSpacing:'0.22em' }}>LEVAM<span style={{ color:accent }}>CORP</span></span>
-                <span className="lc-mono" style={{ display:'block', paddingTop:3, fontSize:8.5, letterSpacing:'0.24em', color:'rgba(242,239,230,0.6)' }}>DISTRIBUTORS · DORAL FL</span>
-              </span>
+            <Link href="/" style={{ display:'flex', alignItems:'center', color:'#f2efe6', textDecoration:'none' }}>
+              <img src="/levamcorp-logo-white.png" alt="Levam Corp" style={{ height:58, width:'auto' }}/>
             </Link>
 
             {wide && (
@@ -410,9 +406,8 @@ function SiteNav() {
             <span style={{ position:'absolute', left:11, top:'50%', width:9, height:9, marginTop:-5, borderRadius:'50%', background:'#08090b', border:'1px solid rgba(242,239,230,0.55)' }}/>
             <span style={{ position:'absolute', left:'50%', top:-4, width:7, height:7, marginLeft:-4, borderRadius:'50%', background:'#08090b', border:'1px solid rgba(242,239,230,0.7)' }}/>
 
-            <Link href="/" style={{ display:'flex', alignItems:'center', gap:8, color:'#f2efe6', textDecoration:'none' }}>
-              <span style={{ display:'inline-block', width:12, height:12, border:'1px solid rgba(242,239,230,0.7)', borderLeft:`3px solid ${accent}` }}/>
-              <span className="lc-mono" style={{ fontWeight:700, fontSize:10.5, letterSpacing:'0.2em' }}>LEVAM</span>
+            <Link href="/" style={{ display:'flex', alignItems:'center', color:'#f2efe6', textDecoration:'none' }}>
+              <img src="/levamcorp-logo-white.png" alt="Levam Corp" style={{ height:30, width:'auto' }}/>
             </Link>
 
             {wide && (
