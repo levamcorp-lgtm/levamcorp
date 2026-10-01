@@ -617,7 +617,7 @@ const JOURNEY_FADE_SEC = 0.7
 // clip's natural end, so the cut dissolves instead of hard-popping. A clip that
 // fails to load just gets skipped instead of ever blocking anything — there's no
 // loader, no gate, the text above this is always visible regardless of video state.
-function HeroVideoBackground() {
+function HeroVideoBackground({ showCaption = true }) {
   const [caption, setCaption] = useState(JOURNEY_CLIPS[0].caption)
   const [activeIdx, setActiveIdx] = useState(0)
   const slotRefs = [useRef(null), useRef(null)]
@@ -715,15 +715,19 @@ function HeroVideoBackground() {
       {/* Scrim so overlaid text stays readable over any frame of any clip */}
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.25) 35%,rgba(0,0,0,0.35) 65%,rgba(0,0,0,0.85) 100%)' }}/>
 
-      {/* Journey caption + dot progress — purely time-driven, never blocks anything */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, display:'flex', flexDirection:'column', gap:12, padding:'0 2rem 1.75rem', pointerEvents:'none' }}>
-        <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', color:'#F5F1E8', transition:'opacity 0.3s ease' }}>{caption}</div>
-        <div style={{ display:'flex', gap:6 }}>
-          {JOURNEY_CLIPS.map((c, i) => (
-            <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === activeIdx ? '#2F7DF6' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
-          ))}
+      {/* Journey caption + dot progress — purely time-driven, never blocks anything.
+          Skipped when the hero's own content sits flush with the bottom of the
+          section (the mobile layout) so the two don't overlap. */}
+      {showCaption && (
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, display:'flex', flexDirection:'column', gap:12, padding:'0 2rem 1.75rem', pointerEvents:'none' }}>
+          <div className="lc-mono" style={{ fontSize:11, letterSpacing:'0.08em', color:'#F5F1E8', transition:'opacity 0.3s ease' }}>{caption}</div>
+          <div style={{ display:'flex', gap:6 }}>
+            {JOURNEY_CLIPS.map((c, i) => (
+              <div key={c.v} style={{ width:20, height:3, borderRadius:2, background: i === activeIdx ? '#2F7DF6' : 'rgba(245,241,232,0.2)', transition:'background 0.3s ease' }}/>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -2149,11 +2153,609 @@ function ManifestBackdrop() {
 // FIRST VIEWPORT: open box at 3/4 perspective, right of headline; shipping-label badge above the headline; stats rendered as a manifest ledger strip below the CTAs.
 // FORM: user-directed pivot from two dealt directions (assigned "Margin Ledger", pick "Margin Board") to their own concrete brief — literal warehouse/box/forklift/big-brand-tech world — after seeing both cards; this direction is the user's brief, not the roll's card.
 // FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── MOBILE HOME — phone-only "boarding pass / manifest" layout ─────────────────
+// Ported from the Claude Design prototype (Levamcorp_Mobile_Home.dc.html), used
+// only below 768px (see isMobile check in Home()). Real data/components reused
+// throughout instead of the prototype's own placeholder copy. The prototype's own
+// sticky header + full-screen menu is skipped — SiteNav already covers that job
+// (collapsed hanging-tag nav + full-screen overlay) on every viewport, mobile
+// included, so this component starts at the hero. The prototype's static hero
+// photo (assets/warehouse.png) is swapped for the real HeroVideoBackground used
+// on desktop, per explicit instruction — same for the "Exhibit A" about photo,
+// which already has a real asset on desktop (/warehouse.jpg) instead of the
+// prototype's AI-generated one. The prototype's own sticky bottom dock keeps only
+// the Apply CTA (not its WhatsApp icon) — FloatingButtons already renders a
+// WhatsApp FAB + chat toggle on this exact route, so a second WA entry point in
+// the dock would just duplicate it; FloatingButtons' mobile offsets are bumped in
+// its own file so they clear this dock instead of sitting underneath it.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const MOBILE_ACCENT = '#2F7DF6'
+const MOBILE_PASS_FIELDS = [
+  ['ORIGIN','Doral, FL'], ['DISPATCH','48h avg'],
+  ['LANGUAGES','EN · ES'], ['FEE TO APPLY','None'],
+  ['REVIEW','Human'], ['TURNAROUND','1–2 days'],
+]
+
+function MSectionHead({ num, title, right }) {
+  return (
+    <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', gap:12, paddingBottom:10, borderBottom:'1px solid rgba(242,239,230,0.3)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>
+      <span>{num} {title}</span>
+      <span>{right}</span>
+    </div>
+  )
+}
+
+function MHeading({ children }) {
+  return <h2 className="lc-display" style={{ margin:'18px 0 0', fontSize:28, fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.05, color:'#f5f2e9' }}>{children}</h2>
+}
+
+function MobileHero() {
+  const sectionRef = useRef(null)
+  return (
+    <section ref={sectionRef} style={{ position:'relative', minHeight:'88vh', display:'flex', flexDirection:'column', justifyContent:'flex-end', overflow:'hidden', background:'#000' }}>
+      <HeroVideoBackground showCaption={false}/>
+      <div style={{ position:'relative', zIndex:5, padding:'104px 16px 22px' }}>
+        <div className="lc-mono" style={{ display:'inline-flex', flexWrap:'wrap', alignItems:'stretch', border:'1px dashed rgba(242,239,230,0.45)', fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase' }}>
+          <span style={{ padding:'6px 8px', color:'rgba(242,239,230,0.8)' }}>B2B · Doral FL · <LiveClock/> ET</span>
+          <span style={{ padding:'6px 8px', background:MOBILE_ACCENT, color:'#fff', fontWeight:700 }}>Partners only</span>
+        </div>
+        <h1 className="lc-display" style={{ margin:'18px 0 0', fontSize:'clamp(34px,10vw,44px)', fontWeight:700, letterSpacing:'-0.048em', lineHeight:1, color:'#f5f2e9' }}>
+          Premium brands.<br/>Wholesale pricing.<br/><span style={{ fontWeight:400, color:'rgba(242,239,230,0.58)' }}>Built for resellers.</span>
+        </h1>
+        <div style={{ width:56, height:1, marginTop:20, background:MOBILE_ACCENT }}/>
+        <p style={{ margin:'16px 0 0', fontSize:15.5, lineHeight:1.55, color:'rgba(242,239,230,0.78)' }}>
+          Levam Corp connects approved U.S. distributors and resellers to top consumer electronics and appliance brands — at competitive wholesale prices, from our Doral, FL warehouse.
+        </p>
+        <div className="lc-mono" style={{ paddingTop:12, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>Appliances / Audio / TV &amp; display / Gaming</div>
+
+        <Link href="/apply" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:54, marginTop:22, padding:'0 16px', background:MOBILE_ACCENT, color:'#fff', fontWeight:700, fontSize:11.5, letterSpacing:'0.16em', textTransform:'uppercase', textDecoration:'none' }}>Apply for wholesale access <span>→</span></Link>
+        <Link href="/portal" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:50, padding:'0 16px', border:'1px solid rgba(242,239,230,0.3)', borderTop:0, fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.9)', textDecoration:'none' }}>Partner portal login <span style={{ color:'rgba(242,239,230,0.5)' }}>↗</span></Link>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', marginTop:20 }}>
+          {[['48H','DISPATCH'],['500+','SKUS'],['100%','B2B ONLY']].map(([v,k], i) => (
+            <div key={k} style={{ padding:`10px 0 0 ${i>0?14:0}px`, borderTop:'1px solid rgba(242,239,230,0.28)', borderLeft: i>0 ? '1px solid rgba(242,239,230,0.16)' : 'none' }}>
+              <div className="lc-mono" style={{ fontWeight:700, fontSize:17, letterSpacing:'-0.03em' }}>{v}</div>
+              <div className="lc-mono" style={{ paddingTop:3, fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>{k}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function MobileBrandStrip() {
+  return (
+    <>
+      <div className="lc-mono" style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 16px 0', fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>
+        <span style={{ width:5, height:5, background:MOBILE_ACCENT, flexShrink:0 }}/>Authorized brands · {BRAND_LOGOS.length}
+      </div>
+      <div data-swipe="" style={{ display:'flex', overflowX:'auto', padding:'12px 16px 18px', scrollSnapType:'x mandatory', borderBottom:'1px solid rgba(242,239,230,0.12)' }}>
+        {BRAND_LOGOS.map(b => (
+          <div key={b.name} style={{ flex:'none', scrollSnapAlign:'start', width:104, height:50, display:'grid', placeItems:'center', border:'1px solid rgba(242,239,230,0.12)', marginLeft:-1 }}>
+            <img src={`/brands/${b.file}`} alt={b.name} style={{ display:'block', maxWidth:70, maxHeight:22, objectFit:'contain', opacity:0.9 }}/>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function MobileCatalog() {
+  const scrollerRef = useRef(null)
+  const [idx, setIdx] = useState(0)
+  const onScroll = () => {
+    const el = scrollerRef.current
+    if (!el || !el.firstChild) return
+    const cardW = el.firstChild.getBoundingClientRect().width + 10
+    setIdx(Math.min(CATEGORY_LABELS.length - 1, Math.round(el.scrollLeft / cardW)))
+  }
+  const pct = ((idx + 1) / CATEGORY_LABELS.length) * 100 + '%'
+  return (
+    <section style={{ padding:'40px 0 0' }}>
+      <div style={{ padding:'0 16px' }}>
+        <MSectionHead num="§02" title="Catalog / Catálogo" right="Form 04"/>
+        <MHeading>One source.<br/><span style={{ color:'rgba(242,239,230,0.5)' }}>Every category.</span></MHeading>
+      </div>
+      <div ref={scrollerRef} data-swipe="" onScroll={onScroll} style={{ display:'flex', gap:10, overflowX:'auto', padding:'20px 16px 14px', scrollSnapType:'x mandatory', scrollPaddingLeft:16 }}>
+        {CATEGORY_LABELS.map(c => (
+          <div key={c.label} style={{ flex:'none', width:'84%', scrollSnapAlign:'start', background:'#f2efe6', color:'#08090b' }}>
+            <div className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderBottom:'1px solid #08090b', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:7, fontWeight:700 }}>
+                <span style={{ display:'inline-block', width:10, height:10, border:'1px solid #08090b', borderLeft:`3px solid ${MOBILE_ACCENT}` }}/>Levamcorp
+              </span>
+              <span style={{ color:'#5c5a55' }}>Doral · FL</span>
+            </div>
+            <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', padding:'7px 12px', borderBottom:'1px solid rgba(8,9,11,0.35)', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5c5a55' }}>
+              <span>Category / Clase</span><span>{c.num} OF 06</span>
+            </div>
+            <div style={{ padding:'16px 12px 14px', minHeight:118 }}>
+              <div style={{ fontSize:24, letterSpacing:'-0.035em', lineHeight:1.05 }}>{c.label}</div>
+              <div style={{ paddingTop:9, fontSize:14, lineHeight:1.5, color:'#3f3d39' }}>{c.desc}</div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:'1px solid #08090b' }}>
+              {[['CLASS', `${c.num} / 06`], ['CODE', c.code], ['ORIGIN','DORAL, FL'], ['SHIPPING','FCL / LCL']].map(([k,v], i) => (
+                <div key={k} className="lc-mono" style={{ padding:'8px 12px 9px', borderLeft: i%2 ? '1px solid rgba(8,9,11,0.35)' : 'none', borderTop: i>=2 ? '1px solid rgba(8,9,11,0.35)' : 'none' }}>
+                  <div style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6d6a64' }}>{k}</div>
+                  <div style={{ paddingTop:3, fontSize:12, fontWeight:700, letterSpacing:'0.04em' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', alignItems:'flex-end', gap:1, height:26, padding:'6px 12px 0', borderTop:'1px solid #08090b', overflow:'hidden' }}>
+              {CATALOG_STAMP_BARS.slice(0,48).map((b,i) => <span key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 16 : 10, background:'#08090b' }}/>)}
+            </div>
+            <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', padding:'6px 12px 9px', fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5c5a55' }}>
+              <span>{c.tag}</span><span>levamcorp.com</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 16px' }}>
+        <span style={{ flex:1, height:1, background:'rgba(242,239,230,0.18)' }}><span style={{ display:'block', height:1, width:pct, background:MOBILE_ACCENT }}/></span>
+        <span className="lc-mono" style={{ fontSize:10.5, letterSpacing:'0.12em', color:'rgba(242,239,230,0.6)' }}>0{idx+1} / 06</span>
+      </div>
+    </section>
+  )
+}
+
+function MobileManifest() {
+  const bars = RULER_BARS.slice(0,60)
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <div style={{ border:'1px solid rgba(242,239,230,0.22)' }}>
+        <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', padding:'10px 12px', borderBottom:'1px solid rgba(242,239,230,0.22)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.6)' }}>
+          <span>§03 Manifest / Métricas</span><span>03 of 03</span>
+        </div>
+        {MANIFEST_STATS.map((m,i) => (
+          <div key={m.label} style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) auto', gap:12, alignItems:'end', padding:'14px 12px 13px', borderTop: i>0 ? '1px solid rgba(242,239,230,0.14)' : 'none' }}>
+            <span>
+              <span className="lc-mono" style={{ display:'block', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>{m.label}</span>
+              <span className="lc-mono" style={{ display:'block', paddingTop:4, fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(242,239,230,0.4)' }}>{m.note}</span>
+            </span>
+            <span style={{ display:'flex', alignItems:'flex-end', gap:2 }}>
+              <span style={{ fontSize:44, letterSpacing:'-0.055em', lineHeight:0.86, color:'#f5f2e9' }}>{m.to}</span>
+              <span style={{ fontSize:17, color:'rgba(242,239,230,0.5)', paddingBottom:2 }}>{m.suffix}</span>
+              <span className="lc-mono" style={{ padding:'0 0 4px 8px', fontSize:9.5, letterSpacing:'0.14em', color:MOBILE_ACCENT }}>{m.code}</span>
+            </span>
+          </div>
+        ))}
+        <div style={{ display:'flex', alignItems:'flex-end', gap:1, height:24, padding:'6px 12px 0', borderTop:'1px solid rgba(242,239,230,0.22)', overflow:'hidden' }}>
+          {bars.map((b,i) => <div key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 16 : 9, background:'rgba(242,239,230,0.32)' }}/>)}
+        </div>
+        <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', padding:'6px 12px 9px', fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.45)' }}>
+          <span>Tag · 2F19 · MTR</span><span>levamcorp.com</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function MobileProcess() {
+  const [open, setOpen] = useState(0)
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <MSectionHead num="§04" title="Procedure · 04 steps" right="Form 05"/>
+      <MHeading>Simple process.<br/><span style={{ color:'rgba(242,239,230,0.5)' }}>Real results.</span></MHeading>
+      <div style={{ marginTop:20 }}>
+        {STEP_DATA.map((s,i) => {
+          const isOpen = open === i
+          return (
+            <div key={s.title} style={{ borderTop:'1px solid rgba(242,239,230,0.14)' }}>
+              <button type="button" onClick={() => setOpen(isOpen ? -1 : i)} style={{ width:'100%', display:'block', padding:'15px 0 16px', border:0, background:'transparent', color:'#f2efe6', textAlign:'left', cursor:'pointer' }}>
+                <span className="lc-mono" style={{ display:'flex', justifyContent:'space-between', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color: isOpen ? '#e4e0d6' : 'rgba(242,239,230,0.45)' }}>
+                  <span>Step {i+1} / 04</span><span>Code {s.code}</span>
+                </span>
+                <span style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, paddingTop:9 }}>
+                  <span style={{ fontSize:19, letterSpacing:'-0.025em', color: isOpen ? '#fff' : '#f2efe6' }}>{s.title}</span>
+                  <span className="lc-mono" style={{ fontSize:14, color:'rgba(242,239,230,0.45)' }}>{isOpen ? '−' : '+'}</span>
+                </span>
+              </button>
+              {isOpen && (
+                <div style={{ padding:'0 0 16px' }}>
+                  <div style={{ fontSize:14.5, lineHeight:1.6, color:'rgba(242,239,230,0.7)' }}>{s.body}</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', marginTop:13, borderTop:'1px solid rgba(242,239,230,0.12)' }}>
+                    {s.fields.map(([k,v], fi) => (
+                      <div key={k} style={{ padding:`9px 12px 0 ${fi>0?12:0}px`, borderLeft: fi>0 ? '1px solid rgba(242,239,230,0.12)' : 'none' }}>
+                        <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.45)' }}>{k}</div>
+                        <div className="lc-mono" style={{ paddingTop:4, fontSize:11.5, letterSpacing:'0.06em', textTransform:'uppercase', color:'#e4e0d6' }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+        <div style={{ borderTop:'1px solid rgba(242,239,230,0.14)' }}/>
+      </div>
+    </section>
+  )
+}
+
+function MobileCapabilities() {
+  const [showAll, setShowAll] = useState(false)
+  const rows = showAll ? PACKING_LIST_ROWS : PACKING_LIST_ROWS.slice(0,3)
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <MSectionHead num="§05" title="Packing list" right="Rev. 08 · 2026"/>
+      <MHeading>Built for serious business<span style={{ color:MOBILE_ACCENT }}>.</span></MHeading>
+      <div style={{ marginTop:18 }}>
+        {rows.map((c,i) => (
+          <div key={c.title} style={{ display:'grid', gridTemplateColumns:'30px minmax(0,1fr)', gap:10, padding:'14px 0 15px', borderTop:'1px solid rgba(242,239,230,0.12)' }}>
+            <span className="lc-mono" style={{ fontSize:10.5, color:'rgba(242,239,230,0.45)', paddingTop:4 }}>0{i+1}</span>
+            <span>
+              <span style={{ display:'block', fontSize:16.5, letterSpacing:'-0.02em', color:'#f5f2e9' }}>{c.title}</span>
+              <span style={{ display:'block', paddingTop:5, fontSize:14, lineHeight:1.55, color:'rgba(242,239,230,0.64)' }}>{c.body}</span>
+              <span className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingTop:9, fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase' }}>
+                <span style={{ color:'rgba(242,239,230,0.45)' }}>{c.k}</span><span style={{ color:'#e4e0d6' }}>{c.v}</span>
+              </span>
+            </span>
+          </div>
+        ))}
+        <button type="button" onClick={() => setShowAll(v => !v)} className="lc-mono" style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', height:50, padding:'0 14px', border:'1px solid rgba(242,239,230,0.28)', background:'transparent', color:'#f2efe6', fontSize:10.5, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer' }}>
+          <span>{showAll ? 'Show fewer' : 'View all capabilities'}</span><span style={{ color:'rgba(242,239,230,0.5)' }}>{showAll ? '06 / 06' : '03 / 06'}</span>
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function MobileAbout() {
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingBottom:9, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>
+        <span>§06 Certificate of record</span><span>Form 02</span>
+      </div>
+      <div style={{ height:1, background:'rgba(242,239,230,0.32)' }}/>
+      <div style={{ height:2 }}/>
+      <div style={{ height:1, background:'rgba(242,239,230,0.14)' }}/>
+      <h2 className="lc-display" style={{ margin:'18px 0 0', fontSize:28, fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.05, color:'#f5f2e9' }}>A different kind of distributor.</h2>
+      <p style={{ margin:'12px 0 0', fontSize:15, lineHeight:1.6, color:'rgba(242,239,230,0.72)' }}>Not a marketplace — a distribution company with a real warehouse, a real team, and a real commitment to the partners we work with.</p>
+      <div className="lc-mono" style={{ marginTop:20, display:'flex', justifyContent:'space-between', paddingBottom:8, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>
+        <span>Exhibit A · Warehouse</span><span>Ref · WH-01</span>
+      </div>
+      <div style={{ position:'relative', aspectRatio:'4 / 3' }}>
+        <img src="/warehouse.jpg" alt="Levam Corp warehouse — pallets staged for dispatch" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+        <span style={{ position:'absolute', left:8, top:8, width:12, height:12, borderTop:'1px solid #f2efe6', borderLeft:'1px solid #f2efe6' }}/>
+        <span style={{ position:'absolute', right:8, top:8, width:12, height:12, borderTop:'1px solid #f2efe6', borderRight:'1px solid #f2efe6' }}/>
+        <span style={{ position:'absolute', left:8, bottom:8, width:12, height:12, borderBottom:'1px solid #f2efe6', borderLeft:'1px solid #f2efe6' }}/>
+        <span style={{ position:'absolute', right:8, bottom:8, width:12, height:12, borderBottom:'1px solid #f2efe6', borderRight:'1px solid #f2efe6' }}/>
+      </div>
+      <div style={{ marginTop:14 }}>
+        {COMPANY_FACTS.map((f,i) => (
+          <div key={f.label} style={{ display:'grid', gridTemplateColumns:'24px minmax(0,1fr) auto', gap:8, alignItems:'baseline', padding:'12px 0', borderBottom:'1px solid rgba(242,239,230,0.1)' }}>
+            <span className="lc-mono" style={{ fontSize:10, color:'rgba(242,239,230,0.4)' }}>0{i+1}</span>
+            <span style={{ fontSize:14.5, color:'#e4e0d6' }}>{f.label}</span>
+            <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:MOBILE_ACCENT }}>{f.mark}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function MobileLanguage() {
+  const [lang, setLang] = useState('en')
+  const sheet = LANG_SHEETS.find(s => s.key === lang) || LANG_SHEETS[0]
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <div style={{ background:'#f2efe6', color:'#08090b', padding:'14px 14px 16px' }}>
+        <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingBottom:9, borderBottom:'1px solid #08090b', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+          <span>§07 Service declaration</span><span style={{ color:'#5c5a55' }}>Form 03</span>
+        </div>
+        <h2 className="lc-display" style={{ margin:'16px 0 0', fontSize:28, fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.02 }}>English &amp; Español<span style={{ color:MOBILE_ACCENT }}>.</span></h2>
+        <div style={{ paddingTop:5, fontSize:15, color:'#6d6a64' }}>A dedicated rep for every partner.</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', marginTop:14, border:'1px solid #08090b' }}>
+          {LANG_SHEETS.map(s => (
+            <button key={s.key} type="button" onClick={() => setLang(s.key)} className="lc-mono"
+              style={{ height:44, border:0, background: lang===s.key ? '#08090b' : 'transparent', color: lang===s.key ? '#f2efe6' : '#08090b', fontSize:10.5, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer' }}>
+              {s.lang}
+            </button>
+          ))}
+        </div>
+        <div style={{ position:'relative', marginTop:12, background:'#fffdf7', border:'1px solid #08090b', padding:'11px 12px 12px' }}>
+          <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingBottom:8, borderBottom:'1px solid rgba(8,9,11,0.16)', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+            <span style={{ fontWeight:700 }}>{sheet.lang}</span><span style={{ color:'#5c5a55' }}>{sheet.copy}</span>
+          </div>
+          {sheet.rows.map(([k,v], i) => (
+            <div key={k} style={{ display:'grid', gridTemplateColumns:'22px minmax(0,1fr)', gap:8, padding:'10px 0', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
+              <span className="lc-mono" style={{ fontSize:9.5, color:'#8d8981', paddingTop:2 }}>0{i+1}</span>
+              <span>
+                <span className="lc-mono" style={{ display:'block', fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6d6a64' }}>{k}</span>
+                <span style={{ display:'block', paddingTop:4, fontSize:14.5, lineHeight:1.45, color:'#22211f' }}>{v}</span>
+              </span>
+            </div>
+          ))}
+          <div style={{ display:'flex', justifyContent:'flex-end', paddingTop:14 }}>
+            <div style={{ transform:'rotate(-8deg)', border:`2px solid ${MOBILE_ACCENT}`, padding:'5px 9px 6px', opacity:0.85 }}>
+              <div className="lc-mono" style={{ fontWeight:700, fontSize:10, letterSpacing:'0.22em', textTransform:'uppercase', color:MOBILE_ACCENT, whiteSpace:'nowrap' }}>{sheet.stamp}</div>
+            </div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, paddingTop:12 }}>
+            <div><div style={{ height:1, background:'#08090b', opacity:0.6 }}/><div className="lc-mono" style={{ paddingTop:5, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'#6d6a64' }}>{sheet.signature}</div></div>
+            <div><div style={{ height:1, background:'#08090b', opacity:0.6 }}/><div className="lc-mono" style={{ paddingTop:5, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'#6d6a64' }}>{sheet.hours}</div></div>
+          </div>
+        </div>
+        <a href="https://wa.me/17864909005" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:12, paddingTop:11, borderTop:'1px solid #08090b', fontSize:10.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'#08090b', textDecoration:'none' }}>
+          <span>Direct line · WhatsApp</span><span style={{ fontWeight:700 }}>(786) 490-9005 ↗</span>
+        </a>
+      </div>
+    </section>
+  )
+}
+
+function MobileBulletin() {
+  return (
+    <section style={{ padding:'44px 0 0' }}>
+      <div style={{ padding:'0 16px' }}>
+        <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingBottom:10, borderBottom:'1px solid rgba(242,239,230,0.3)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>
+          <span>§08 Market bulletin</span><Link href="/insights" style={{ color:'rgba(242,239,230,0.85)' }}>Issue 08 · All →</Link>
+        </div>
+        <MHeading>Stay ahead of the market.</MHeading>
+      </div>
+      <div data-swipe="" style={{ display:'flex', overflowX:'auto', padding:'18px 16px 0', scrollSnapType:'x mandatory', scrollPaddingLeft:16 }}>
+        {insightItems.map((b,i) => (
+          <Link key={b.title} href="/insights" style={{ position:'relative', overflow:'hidden', flex:'none', width:'76%', scrollSnapAlign:'start', display:'flex', flexDirection:'column', minHeight:196, padding:'14px 14px 13px', border:'1px solid rgba(242,239,230,0.16)', borderTop:`3px solid ${MOBILE_ACCENT}`, marginLeft:-1, textDecoration:'none' }}>
+            <span style={{ position:'absolute', right:-4, bottom:-22, fontSize:104, letterSpacing:'-0.06em', lineHeight:1, color:MOBILE_ACCENT, opacity:0.13, pointerEvents:'none' }}>0{i+1}</span>
+            <span className="lc-mono" style={{ position:'relative', display:'flex', justifyContent:'space-between', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>
+              <span style={{ flex:'none', whiteSpace:'nowrap' }}>No. 0{i+1}</span><span style={{ flex:'none', whiteSpace:'nowrap' }}>{b.date}</span>
+            </span>
+            <span style={{ position:'relative', display:'block', paddingTop:14, fontSize:18.5, letterSpacing:'-0.025em', lineHeight:1.2, color:'#f5f2e9' }}>{b.title}</span>
+            <span style={{ flex:1 }}/>
+            <span className="lc-mono" style={{ position:'relative', display:'flex', justifyContent:'space-between', paddingTop:11, borderTop:'1px solid rgba(242,239,230,0.12)', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+              <span style={{ color:MOBILE_ACCENT }}>{b.tag}</span><span style={{ color:'rgba(242,239,230,0.7)' }}>Read →</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function MobileFounders() {
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <MSectionHead num="§09" title="Signatories" right="02 on record"/>
+      <MHeading>Built by people who know the business.</MHeading>
+      {FOUNDERS_PEOPLE.map(f => (
+        <div key={f.name} style={{ marginTop:18, paddingTop:14, borderTop:'1px solid rgba(242,239,230,0.16)' }}>
+          <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+            <span style={{ color:MOBILE_ACCENT }}>{f.role}</span><span style={{ color:'rgba(242,239,230,0.45)' }}>{f.index}</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'76px minmax(0,1fr)', gap:14, marginTop:12 }}>
+            <div style={{ position:'relative', aspectRatio:'3 / 4', background:'#f2efe6', color:'#08090b', display:'grid', placeItems:'center' }}>
+              <span className="lc-mono" style={{ fontWeight:700, fontSize:15 }}>{f.initials}</span>
+              <span style={{ position:'absolute', left:5, top:5, width:8, height:8, borderTop:'1px solid rgba(8,9,11,0.5)', borderLeft:'1px solid rgba(8,9,11,0.5)' }}/>
+              <span style={{ position:'absolute', right:5, bottom:5, width:8, height:8, borderBottom:'1px solid rgba(8,9,11,0.5)', borderRight:'1px solid rgba(8,9,11,0.5)' }}/>
+            </div>
+            <div>
+              <div style={{ fontSize:21, letterSpacing:'-0.03em', lineHeight:1.1, color:'#f5f2e9' }}>{f.name}</div>
+              {f.fields.map(([k,v]) => (
+                <div key={k} className="lc-mono" style={{ display:'flex', justifyContent:'space-between', gap:10, padding:'7px 0', borderBottom:'1px solid rgba(242,239,230,0.09)', fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase' }}>
+                  <span style={{ color:'rgba(242,239,230,0.45)' }}>{k}</span><span style={{ color:'#e4e0d6', textAlign:'right' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginTop:14, fontSize:15, lineHeight:1.55, color:'#e4e0d6' }}>{f.quote}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:11 }}>
+            <span style={{ width:48, height:1, background:MOBILE_ACCENT }}/>
+            <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>{f.signature}</span>
+          </div>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+function MobileFAQ() {
+  const [open, setOpen] = useState(-1)
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <MSectionHead num="§10" title="Query log" right="Form 06"/>
+      <MHeading>Frequently asked questions.</MHeading>
+      <div style={{ marginTop:18 }}>
+        {FAQ_DATA.map((q,i) => {
+          const isOpen = open === i
+          return (
+            <div key={q.tag} style={{ borderTop:'1px solid rgba(242,239,230,0.14)' }}>
+              <button type="button" onClick={() => setOpen(isOpen ? -1 : i)} style={{ width:'100%', display:'grid', gridTemplateColumns:'26px minmax(0,1fr) 40px', gap:8, alignItems:'baseline', padding:'15px 0 16px', border:0, background:'transparent', color:'#f2efe6', textAlign:'left', cursor:'pointer' }}>
+                <span className="lc-mono" style={{ fontSize:10, color:'rgba(242,239,230,0.45)' }}>0{i+1}</span>
+                <span style={{ fontSize:16, lineHeight:1.35, letterSpacing:'-0.015em', color: isOpen ? '#fff' : '#f2efe6' }}>{q.q}</span>
+                <span className="lc-mono" style={{ textAlign:'right', fontSize:9.5, letterSpacing:'0.12em', color: isOpen ? MOBILE_ACCENT : 'rgba(242,239,230,0.45)' }}>{q.tag}</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding:'0 0 16px 34px' }}>
+                  <div style={{ fontSize:14.5, lineHeight:1.6, color:'rgba(242,239,230,0.7)' }}>{q.a}</div>
+                  <div className="lc-mono" style={{ display:'flex', gap:16, flexWrap:'wrap', paddingTop:11, fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase' }}>
+                    {q.fields.map(([k,v]) => (
+                      <span key={k}><span style={{ color:'rgba(242,239,230,0.45)' }}>{k} </span><span style={{ color:'#e4e0d6' }}>{v}</span></span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+        <div style={{ borderTop:'1px solid rgba(242,239,230,0.14)' }}/>
+      </div>
+    </section>
+  )
+}
+
+function MobileApply() {
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <div style={{ background:'#f2efe6', color:'#08090b' }}>
+        <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', padding:'10px 12px', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5c5a55' }}>
+          <span>§11 Boarding pass · Partner</span><span>Seq · 001</span>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:'1px solid #08090b' }}>
+          {MOBILE_PASS_FIELDS.map(([k,v], i) => (
+            <div key={k} style={{ padding:'10px 12px 11px', borderLeft: i%2 ? '1px solid rgba(8,9,11,0.35)' : 'none', borderTop: i>=2 ? '1px solid rgba(8,9,11,0.35)' : 'none' }}>
+              <div className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6d6a64' }}>{k}</div>
+              <div style={{ paddingTop:4, fontSize:17, letterSpacing:'-0.03em', lineHeight:1.05 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ position:'relative', height:18 }}>
+          <span style={{ position:'absolute', left:-9, top:0, width:18, height:18, borderRadius:'50%', background:'#08090b' }}/>
+          <span style={{ position:'absolute', right:-9, top:0, width:18, height:18, borderRadius:'50%', background:'#08090b' }}/>
+          <span style={{ position:'absolute', left:14, right:14, top:9, borderTop:'1px dashed rgba(8,9,11,0.45)' }}/>
+        </div>
+        <div style={{ padding:'4px 12px 14px' }}>
+          <div className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5c5a55' }}>Passenger copy · Retain this stub</div>
+          <div style={{ paddingTop:10, fontSize:21, letterSpacing:'-0.03em', lineHeight:1.15 }}>Bring three things. We handle the rest.</div>
+          <div style={{ marginTop:10 }}>
+            {FAQ_CHECKLIST.map(([n,t,tag]) => (
+              <div key={n} style={{ display:'grid', gridTemplateColumns:'24px minmax(0,1fr) auto', gap:8, alignItems:'baseline', padding:'10px 0', borderBottom:'1px solid rgba(8,9,11,0.14)' }}>
+                <span className="lc-mono" style={{ fontSize:10, color:MOBILE_ACCENT }}>{n}</span>
+                <span style={{ fontSize:14.5 }}>{t}</span>
+                <span className="lc-mono" style={{ fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#6d6a64' }}>{tag}</span>
+              </div>
+            ))}
+          </div>
+          <Link href="/apply" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:54, marginTop:14, padding:'0 15px', background:'#08090b', color:'#f2efe6', fontWeight:700, fontSize:11.5, letterSpacing:'0.16em', textTransform:'uppercase', textDecoration:'none' }}>Apply for a partner account <span>→</span></Link>
+          <a href="mailto:partners@levamcorp.com" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'center', height:46, fontSize:10.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#08090b', borderBottom:'1px solid rgba(8,9,11,0.3)', textDecoration:'none' }}>Contact us first</a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function MobileContact() {
+  return (
+    <section style={{ padding:'44px 16px 0' }}>
+      <MSectionHead num="§12" title="Dispatch desk" right="Form 07"/>
+      <MHeading>Get in touch.</MHeading>
+      <p style={{ margin:'10px 0 0', fontSize:15, lineHeight:1.55, color:'rgba(242,239,230,0.68)' }}>A person, not a ticket queue. One bilingual desk in Doral.</p>
+      <div style={{ marginTop:16 }}>
+        {CONTACT_CHANNELS.map(c => {
+          const external = c.href.startsWith('http')
+          return (
+            <a key={c.k} href={c.href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+              style={{ display:'grid', gridTemplateColumns:'76px minmax(0,1fr) 18px', gap:10, alignItems:'center', minHeight:64, padding:'12px 0', borderTop:'1px solid rgba(242,239,230,0.14)', textDecoration:'none' }}>
+              <span>
+                <span className="lc-mono" style={{ display:'block', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#f2efe6' }}>{c.k}</span>
+                <span className="lc-mono" style={{ display:'block', paddingTop:4, fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:MOBILE_ACCENT }}>{c.tag}</span>
+              </span>
+              <span style={{ minWidth:0 }}>
+                <span style={{ display:'block', fontSize:15.5, letterSpacing:'-0.01em', color:'#f5f2e9', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.v}</span>
+                <span style={{ display:'block', paddingTop:3, fontSize:12.5, color:'rgba(242,239,230,0.5)' }}>{c.note}</span>
+              </span>
+              <span className="lc-mono" style={{ fontSize:13, color:'rgba(242,239,230,0.55)' }}>→</span>
+            </a>
+          )
+        })}
+        <div style={{ borderTop:'1px solid rgba(242,239,230,0.14)' }}/>
+      </div>
+    </section>
+  )
+}
+
+function MobileFooter() {
+  const [open, setOpen] = useState(-1)
+  const bars = FOOTER_STAMP_BARS.slice(0,48)
+  return (
+    <footer style={{ padding:'52px 16px 108px' }}>
+      <div style={{ height:1, background:'rgba(242,239,230,0.32)' }}/>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 0 6px' }}>
+        <img src="/levamcorp-logo-white.png" alt="Levam Corp" style={{ height:26, width:'auto' }}/>
+        <span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(242,239,230,0.45)' }}>B2B only</span>
+      </div>
+      <div style={{ fontSize:13.5, lineHeight:1.6, color:'rgba(242,239,230,0.55)' }}>6315 NW 99th Ave, Doral, FL 33178 · Registered DBA, Florida</div>
+      <div style={{ marginTop:20 }}>
+        {FOOTER_COLUMNS.map((g,i) => {
+          const isOpen = open === i
+          return (
+            <div key={g.title} style={{ borderTop:'1px solid rgba(242,239,230,0.12)' }}>
+              <button type="button" onClick={() => setOpen(isOpen ? -1 : i)} className="lc-mono" style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', height:50, border:0, background:'transparent', color:'#f2efe6', cursor:'pointer', fontSize:10.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+                <span>{g.title}</span><span style={{ color:'rgba(242,239,230,0.45)' }}>{isOpen ? '−' : '+'}</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding:'0 0 10px' }}>
+                  {g.links.map(([t,href,c]) => (
+                    <Link key={t} href={href} style={{ display:'flex', justifyContent:'space-between', padding:'11px 0', fontSize:15, color:'rgba(242,239,230,0.85)', textDecoration:'none' }}>
+                      <span>{t}</span><span className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.14em', color:'rgba(242,239,230,0.4)' }}>{c}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+        <div style={{ borderTop:'1px solid rgba(242,239,230,0.12)' }}/>
+      </div>
+      <div style={{ display:'flex', alignItems:'flex-end', gap:1, height:22, marginTop:20, overflow:'hidden' }}>
+        {bars.map((b,i) => <div key={i} style={{ flexShrink:0, width:b.w, height: b.tall ? 14 : 8, background:'rgba(242,239,230,0.28)' }}/>)}
+      </div>
+      <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingTop:8, fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(242,239,230,0.4)' }}>
+        <span>© 2026 Levam Corp Distributors</span><span>Doc 07-08 · Rev. 08</span>
+      </div>
+    </footer>
+  )
+}
+
+// Sticky "always reachable" Apply bar, revealed once the visitor has scrolled
+// past most of the hero. Only the Apply CTA — not a WhatsApp icon too, since
+// FloatingButtons already puts a WhatsApp FAB + chat toggle on this exact route;
+// see note at the top of this block about the matching offset bump over there.
+function MobileDock() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > window.innerHeight * 0.7)
+    window.addEventListener('scroll', onScroll, { passive:true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <div style={{ position:'sticky', bottom:0, zIndex:30, paddingBottom:'env(safe-area-inset-bottom)', background:'#08090b', borderTop:'1px solid rgba(242,239,230,0.2)',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(100%)', pointerEvents: visible ? 'auto' : 'none',
+      transition:'opacity 0.25s ease, transform 0.25s ease' }}>
+      <Link href="/apply" className="lc-mono" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, padding:'0 16px', background:MOBILE_ACCENT, color:'#fff', fontWeight:700, fontSize:11.5, letterSpacing:'0.16em', textTransform:'uppercase', textDecoration:'none' }}>
+        <span>Apply for wholesale access</span><span>→</span>
+      </Link>
+    </div>
+  )
+}
+
+function MobileHome() {
+  return (
+    <div style={{ maxWidth:430, margin:'0 auto', position:'relative' }}>
+      <MobileHero/>
+      <MobileBrandStrip/>
+      <MobileCatalog/>
+      <MobileManifest/>
+      <MobileProcess/>
+      <MobileCapabilities/>
+      <MobileAbout/>
+      <MobileLanguage/>
+      <MobileBulletin/>
+      <MobileFounders/>
+      <MobileFAQ/>
+      <MobileApply/>
+      <MobileContact/>
+      <MobileFooter/>
+      <MobileDock/>
+    </div>
+  )
+}
+
+
 export default function Home() {
   const [loaded, setLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const heroSectionRef = useRef(null)
 
-  useEffect(() => { setLoaded(true) }, [])
+  useEffect(() => {
+    setLoaded(true)
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   return (
     <div style={{ background:'transparent', color:'#fff', fontFamily:'"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif', overflowX:'hidden' }}>
@@ -2294,6 +2896,11 @@ export default function Home() {
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
       <SiteNav/>
+
+      {/* Phone viewport gets the dedicated "boarding pass / manifest" mobile layout
+          (ported from the Claude Design prototype); desktop/tablet keep the existing
+          cinematic page untouched below. */}
+      {isMobile ? <MobileHome/> : <>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── HERO — the shipping journey, autoplaying behind the pitch ─── */}
@@ -2515,6 +3122,7 @@ export default function Home() {
 
       <DispatchDesk/>
 
+      </>}
     </div>
   )
 }
