@@ -241,47 +241,208 @@ const IC = {
   chevron:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>,
 }
 
-// ── MOBILE MENU ───────────────────────────────────────────────────────────────
-function MobileMenu() {
-  const [open, setOpen] = useState(false)
+// ── SITE NAV — a bar that collapses into a swinging hanging tag on scroll ──────
+// Ported from the Claude Design prototype the user built (Levamcorp_Nav.dc.html):
+// same scroll-physics (eased collapse + velocity-driven swing), same hanging-tag
+// visual, real site hrefs swapped in for the prototype's placeholder anchors.
+const NAV_LINKS = [
+  { n:'01', label:'Products',        short:'Products', href:'#brands'  },
+  { n:'02', label:'Process',         short:'Process',  href:'#process' },
+  { n:'03', label:'About',           short:'About',    href:'#about'   },
+  { n:'04', label:'FAQ',             short:'FAQ',       href:'#faq'     },
+  { n:'05', label:'Contact',         short:'Contact',  href:'#contact' },
+  { n:'06', label:'Market Insights', short:'Insights', href:'/insights', live:true },
+]
+const NAV_COLLAPSE_AT = 90
+
+function NavLink({ l, mode }) {
+  // mode: 'wide' (full bar), 'tag' (condensed hanging tag), 'mobile' (full-screen menu)
+  if (mode === 'mobile') {
+    return (
+      <Link href={l.href} style={{ display:'flex', alignItems:'baseline', gap:14, padding:'18px 0', borderBottom:'1px solid rgba(242,239,230,0.1)', fontSize:26, letterSpacing:'-0.03em', color:'#f5f2e9', textDecoration:'none' }}>
+        <span className="lc-mono" style={{ fontSize:10, letterSpacing:'0.14em', color:'rgba(242,239,230,0.45)' }}>{l.n}</span>{l.label}
+      </Link>
+    )
+  }
+  const common = { textDecoration:'none', transition:'color 0.2s' }
+  const onOver = e => e.currentTarget.style.color = '#ffffff'
+  if (mode === 'tag') {
+    return (
+      <Link href={l.href} onMouseOver={onOver} onMouseOut={e=>e.currentTarget.style.color='rgba(242,239,230,0.75)'}
+        className="lc-mono" style={{ ...common, display:'flex', alignItems:'center', gap:5, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.75)', whiteSpace:'nowrap' }}>
+        {l.live && <span style={{ width:5, height:5, borderRadius:'50%', background:'#34d399' }}/>}
+        {l.short}
+      </Link>
+    )
+  }
+  return (
+    <Link href={l.href} onMouseOver={onOver} onMouseOut={e=>e.currentTarget.style.color='rgba(242,239,230,0.82)'}
+      className="lc-mono" style={{ ...common, display:'flex', alignItems:'baseline', gap:6, fontSize:10.5, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(242,239,230,0.82)' }}>
+      <span style={{ fontSize:8.5, color:'rgba(242,239,230,0.42)' }}>{l.n}</span>
+      {l.live && <span style={{ alignSelf:'center', width:5, height:5, borderRadius:'50%', background:'#34d399' }}/>}
+      {l.label}
+    </Link>
+  )
+}
+
+function SiteNav() {
+  const [state, setState] = useState({ p:0, ang:0, read:0, w:1400, menu:false })
   const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const lastY = useRef(0)
+  const av = useRef(0)
+  const raf = useRef(null)
 
-  const overlay = (
-    <div style={{ position:'fixed', inset:0, background:'#000000', zIndex:300, display:'flex', flexDirection:'column', padding:'5rem 2rem 3rem' }}>
-      <button onClick={() => setOpen(false)} style={{ position:'absolute', top:20, right:20, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', width:40, height:40, borderRadius:'50%', fontSize:18, cursor:'pointer' }}>×</button>
-      {[['#brands','Products'],['#process','How it works'],['#about','About'],['#faq','FAQ'],['#contact','Contact'],['/insights','Market Insights'],['/apply','Apply now']].map(([href,label],i) => (
-        <a key={label} href={href} onClick={() => setOpen(false)}
-          style={{ fontSize:22, fontWeight:800, color:label==='Apply now'?'#2F7DF6':'#fff', textDecoration:'none', padding:'0.9rem 0', borderBottom:'1px solid rgba(255,255,255,0.05)', letterSpacing:'-0.01em', opacity:0, animation:`fadeUp 0.4s ${i*0.06}s ease forwards` }}>
-          {label}
-        </a>
-      ))}
+  useEffect(() => {
+    setMounted(true)
+    lastY.current = window.scrollY
+    const onResize = () => setState(s => ({ ...s, w: window.innerWidth }))
+    window.addEventListener('resize', onResize)
+    onResize()
 
-      <div style={{ flex:1 }}/>
+    const tick = () => {
+      const y = window.scrollY
+      const vel = y - lastY.current
+      lastY.current = y
+      const target = y > NAV_COLLAPSE_AT ? 1 : 0
+      setState(s => {
+        let p = s.p + (target - s.p) * 0.16
+        if (Math.abs(target - p) < 0.002) p = target
 
-      <div style={{ display:'flex', alignItems:'center', gap:11, opacity:0, animation:'fadeUp 0.4s 0.5s ease forwards' }}>
-        <span style={{ width:26, height:26, border:'1px solid rgba(245,241,232,0.55)', borderLeft:'4px solid #2F7DF6', display:'inline-block' }}/>
-        <span className="lc-mono" style={{ fontWeight:700, fontSize:13, letterSpacing:'0.2em', textTransform:'uppercase', color:'#F2EFE6' }}>Levamcorp</span>
+        const want = Math.max(-7, Math.min(7, -vel * 0.18))
+        av.current += (want - s.ang) * 0.09
+        av.current *= 0.82
+        let ang = s.ang + av.current
+        if (Math.abs(ang) < 0.01 && Math.abs(av.current) < 0.01) ang = 0
+
+        const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+        const read = Math.min(1, y / max)
+
+        if (Math.abs(p - s.p) > 0.001 || Math.abs(ang - s.ang) > 0.01 || Math.abs(read - s.read) > 0.002) {
+          return { ...s, p, ang, read }
+        }
+        return s
+      })
+      raf.current = requestAnimationFrame(tick)
+    }
+    raf.current = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(raf.current)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
+  const accent = '#2F7DF6'
+  const { p, ang, read, w, menu } = state
+  const wide = w >= 1080
+  const clamp01 = v => Math.max(0, Math.min(1, v))
+  const tagIn = clamp01((p - 0.25) / 0.75)
+  const ease = 1 - Math.pow(1 - tagIn, 3)
+
+  const barOpacity = clamp01(1 - p * 1.7)
+  const barShift = (-p * 26).toFixed(1) + 'px'
+  const barPe = p < 0.4 ? 'auto' : 'none'
+  const tagOpacity = ease
+  const tagShift = ((1 - ease) * -80).toFixed(1) + 'px'
+  const tagPe = p > 0.6 ? 'auto' : 'none'
+  const readPct = (read * 100).toFixed(1) + '%'
+  const setMenu = v => setState(s => ({ ...s, menu: v }))
+
+  const progressTrack = (height, borderTop) => (
+    <div style={{ position:'relative', height, borderTop: borderTop ? '1px solid rgba(242,239,230,0.28)' : 'none' }}>
+      {borderTop && <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(to right, rgba(242,239,230,0.32) 1px, transparent 1px)', backgroundSize:'24px 6px', backgroundRepeat:'repeat-x' }}/>}
+      <div style={{ position:'absolute', left:0, top: borderTop ? -1 : 'auto', bottom: borderTop ? 'auto' : -1, height:1, width:readPct, background:accent }}/>
+    </div>
+  )
+
+  const mobileOverlay = (
+    <div style={{ position:'fixed', inset:0, zIndex:10000, background:'#08090b', display:'flex', flexDirection:'column', padding:'22px clamp(16px,4vw,40px)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingBottom:18, borderBottom:'1px solid rgba(242,239,230,0.25)' }}>
+        <span className="lc-mono" style={{ fontWeight:700, fontSize:12, letterSpacing:'0.22em' }}>LEVAM<span style={{ color:accent }}>CORP</span></span>
+        <button type="button" onClick={()=>setMenu(false)} className="lc-mono" style={{ cursor:'pointer', padding:'9px 12px', border:'1px solid rgba(242,239,230,0.35)', background:'transparent', color:'#f2efe6', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase' }}>Close</button>
       </div>
-      <div className="lc-mono" style={{ marginTop:12, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#6F6D67', lineHeight:2, opacity:0, animation:'fadeUp 0.4s 0.5s ease forwards' }}>Distributors · Doral, FL<br/>B2B wholesale only</div>
+      {NAV_LINKS.map(l => <span key={l.label} onClick={()=>setMenu(false)}><NavLink l={l} mode="mobile"/></span>)}
+      <Link href="/portal" onClick={()=>setMenu(false)} className="lc-mono" style={{ marginTop:22, padding:15, border:'1px solid rgba(242,239,230,0.35)', textAlign:'center', fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', color:'#f2efe6', textDecoration:'none' }}>Client login</Link>
     </div>
   )
 
   return (
     <>
-      <button onClick={() => setOpen(!open)} className="lc-ham"
-        style={{ display:'none', flexDirection:'column', gap:5, background:'none', border:'none', cursor:'pointer', padding:4 }}>
-        {[0,1,2].map(i => (
-          <span key={i} style={{ width:22, height:2, background:'#fff', borderRadius:2, display:'block', transition:'all 0.25s',
-            transform: open&&i===0?'rotate(45deg) translateY(7px)':open&&i===2?'rotate(-45deg) translateY(-7px)':'none',
-            opacity: open&&i===1?0:1 }}/>
-        ))}
-      </button>
-      {/* Rendered via a portal straight into <body>: the nav bar's own backdrop-filter
-          makes it a containing block for any position:fixed descendant, which was
-          shrinking this "full-screen" overlay down to the nav bar's own tiny box
-          instead of covering the viewport — a portal escapes that entirely. */}
-      {open && mounted && createPortal(overlay, document.body)}
+      {/* WIDE BAR — full nav, visible at the top of the page */}
+      <div style={{ position:'fixed', left:0, right:0, top:0, zIndex:9999, pointerEvents:barPe, opacity:barOpacity, transform:`translateY(${barShift})` }}>
+        <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 clamp(16px,3vw,40px)', background:'#08090b' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24, padding:'22px 0 18px' }}>
+            <Link href="/" style={{ display:'flex', alignItems:'center', gap:12, color:'#f2efe6', textDecoration:'none' }}>
+              <span style={{ display:'inline-block', width:18, height:18, border:'1px solid rgba(242,239,230,0.7)', borderLeft:`4px solid ${accent}` }}/>
+              <span>
+                <span className="lc-mono" style={{ display:'block', fontWeight:700, fontSize:13, letterSpacing:'0.22em' }}>LEVAM<span style={{ color:accent }}>CORP</span></span>
+                <span className="lc-mono" style={{ display:'block', paddingTop:3, fontSize:8.5, letterSpacing:'0.24em', color:'rgba(242,239,230,0.6)' }}>DISTRIBUTORS · DORAL FL</span>
+              </span>
+            </Link>
+
+            {wide && (
+              <nav style={{ display:'flex', alignItems:'center', gap:'clamp(14px,2vw,30px)' }}>
+                {NAV_LINKS.map(l => <NavLink key={l.label} l={l} mode="wide"/>)}
+              </nav>
+            )}
+
+            <span style={{ display:'flex', alignItems:'center', gap:10 }}>
+              {wide && (
+                <Link href="/portal" className="lc-mono" style={{ padding:'10px 14px', border:'1px solid rgba(242,239,230,0.35)', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:'#f2efe6', textDecoration:'none' }}
+                  onMouseOver={e=>{e.currentTarget.style.background='#f2efe6';e.currentTarget.style.color='#08090b'}} onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#f2efe6'}}>Client login</Link>
+              )}
+              <Link href="/apply" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'11px 15px', background:accent, color:'#ffffff', fontWeight:700, fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', textDecoration:'none' }}
+                onMouseOver={e=>{e.currentTarget.style.background='#f2efe6';e.currentTarget.style.color='#08090b'}} onMouseOut={e=>{e.currentTarget.style.background=accent;e.currentTarget.style.color='#ffffff'}}>Apply <span>→</span></Link>
+              {!wide && (
+                <button type="button" onClick={()=>setMenu(true)} className="lc-mono" style={{ cursor:'pointer', padding:'10px 13px', border:'1px solid rgba(242,239,230,0.35)', background:'transparent', color:'#f2efe6', fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase' }}>Menu</button>
+              )}
+            </span>
+          </div>
+          {progressTrack(7, true)}
+        </div>
+      </div>
+
+      {/* HANGING TAG — what the bar collapses into once you scroll past it */}
+      <div style={{ position:'fixed', left:'50%', top:0, zIndex:9999, pointerEvents:tagPe, opacity:tagOpacity, transform:`translateX(-50%) translateY(${tagShift}) rotate(${ang.toFixed(2)}deg)`, transformOrigin:'50% 0' }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <div style={{ width:1, height:16, background:'linear-gradient(to bottom, rgba(242,239,230,0.15), rgba(242,239,230,0.7))' }}/>
+          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14, padding:'9px 9px 9px 30px', background:'#0b0c0f', border:'1px solid rgba(242,239,230,0.22)', boxShadow:'0 18px 40px -18px rgba(0,0,0,0.9)' }}>
+            <span style={{ position:'absolute', left:11, top:'50%', width:9, height:9, marginTop:-5, borderRadius:'50%', background:'#08090b', border:'1px solid rgba(242,239,230,0.55)' }}/>
+            <span style={{ position:'absolute', left:'50%', top:-4, width:7, height:7, marginLeft:-4, borderRadius:'50%', background:'#08090b', border:'1px solid rgba(242,239,230,0.7)' }}/>
+
+            <Link href="/" style={{ display:'flex', alignItems:'center', gap:8, color:'#f2efe6', textDecoration:'none' }}>
+              <span style={{ display:'inline-block', width:12, height:12, border:'1px solid rgba(242,239,230,0.7)', borderLeft:`3px solid ${accent}` }}/>
+              <span className="lc-mono" style={{ fontWeight:700, fontSize:10.5, letterSpacing:'0.2em' }}>LEVAM</span>
+            </Link>
+
+            {wide && (
+              <>
+                <span style={{ width:1, height:18, background:'rgba(242,239,230,0.2)' }}/>
+                <span style={{ display:'flex', alignItems:'center', gap:16 }}>
+                  {NAV_LINKS.map(l => <NavLink key={l.label} l={l} mode="tag"/>)}
+                </span>
+                <span style={{ width:1, height:18, background:'rgba(242,239,230,0.2)' }}/>
+                <Link href="/portal" className="lc-mono" style={{ fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.85)', whiteSpace:'nowrap', textDecoration:'none' }}
+                  onMouseOver={e=>e.currentTarget.style.color='#ffffff'} onMouseOut={e=>e.currentTarget.style.color='rgba(242,239,230,0.85)'}>Login</Link>
+              </>
+            )}
+
+            {!wide && (
+              <button type="button" onClick={()=>setMenu(true)} className="lc-mono" style={{ cursor:'pointer', padding:'6px 9px', border:'1px solid rgba(242,239,230,0.3)', background:'transparent', color:'#f2efe6', fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>Menu</button>
+            )}
+
+            <Link href="/apply" className="lc-mono" style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'8px 11px', background:accent, color:'#ffffff', fontWeight:700, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', whiteSpace:'nowrap', textDecoration:'none' }}
+              onMouseOver={e=>{e.currentTarget.style.background='#f2efe6';e.currentTarget.style.color='#08090b'}} onMouseOut={e=>{e.currentTarget.style.background=accent;e.currentTarget.style.color='#ffffff'}}>Apply →</Link>
+
+            <span style={{ position:'absolute', left:0, right:0, bottom:-1, height:1, background:'rgba(242,239,230,0.08)' }}>
+              <span style={{ display:'block', height:1, width:readPct, background:accent }}/>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* MOBILE MENU — same containing-block trap as the old nav, same portal fix */}
+      {menu && mounted && createPortal(mobileOverlay, document.body)}
     </>
   )
 }
@@ -2101,16 +2262,11 @@ export default function Home() {
         .brand-logo-item:hover { opacity:1 !important; transform:scale(1.08); }
 
         /* Responsive */
-        .lc-ham  { display:none !important; }
-        .lc-links { display:flex; }
-
         @media(max-width:900px) {
           .hero-scroll-cue { display:none !important; }
         }
 
         @media(max-width:768px) {
-          .lc-ham   { display:flex !important; }
-          .lc-links { display:none !important; }
           .g2,.g3,.g4 { grid-template-columns:minmax(0,1fr) !important; }
           /* these auto-fit grids floor each column at 320-340px, which is wider than a phone
              viewport once section padding is subtracted — force a single full-width column
@@ -2142,42 +2298,7 @@ export default function Home() {
       <div style={{ position:'fixed', inset:0, background:'#000000', zIndex:-3 }}/>
 
       {/* ── NAV ───────────────────────────────────────────────────────── */}
-      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, backdropFilter:'blur(24px) saturate(180%)', background:'rgba(0,0,0,0.95)', borderBottom:'1px solid rgba(245,241,232,0.06)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', height:60, maxWidth:1200, margin:'0 auto' }}>
-          {/* LOGO */}
-          <Link href="/" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-            <div style={{ width:32, height:32, border:'1.5px solid rgba(47,125,246,0.4)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(47,125,246,0.06)' }}>
-              <img src="/levamcorp-mark-white.png" alt="Levam Corp" style={{ width:18, height:'auto' }}/>
-            </div>
-            <div>
-              <div className="lc-display" style={{ fontSize:14, fontWeight:700, letterSpacing:'0.16em', color:'#ffffff', textTransform:'uppercase', lineHeight:1 }}>
-                LEVAM<span style={{ color:'#2F7DF6' }}>CORP</span>
-              </div>
-              <div style={{ fontSize:7, letterSpacing:'0.2em', color:'#A7A090', textTransform:'uppercase', marginTop:2 }}>
-                Distributors · Doral, FL
-              </div>
-            </div>
-          </Link>
-          {/* DESKTOP LINKS */}
-          <div style={{ display:'flex', alignItems:'center', gap:4 }} className="lc-links">
-            {[['#brands','Products'],['#process','Process'],['#about','About'],['#faq','FAQ'],['#contact','Contact']].map(([h,l]) => (
-              <a key={l} href={h} style={{ fontSize:12, fontWeight:600, color:'#A7A090', textDecoration:'none', padding:'6px 12px', borderRadius:4, transition:'color 0.2s' }}
-                onMouseOver={e=>e.target.style.color='#fff'} onMouseOut={e=>e.target.style.color='rgba(255,255,255,0.5)'}>{l}</a>
-            ))}
-            <a href="/insights" style={{ fontSize:12, fontWeight:600, color:'#A7A090', textDecoration:'none', padding:'6px 12px', borderRadius:4, display:'inline-flex', alignItems:'center', gap:6 }}>
-              <span style={{ width:6, height:6, background:'#12B76A', borderRadius:'50%', boxShadow:'0 0 6px #12B76A', flexShrink:0 }}/>
-              Market Insights
-            </a>
-            <Link href="/portal" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)' }}>
-              Client login
-            </Link>
-            <Link href="/apply" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', background:'linear-gradient(135deg,#2F7DF6,#0284C7)', color:'#fff', fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:4, textDecoration:'none', marginLeft:4 }}>
-              Apply {IC.arrow}
-            </Link>
-          </div>
-          <MobileMenu/>
-        </div>
-      </nav>
+      <SiteNav/>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── HERO — the shipping journey, autoplaying behind the pitch ─── */}
