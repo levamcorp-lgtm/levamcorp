@@ -2254,7 +2254,7 @@ function MobileCatalog() {
   }
   const pct = ((idx + 1) / CATEGORY_LABELS.length) * 100 + '%'
   return (
-    <section style={{ padding:'40px 0 0' }}>
+    <section id="brands" style={{ padding:'40px 0 0' }}>
       <div style={{ padding:'0 16px' }}>
         <MSectionHead num="§02" title="Catalog / Catálogo" right="Form 04"/>
         <MHeading>One source.<br/><span style={{ color:'rgba(242,239,230,0.5)' }}>Every category.</span></MHeading>
@@ -2335,7 +2335,7 @@ function MobileManifest() {
 function MobileProcess() {
   const [open, setOpen] = useState(0)
   return (
-    <section style={{ padding:'44px 16px 0' }}>
+    <section id="process" style={{ padding:'44px 16px 0' }}>
       <MSectionHead num="§04" title="Procedure · 04 steps" right="Form 05"/>
       <MHeading>Simple process.<br/><span style={{ color:'rgba(242,239,230,0.5)' }}>Real results.</span></MHeading>
       <div style={{ marginTop:20 }}>
@@ -2404,7 +2404,7 @@ function MobileCapabilities() {
 
 function MobileAbout() {
   return (
-    <section style={{ padding:'44px 16px 0' }}>
+    <section id="about" style={{ padding:'44px 16px 0' }}>
       <div className="lc-mono" style={{ display:'flex', justifyContent:'space-between', paddingBottom:9, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>
         <span>§06 Certificate of record</span><span>Form 02</span>
       </div>
@@ -2553,7 +2553,7 @@ function MobileFounders() {
 function MobileFAQ() {
   const [open, setOpen] = useState(-1)
   return (
-    <section style={{ padding:'44px 16px 0' }}>
+    <section id="faq" style={{ padding:'44px 16px 0' }}>
       <MSectionHead num="§10" title="Query log" right="Form 06"/>
       <MHeading>Frequently asked questions.</MHeading>
       <div style={{ marginTop:18 }}>
@@ -2627,7 +2627,7 @@ function MobileApply() {
 
 function MobileContact() {
   return (
-    <section style={{ padding:'44px 16px 0' }}>
+    <section id="contact" style={{ padding:'44px 16px 0' }}>
       <MSectionHead num="§12" title="Dispatch desk" right="Form 07"/>
       <MHeading>Get in touch.</MHeading>
       <p style={{ margin:'10px 0 0', fontSize:15, lineHeight:1.55, color:'rgba(242,239,230,0.68)' }}>A person, not a ticket queue. One bilingual desk in Doral.</p>
