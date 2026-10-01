@@ -39,6 +39,21 @@ const HEARD_ABOUT_OPTIONS = [
 
 const mono = "'SF Mono','JetBrains Mono',ui-monospace,Menlo,monospace"
 
+// Short chip labels for the mobile layout's narrower volume chips — same stored
+// values as VOLUME_OPTIONS above, just abbreviated for display.
+const VOLUME_SHORT = { 'Under $5,000':'Under $5k', '$5,000–$15,000':'$5k–$15k', '$15,000–$50,000':'$15k–$50k', '$50,000–$100,000':'$50k–$100k', '$100,000+':'$100k+' }
+
+function fmtPhoneDisplay(v) {
+  const d = v.replace(/\D/g,'').replace(/^1(?=\d{10})/,'').slice(0,10)
+  if (d.length < 4) return d
+  if (d.length < 7) return '(' + d.slice(0,3) + ') ' + d.slice(3)
+  return '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6)
+}
+function fmtEinDisplay(v) {
+  const d = v.replace(/\D/g,'').slice(0,9)
+  return d.length > 2 ? d.slice(0,2) + '-' + d.slice(2) : d
+}
+
 function Lbl({ text, req, error, note }) {
   return (
     <span style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8, fontFamily:mono, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#5C5A55', paddingBottom:7 }}>
@@ -88,6 +103,330 @@ function FileUpload({ label, file, error, onChange, req = true }) {
   )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── MOBILE APPLY — phone-only step-by-step "boarding pass" application flow ────
+// Ported from the Claude Design prototype (Levamcorp_Mobile_Apply.dc.html), used
+// only below 768px (same isMobile check pattern as the mobile home page). All
+// state, validation (`problems`/`shown`), file handling, and the Supabase submit
+// call live in Apply() and are reused as-is via props — nothing here duplicates
+// that logic, it only renders it differently. Desktop's own JSX further down is
+// untouched. Real option lists (PRODUCT_CATEGORIES, YEARS_OPTIONS, BUSINESS_TYPES,
+// VOLUME_OPTIONS, HEARD_ABOUT_OPTIONS) are reused rather than the prototype's own
+// narrower placeholder lists, so stored values stay identical to desktop's no
+// matter which layout submitted the application. The agreement checkbox keeps
+// desktop's exact consent sentence rather than the prototype's shorter "I agree
+// to the terms of service" — they are different legal statements, and only one
+// of them is the one this site has actually been asking applicants to agree to.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function MChip({ label, on, onClick }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on}
+      style={{ minHeight:44, padding:'0 13px', border:'1px solid #08090B', background: on?'#08090B':'#fff', color: on?'#F2EFE6':'#08090B', fontSize:14, cursor:'pointer' }}>
+      {label}
+    </button>
+  )
+}
+
+function MChipGroup({ options, value, onChange, shortMap }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+      {options.map(o => <MChip key={o} label={(shortMap && shortMap[o]) || o} on={value===o} onClick={()=>onChange(value===o?'':o)}/>)}
+    </div>
+  )
+}
+
+function MCatChips({ options, values, onToggle }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+      {options.map(c => {
+        const on = values.includes(c)
+        return <MChip key={c} label={(on?'✓ ':'')+c} on={on} onClick={()=>onToggle(c)}/>
+      })}
+    </div>
+  )
+}
+
+function MDocRow({ label, file, error, req, onFile }) {
+  const good = file && !file._err
+  const sub = good ? file.name : error ? error : (req ? 'Tap to take a photo or choose a file' : 'Optional — not registered yet')
+  const subColor = good ? '#166534' : error ? '#C2410C' : '#6D6A64'
+  const id = `mdoc-${label.replace(/\s/g,'')}`
+  return (
+    <label htmlFor={id} style={{ position:'relative', display:'grid', gridTemplateColumns:'44px minmax(0,1fr) auto', gap:12, alignItems:'center', minHeight:72, marginTop:8, padding:12, border:`1px ${good?'solid':'dashed'} ${error?'#C2410C':good?'#16A34A':'rgba(8,9,11,0.5)'}`, background: good?'#F3FAF5':'#fff', cursor:'pointer' }}>
+      <input id={id} type="file" accept="application/pdf,image/*" onChange={e=>onFile(e.target.files[0])} style={{ position:'absolute', width:1, height:1, opacity:0 }}/>
+      <span style={{ display:'grid', placeItems:'center', width:44, height:44, background: good?'#16A34A':'#08090B', color:'#fff', fontFamily:mono, fontSize:15, fontWeight:700 }}>{good?'✓':'+'}</span>
+      <span style={{ minWidth:0 }}>
+        <span style={{ display:'block', fontSize:15, color:'#08090B' }}>{label}</span>
+        <span style={{ display:'block', paddingTop:3, fontSize:12.5, color:subColor, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sub}</span>
+      </span>
+      <span style={{ fontFamily:mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color: good?'#6D6A64':ACCENT }}>{good?'Replace':'Add'}</span>
+    </label>
+  )
+}
+
+function MobileApplyForm(p) {
+  const { form, upd, toggleCat, einFile, resaleFile, agreed, setAgreed, setTouched,
+          step, setStep, persist, next, back, handleSubmit, loading, error, saved, shown, heardLabel,
+          onEinFile, onResaleFile } = p
+
+  const segBg = [0,1,2].map(i => i<step ? '#F2EFE6' : i===step ? ACCENT : 'rgba(242,239,230,0.18)')
+  const titles = ['Tell us about your business', 'Tax documents', 'Review and submit']
+  const subs = [
+    'Takes about two minutes. Your progress saves on this phone.',
+    'We need these to sell to you tax-exempt. Photos are fine.',
+    'Check everything once. You can edit any section.',
+  ]
+  const sheetHead = ['01 · Business information','02 · Documents','03 · Confirm'][step]
+  const sheetFoot = ['Step 01 of 03 · business','Step 02 of 03 · documents','Step 03 of 03 · submit'][step]
+
+  const onTopBack = () => { if (step > 0) back(); else window.location.href = '/' }
+  const setStepAndScroll = i => { setStep(i); persist(form, i); window.scrollTo(0, 0) }
+
+  const review = [
+    { title:'Business', go:0, rows:[['Business',form.business_name||'—'],['Contact',form.contact_name||'—'],['Email',form.email||'—'],['Phone',form.phone||'—'],['Address',form.address||'—']] },
+    { title:'What you sell', go:0, rows:[['Categories',form.categories.join(', ')||'—'],['Years',form.years_in_business||'—'],['Found us',(heardLabel||'—') + (form.heard_about_detail ? ` — ${form.heard_about_detail}` : '')]] },
+    { title:'Documents', go:1, rows:[['Type',form.business_type||'—'],['Volume',form.monthly_volume||'—'],['EIN',form.ein_number||'—'],['Resale cert',form.resale_tax_number||'—'],['EIN letter', einFile && !einFile._err ? 'Attached':'Missing'],['Resale doc', resaleFile && !resaleFile._err ? 'Attached':'Missing']] },
+  ]
+
+  const mField = { width:'100%', boxSizing:'border-box', height:52, padding:'0 13px', border:'1px solid rgba(8,9,11,0.4)', background:'#fff', color:'#08090B', fontSize:16, WebkitAppearance:'none' }
+  const mFieldMono = { ...mField, fontFamily:mono, letterSpacing:'0.04em' }
+  const mLbl = (text, err) => (
+    <span style={{ display:'flex', justifyContent:'space-between', gap:10, paddingBottom:7, fontFamily:mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#5C5A55' }}>
+      <span>{text}</span>{err && <span style={{ color:'#C2410C' }}>{err}</span>}
+    </span>
+  )
+  const groupHead = (text, err) => (
+    <div style={{ display:'flex', justifyContent:'space-between', paddingBottom:8, fontFamily:mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#5C5A55' }}>
+      <span>{text}</span>{err && <span style={{ color:'#C2410C' }}>{err}</span>}
+    </div>
+  )
+
+  return (
+    <div style={{ minHeight:'100vh', background:'#08090B', color:'#F2EFE6', fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif', display:'flex', flexDirection:'column' }}>
+      <header style={{ position:'sticky', top:0, zIndex:30, background:'rgba(8,9,11,0.97)' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'44px minmax(0,1fr) 44px', gap:10, alignItems:'center', height:56, padding:'0 12px' }}>
+          <button type="button" onClick={onTopBack} aria-label={step>0?'Back':'Close'} style={{ width:44, height:44, border:'1px solid rgba(242,239,230,0.25)', background:'transparent', color:'#F2EFE6', fontFamily:mono, fontSize:15, cursor:'pointer' }}>{step>0?'←':'✕'}</button>
+          <span style={{ textAlign:'center' }}>
+            <span style={{ display:'block', fontFamily:mono, fontWeight:700, fontSize:11.5, letterSpacing:'0.2em' }}>LEVAM<span style={{ color:ACCENT }}>CORP</span></span>
+            <span style={{ display:'block', paddingTop:3, fontFamily:mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>Partner application</span>
+          </span>
+          <a href="https://wa.me/17864909005?text=Hi!%20I%20have%20a%20question%20about%20my%20wholesale%20application." aria-label="Help on WhatsApp" style={{ display:'grid', placeItems:'center', width:44, height:44, border:'1px solid rgba(242,239,230,0.25)', fontFamily:mono, fontSize:13, color:'#F2EFE6', textDecoration:'none' }}>?</a>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:3, padding:'0 12px 10px' }}>
+          {segBg.map((bg,i) => <span key={i} style={{ display:'block', height:3, background:bg }}/>)}
+        </div>
+      </header>
+
+      <main style={{ flex:1, padding:'6px 0 120px' }}>
+        <div style={{ padding:'14px 16px 18px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', fontFamily:mono, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>
+            <span>Step 0{step+1} / 03</span><span style={{ color: saved?'#4ADE80':'rgba(242,239,230,0.45)' }}>{saved?'● Saved on this phone':'Draft'}</span>
+          </div>
+          <h1 style={{ margin:'12px 0 0', fontSize:29, fontWeight:400, letterSpacing:'-0.04em', lineHeight:1.05, color:'#F5F2E9' }}>{titles[step]}</h1>
+          <p style={{ margin:'8px 0 0', fontSize:15, lineHeight:1.5, color:'rgba(242,239,230,0.65)' }}>{subs[step]}</p>
+        </div>
+
+        {error && (
+          <div style={{ margin:'0 16px 14px', padding:'12px 13px', borderLeft:'3px solid #f87171', background:'rgba(248,113,113,0.1)', fontSize:14, lineHeight:1.45, color:'#fecaca' }}>{error}</div>
+        )}
+
+        <div style={{ background:'#F2EFE6', color:'#08090B', margin:'0 12px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 12px', borderBottom:'1px solid #08090B', fontFamily:mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase' }}>
+            <span style={{ fontWeight:700 }}>{sheetHead}</span><span style={{ color:'#5C5A55' }}>Form 01 · Rev. 08</span>
+          </div>
+
+          {step === 0 && (
+            <div style={{ padding:'4px 12px 16px' }}>
+              <label style={{ display:'block', paddingTop:14 }}>
+                {mLbl('Business name *', shown('business_name'))}
+                <input value={form.business_name} onChange={e=>upd('business_name',e.target.value)} onBlur={()=>setTouched(t=>({...t,business_name:true}))} placeholder="Acme Distribution LLC" style={{ ...mField, borderColor: shown('business_name')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+              </label>
+              <label style={{ display:'block', paddingTop:14 }}>
+                {mLbl('Your name *', shown('contact_name'))}
+                <input value={form.contact_name} onChange={e=>upd('contact_name',e.target.value)} onBlur={()=>setTouched(t=>({...t,contact_name:true}))} placeholder="First and last name" style={{ ...mField, borderColor: shown('contact_name')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+              </label>
+              <label style={{ display:'block', paddingTop:14 }}>
+                {mLbl('Email *', shown('email'))}
+                <input type="email" inputMode="email" value={form.email} onChange={e=>upd('email',e.target.value)} onBlur={()=>setTouched(t=>({...t,email:true}))} placeholder="name@company.com" style={{ ...mField, borderColor: shown('email')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+              </label>
+              <label style={{ display:'block', paddingTop:14 }}>
+                {mLbl('Phone *', shown('phone'))}
+                <input type="tel" inputMode="tel" value={form.phone} onChange={e=>upd('phone',fmtPhoneDisplay(e.target.value))} onBlur={()=>setTouched(t=>({...t,phone:true}))} placeholder="(305) 555-0100" style={{ ...mFieldMono, borderColor: shown('phone')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+              </label>
+              <label style={{ display:'block', paddingTop:14 }}>
+                {mLbl('Business address · optional')}
+                <input value={form.address} onChange={e=>upd('address',e.target.value)} placeholder="Street, city, state" style={mField}/>
+              </label>
+
+              <div style={{ paddingTop:18 }}>
+                {groupHead('What you resell *', shown('categories'))}
+                <MCatChips options={PRODUCT_CATEGORIES} values={form.categories} onToggle={toggleCat}/>
+              </div>
+
+              <div style={{ paddingTop:18 }}>
+                {groupHead('Years in business')}
+                <MChipGroup options={YEARS_OPTIONS} value={form.years_in_business} onChange={v=>upd('years_in_business',v)}/>
+              </div>
+
+              <div style={{ paddingTop:18 }}>
+                {groupHead('How did you find us? *', shown('heard_about'))}
+                <MChipGroup options={HEARD_ABOUT_OPTIONS.map(([v])=>v)} value={form.heard_about} onChange={v=>upd('heard_about',v)}
+                  shortMap={Object.fromEntries(HEARD_ABOUT_OPTIONS.map(([v,l]) => [v, l.replace(/^Found you on /,'').replace(/^Met you at /,'').replace(/^An? /,'')]))}/>
+                {['friend','broker','existing_client'].includes(form.heard_about) && (
+                  <input value={form.heard_about_detail} onChange={e=>upd('heard_about_detail',e.target.value)}
+                    placeholder={form.heard_about==='broker' ? 'Broker name or company...' : 'Their name (optional)...'} style={{ ...mField, marginTop:8 }}/>
+                )}
+                {form.heard_about==='other' && (
+                  <input value={form.heard_about_detail} onChange={e=>upd('heard_about_detail',e.target.value)}
+                    placeholder="Please tell us how you found us..." style={{ ...mField, marginTop:8 }}/>
+                )}
+              </div>
+
+              <label style={{ display:'block', paddingTop:18 }}>
+                <span style={{ display:'block', paddingBottom:7, fontFamily:mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#5C5A55' }}>Anything we should know? · optional</span>
+                <textarea rows={3} value={form.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Where you sell, what volumes, brands you want…"
+                  style={{ width:'100%', boxSizing:'border-box', padding:'12px 13px', border:'1px solid rgba(8,9,11,0.4)', background:'#fff', color:'#08090B', fontSize:16, lineHeight:1.5, resize:'vertical' }}/>
+              </label>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div style={{ padding:'4px 12px 16px' }}>
+              <div style={{ paddingTop:14 }}>
+                {groupHead('Business type *', shown('business_type'))}
+                <MChipGroup options={BUSINESS_TYPES} value={form.business_type} onChange={v=>upd('business_type',v)}/>
+              </div>
+              <div style={{ paddingTop:18 }}>
+                {groupHead('Monthly purchase volume *', shown('monthly_volume'))}
+                <MChipGroup options={VOLUME_OPTIONS} value={form.monthly_volume} onChange={v=>upd('monthly_volume',v)} shortMap={VOLUME_SHORT}/>
+              </div>
+
+              <label style={{ display:'block', paddingTop:16 }}>
+                {mLbl('EIN *', shown('ein_number'))}
+                <input value={form.ein_number} onChange={e=>upd('ein_number',fmtEinDisplay(e.target.value))} onBlur={()=>setTouched(t=>({...t,ein_number:true}))} placeholder="00-0000000" style={{ ...mFieldMono, borderColor: shown('ein_number')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+                <span style={{ display:'block', paddingTop:6, fontSize:12.5, color:'#6D6A64' }}>9 digits — on your IRS SS-4 letter</span>
+              </label>
+              <label style={{ display:'block', paddingTop:16 }}>
+                {mLbl('Resale certificate number *', shown('resale_tax_number'))}
+                <input value={form.resale_tax_number} onChange={e=>upd('resale_tax_number',e.target.value)} onBlur={()=>setTouched(t=>({...t,resale_tax_number:true}))} placeholder="e.g. 23-8020156685-2" style={{ ...mFieldMono, borderColor: shown('resale_tax_number')?'#C2410C':'rgba(8,9,11,0.4)' }}/>
+                <span style={{ display:'block', paddingTop:6, fontSize:12.5, color:'#6D6A64' }}>As printed on your state certificate</span>
+              </label>
+
+              <div style={{ paddingTop:18, fontFamily:mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#5C5A55' }}>Documents · photo or PDF</div>
+              <MDocRow label="IRS EIN letter (SS-4)" file={einFile} error={shown('einFile')} req={form.business_type !== 'Not yet registered'} onFile={onEinFile}/>
+              <MDocRow label="Resale certificate" file={resaleFile} error={shown('resaleFile')} req={form.business_type !== 'Not yet registered'} onFile={onResaleFile}/>
+              <div style={{ paddingTop:10, fontSize:12.5, lineHeight:1.5, color:'#6D6A64' }}>Take a clear photo of each document or upload the PDF. Max 10 MB. Only our team sees these.</div>
+
+              <div style={{ borderLeft:`3px solid ${ACCENT}`, padding:'10px 0 3px 13px', marginTop:14 }}>
+                <div style={{ fontFamily:mono, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:ACCENT, paddingBottom:6 }}>No LLC yet?</div>
+                <div style={{ fontSize:14.5, lineHeight:1.6, color:'#3F3D39' }}>
+                  You can still apply. Select <strong style={{ color:'#08090B' }}>Not yet registered</strong>, write <strong style={{ color:'#08090B' }}>pending</strong> in the number fields and tell us in the notes — we review those applications individually.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div style={{ padding:'2px 12px 16px' }}>
+              {review.map(r => (
+                <div key={r.title} style={{ paddingTop:14 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:6, borderBottom:'1px solid #08090B' }}>
+                    <span style={{ fontFamily:mono, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', fontWeight:700 }}>{r.title}</span>
+                    <button type="button" onClick={()=>setStepAndScroll(r.go)} style={{ minHeight:36, padding:'0 4px', border:0, background:'transparent', color:ACCENT, fontFamily:mono, fontSize:10.5, letterSpacing:'0.14em', textTransform:'uppercase', cursor:'pointer' }}>Edit</button>
+                  </div>
+                  {r.rows.map(([k,v]) => (
+                    <div key={k} style={{ display:'grid', gridTemplateColumns:'104px minmax(0,1fr)', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(8,9,11,0.12)' }}>
+                      <span style={{ fontFamily:mono, fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'#6D6A64', paddingTop:2 }}>{k}</span>
+                      <span style={{ fontSize:14.5, lineHeight:1.4, color:'#22211F', overflowWrap:'anywhere' }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <label style={{ display:'grid', gridTemplateColumns:'26px minmax(0,1fr)', gap:11, alignItems:'start', marginTop:18, padding:'13px 12px', border:`1px solid ${shown('agree')?'#C2410C':'rgba(8,9,11,0.4)'}`, background:'#fff', cursor:'pointer' }}>
+                <input type="checkbox" checked={agreed} onChange={e=>{ setAgreed(e.target.checked); setTouched(t=>({...t,agree:true})) }} style={{ width:22, height:22, marginTop:1, accentColor:'#08090B' }}/>
+                <span style={{ fontSize:14, lineHeight:1.5, color:'#22211F' }}>I confirm the information above is accurate and my business is legitimate. I understand Levam Corp will contact me within 1–2 business days.</span>
+              </label>
+              {shown('agree') && <div style={{ paddingTop:8, fontFamily:mono, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'#C2410C' }}>{shown('agree')}</div>}
+            </div>
+          )}
+
+          <div style={{ display:'flex', justifyContent:'space-between', padding:'9px 12px 10px', borderTop:'1px solid #08090B', fontFamily:mono, fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5C5A55' }}>
+            <span>{sheetFoot}</span><span>levamcorp.com</span>
+          </div>
+        </div>
+
+        <div style={{ padding:'18px 16px 0', display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))' }}>
+          {[['5 min','To apply'],['1–2 days','To answer'],['$0','Fee']].map(([v,k],i) => (
+            <div key={k} style={{ paddingLeft: i?14:0, borderLeft: i?'1px solid rgba(242,239,230,0.18)':'none' }}>
+              <div style={{ fontFamily:mono, fontWeight:700, fontSize:15 }}>{v}</div>
+              <div style={{ paddingTop:3, fontFamily:mono, fontSize:9.5, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(242,239,230,0.5)' }}>{k}</div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      <div style={{ position:'sticky', bottom:0, zIndex:30, display:'grid', gridTemplateColumns: step>0 ? '104px minmax(0,1fr)' : 'minmax(0,1fr)', background:'#08090B', borderTop:'1px solid rgba(242,239,230,0.2)', paddingBottom:'env(safe-area-inset-bottom)' }}>
+        {step>0 && <button type="button" onClick={back} style={{ height:58, border:0, borderRight:'1px solid rgba(242,239,230,0.2)', background:'transparent', color:'#F2EFE6', fontFamily:mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', cursor:'pointer' }}>← Back</button>}
+        <button type="button" onClick={step===2 ? handleSubmit : next} disabled={step===2 && loading}
+          style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:58, padding:'0 18px', border:0, background:ACCENT, color:'#fff', fontFamily:mono, fontWeight:700, fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase', cursor: (step===2 && loading) ? 'not-allowed' : 'pointer' }}>
+          <span>{step===2 ? (loading?'Submitting…':'Submit application') : 'Continue'}</span>
+          <span>{step===2 ? '✓' : `0${step+2} / 03 →`}</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function MobileApplySuccess({ form, appRef }) {
+  const firstName = (form.contact_name || 'there').trim().split(' ')[0]
+  return (
+    <div style={{ minHeight:'100vh', background:'#08090B', color:'#F2EFE6', fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
+      <header style={{ position:'sticky', top:0, zIndex:30, background:'rgba(8,9,11,0.97)', display:'flex', alignItems:'center', justifyContent:'center', height:56, borderBottom:'1px solid rgba(242,239,230,0.14)' }}>
+        <span style={{ textAlign:'center' }}>
+          <span style={{ display:'block', fontFamily:mono, fontWeight:700, fontSize:11.5, letterSpacing:'0.2em' }}>LEVAM<span style={{ color:ACCENT }}>CORP</span></span>
+          <span style={{ display:'block', paddingTop:3, fontFamily:mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(242,239,230,0.55)' }}>Application received</span>
+        </span>
+      </header>
+      <main style={{ padding:'22px 12px 40px' }}>
+        <div style={{ background:'#F2EFE6', color:'#08090B' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 12px', fontFamily:mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5C5A55' }}>
+            <span>Receipt · Form 01</span><span>Ref · APP-{appRef}</span>
+          </div>
+          <div style={{ padding:'18px 12px 16px', borderTop:'1px solid #08090B' }}>
+            <div style={{ display:'inline-block', transform:'rotate(-6deg)', border:`2px solid ${ACCENT}`, padding:'5px 10px 6px', fontFamily:mono, fontWeight:700, fontSize:11, letterSpacing:'0.22em', textTransform:'uppercase', color:ACCENT }}>Received</div>
+            <div style={{ paddingTop:16, fontSize:29, letterSpacing:'-0.04em', lineHeight:1.05 }}>Thank you, {firstName}.</div>
+            <div style={{ paddingTop:8, fontSize:15, lineHeight:1.55, color:'#3F3D39' }}>We received the application for <strong>{form.business_name || 'your business'}</strong>. A person on our team reviews it and answers within 1–2 business days at {form.email || 'your email'}.</div>
+          </div>
+          <div style={{ position:'relative', height:18 }}>
+            <span style={{ position:'absolute', left:-9, top:0, width:18, height:18, borderRadius:'50%', background:'#08090B' }}/>
+            <span style={{ position:'absolute', right:-9, top:0, width:18, height:18, borderRadius:'50%', background:'#08090B' }}/>
+            <span style={{ position:'absolute', left:14, right:14, top:9, borderTop:'1px dashed rgba(8,9,11,0.45)' }}/>
+          </div>
+          <div style={{ padding:'4px 12px 14px' }}>
+            <div style={{ fontFamily:mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#5C5A55' }}>What happens next</div>
+            {[
+              ['01','A person reviews your documents — no automated filter.'],
+              ['02','You get a decision by email, approved or not. No silence.'],
+              ['03','If approved, your portal credentials arrive in the same thread.'],
+            ].map(([n,v]) => (
+              <div key={n} style={{ display:'grid', gridTemplateColumns:'24px minmax(0,1fr)', gap:8, padding:'11px 0', borderBottom:'1px solid rgba(8,9,11,0.14)' }}>
+                <span style={{ fontFamily:mono, fontSize:10, color:ACCENT, paddingTop:2 }}>{n}</span>
+                <span style={{ fontSize:15, lineHeight:1.5, color:'#3F3D39' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <a href="https://wa.me/17864909005" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:54, marginTop:12, padding:'0 16px', border:'1px solid rgba(242,239,230,0.3)', fontFamily:mono, fontSize:11.5, letterSpacing:'0.14em', textTransform:'uppercase', color:'#F2EFE6', textDecoration:'none' }}>
+          <span>Questions? WhatsApp us</span><span>↗</span>
+        </a>
+        <Link href="/" style={{ display:'flex', alignItems:'center', justifyContent:'center', height:50, fontFamily:mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(242,239,230,0.65)', textDecoration:'none' }}>Back to levamcorp.com</Link>
+      </main>
+    </div>
+  )
+}
+
+
 export default function Apply() {
   const [form, setForm] = useState({
     business_name:'', contact_name:'', email:'', phone:'', address:'',
@@ -104,6 +443,14 @@ export default function Apply() {
   const [step,       setStep]       = useState(0)
   const [saved,      setSaved]      = useState(false)
   const [ref,        setRef]        = useState('')
+  const [isMobile,   setIsMobile]   = useState(false)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Restore an in-progress draft (fields only — files can't be persisted) so a
   // closed tab or accidental refresh doesn't lose someone's half-filled application.
@@ -130,9 +477,13 @@ export default function Apply() {
   }
   const toggleCat = c => upd('categories', form.categories.includes(c) ? form.categories.filter(x=>x!==c) : [...form.categories, c])
 
-  const pickFile = (setFile, file) => {
+  // allowImage: mobile applicants often only have a phone photo of these documents
+  // (no scanner handy), so the mobile layout accepts images too; desktop stays
+  // PDF-only, unchanged, since this defaults to false.
+  const pickFile = (setFile, file, allowImage = false) => {
     if (!file) return
-    if (file.type !== 'application/pdf') { setFile({ name:file.name, _err:'PDF only' }); return }
+    const okType = file.type === 'application/pdf' || (allowImage && file.type.startsWith('image/'))
+    if (!okType) { setFile({ name:file.name, _err: allowImage ? 'Photo or PDF only' : 'PDF only' }); return }
     if (file.size > 10 * 1024 * 1024) { setFile({ name:file.name, _err:'Max 10MB' }); return }
     setFile(file)
   }
@@ -192,11 +543,11 @@ export default function Apply() {
       const sb = createClient()
       let einUrl = null, resaleUrl = null
       if (einFile && !einFile._err) {
-        const { data } = await sb.storage.from('Documents').upload(`ein/${Date.now()}-${einFile.name}`, einFile, { contentType:'application/pdf' })
+        const { data } = await sb.storage.from('Documents').upload(`ein/${Date.now()}-${einFile.name}`, einFile, { contentType: einFile.type || 'application/pdf' })
         if (data) einUrl = data.path
       }
       if (resaleFile && !resaleFile._err) {
-        const { data } = await sb.storage.from('Documents').upload(`resale/${Date.now()}-${resaleFile.name}`, resaleFile, { contentType:'application/pdf' })
+        const { data } = await sb.storage.from('Documents').upload(`resale/${Date.now()}-${resaleFile.name}`, resaleFile, { contentType: resaleFile.type || 'application/pdf' })
         if (data) resaleUrl = data.path
       }
       const { error: err } = await sb.from('applications').insert([{ ...form, ein:form.ein_number, ein_document_url:einUrl, resale_tax_document_url:resaleUrl, heard_about:form.heard_about, heard_about_detail:form.heard_about_detail }])
@@ -229,8 +580,13 @@ export default function Apply() {
   const stepInputMono = { ...stepInput, fontFamily:mono, fontSize:16, letterSpacing:'0.04em' }
   const errBorder = { borderBottom:'1px solid #C2410C' }
 
+  // allowImage=true here — mobile applicants often only have a phone photo of
+  // these documents, unlike desktop's drag-and-drop which stays PDF-only.
+  const onEinFile    = f => { pickFile(setEinFile, f, true);    setTouched(p => ({ ...p, einFile:true })) }
+  const onResaleFile = f => { pickFile(setResaleFile, f, true); setTouched(p => ({ ...p, resaleFile:true })) }
+
   // ── SUCCESS ─────────────────────────────────────────────────────────────
-  if (submitted) return (
+  if (submitted) return isMobile ? <MobileApplySuccess form={form} appRef={ref}/> : (
     <div style={{ minHeight:'100vh', background:'#08090B', color:'#F2EFE6', fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
       <style>{globalStyle}</style>
       <div style={{ maxWidth:720, margin:'0 auto', padding:'clamp(40px,8vh,90px) clamp(16px,4vw,48px)' }}>
@@ -296,6 +652,17 @@ export default function Apply() {
 
   // ── FORM ────────────────────────────────────────────────────────────────
   const steps = ['Business info','Documents','Review & submit']
+
+  if (isMobile) return (
+    <MobileApplyForm
+      form={form} upd={upd} toggleCat={toggleCat} einFile={einFile} resaleFile={resaleFile}
+      agreed={agreed} setAgreed={setAgreed} setTouched={setTouched}
+      step={step} setStep={setStep} persist={persist} next={next} back={back} handleSubmit={handleSubmit}
+      loading={loading} error={error} saved={saved} shown={shown} heardLabel={heardLabel}
+      onEinFile={onEinFile} onResaleFile={onResaleFile}
+    />
+  )
+
   return (
     <div style={{ minHeight:'100vh', background:'#08090B', color:'#F2EFE6', fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif' }}>
       <style>{globalStyle}</style>
