@@ -16,8 +16,15 @@ export default function FloatingButtons() {
       <style>{`
         .lc-wa-fab { position:fixed; bottom:calc(28px + env(safe-area-inset-bottom,0px)); right:28px; z-index:9998; display:flex; align-items:center; gap:10px; background:#25D366; color:#fff; border-radius:50px; padding:12px 20px 12px 14px; box-shadow:0 4px 20px rgba(37,211,102,0.45); text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:700; }
         .lc-wa-label { display:inline; }
+        /* Below 768px the home page shows its own mobile layout with a sticky 56px
+           "Apply" bar pinned to the true bottom of the viewport (plus safe-area) —
+           push this FAB up by that same amount so it floats above the bar instead
+           of sitting underneath it. */
+        @media (max-width:768px) {
+          .lc-wa-fab { bottom:calc(84px + env(safe-area-inset-bottom,0px)); }
+        }
         @media (max-width:520px) {
-          .lc-wa-fab { bottom:calc(16px + env(safe-area-inset-bottom,0px)); right:16px; padding:13px; }
+          .lc-wa-fab { bottom:calc(72px + env(safe-area-inset-bottom,0px)); right:16px; padding:13px; }
           .lc-wa-label { display:none; }
         }
       `}</style>
@@ -44,9 +51,14 @@ export default function FloatingButtons() {
                 #lc-toggle:hover { transform:scale(1.08); background:#222; }
                 #lc-window { position:fixed; bottom:calc(168px + env(safe-area-inset-bottom,0px)); right:28px; z-index:9999; width:340px; height:480px; max-height:min(480px, calc(100dvh - 200px)); background:#fff; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18); display:none; flex-direction:column; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
                 #lc-window.open { display:flex; animation:lc-pop 0.2s ease; }
+                /* Same sticky mobile "Apply" bar offset as the WhatsApp FAB above. */
+                @media (max-width:768px) {
+                  #lc-toggle { bottom:calc(152px + env(safe-area-inset-bottom,0px)); }
+                  #lc-window { bottom:calc(224px + env(safe-area-inset-bottom,0px)); }
+                }
                 @media (max-width:520px) {
-                  #lc-toggle { bottom:calc(80px + env(safe-area-inset-bottom,0px)); right:16px; width:46px; height:46px; }
-                  #lc-window { bottom:calc(134px + env(safe-area-inset-bottom,0px)); right:12px; left:12px; width:auto; }
+                  #lc-toggle { bottom:calc(136px + env(safe-area-inset-bottom,0px)); right:16px; width:46px; height:46px; }
+                  #lc-window { bottom:calc(190px + env(safe-area-inset-bottom,0px)); right:12px; left:12px; width:auto; }
                   #lc-input { font-size:16px; }
                 }
                 @keyframes lc-pop { from{transform:scale(0.9) translateY(10px);opacity:0} to{transform:scale(1);opacity:1} }
