@@ -3,6 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Resend's API is rate-limited to ~2 requests/second on this account. Firing one
+// resend.emails.send() per recipient in parallel (the old approach) blew straight
+// through that past the first couple of recipients, so most of a bulk send just
+// silently failed with no retry — which is exactly why a 50-recipient offer only
+// showed a handful of "Delivered" rows in the Resend dashboard. Use the batch
+// endpoint instead (up to 100 personalized emails in one API call) and pace the
+// batch calls themselves so a very large list still respects the rate limit.
+const BATCH_SIZE = 100
+const BATCH_PAUSE_MS = 600
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out }
+
 export async function POST(req) {
   try {
     const { products, subject, headline, message, ctaText, footer, targetClients } = await req.json()
@@ -95,20 +107,26 @@ export async function POST(req) {
 </body>
 </html>`
 
-    // Send to all clients
-    const results = await Promise.allSettled(
-      clients.map(client =>
-        resend.emails.send({
-          from: 'Levam Corp <partners@levamcorp.com>',
-          to: client.email,
-          subject,
-          html: buildHtml(client.contact_name || client.business_name || 'Partner'),
-        })
-      )
-    )
+    // Send to all clients, in paced batches (see BATCH_SIZE/BATCH_PAUSE_MS above)
+    const emails = clients.map(client => ({
+      from: 'Levam Corp <partners@levamcorp.com>',
+      to: client.email,
+      subject,
+      html: buildHtml(client.contact_name || client.business_name || 'Partner'),
+    }))
 
-    const sent     = results.filter(r => r.status === 'fulfilled').length
-    const failed   = results.filter(r => r.status === 'rejected').length
+    let sent = 0, failed = 0
+    const batches = chunk(emails, BATCH_SIZE)
+    for (let i = 0; i < batches.length; i++) {
+      try {
+        const { data, error } = await resend.batch.send(batches[i])
+        if (error) failed += batches[i].length
+        else sent += data?.data?.length || batches[i].length
+      } catch {
+        failed += batches[i].length
+      }
+      if (i < batches.length - 1) await sleep(BATCH_PAUSE_MS)
+    }
 
     return Response.json({ success: true, sent, failed, total: clients.length })
   } catch (err) {

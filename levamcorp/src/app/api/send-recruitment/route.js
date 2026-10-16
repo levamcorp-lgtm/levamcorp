@@ -2,6 +2,16 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Same fix as /api/send-offer: Resend's API is rate-limited to ~2 requests/second
+// on this account, and firing one resend.emails.send() per recipient in parallel
+// blew straight through that past the first couple of recipients, so most of a
+// bulk send just silently failed with no retry. Use the batch endpoint instead
+// (up to 100 emails per API call) and pace the batch calls themselves.
+const BATCH_SIZE = 100
+const BATCH_PAUSE_MS = 600
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out }
+
 // Four real, functional outreach angles — the shared header/how-it-works/what-you-get/CTA/footer
 // sections stay identical; only the badge + headline + opening paragraph vary by audience.
 const TEMPLATES = {
@@ -160,19 +170,25 @@ export async function POST(req) {
 </body>
 </html>`
 
-    const results = await Promise.allSettled(
-      emails.map(email =>
-        resend.emails.send({
-          from: 'Levam Corp <partners@levamcorp.com>',
-          to: email,
-          subject: subject || tpl.subject,
-          html,
-        })
-      )
-    )
+    const payload = emails.map(email => ({
+      from: 'Levam Corp <partners@levamcorp.com>',
+      to: email,
+      subject: subject || tpl.subject,
+      html,
+    }))
 
-    const sent   = results.filter(r => r.status === 'fulfilled').length
-    const failed = results.filter(r => r.status === 'rejected').length
+    let sent = 0, failed = 0
+    const batches = chunk(payload, BATCH_SIZE)
+    for (let i = 0; i < batches.length; i++) {
+      try {
+        const { data, error } = await resend.batch.send(batches[i])
+        if (error) failed += batches[i].length
+        else sent += data?.data?.length || batches[i].length
+      } catch {
+        failed += batches[i].length
+      }
+      if (i < batches.length - 1) await sleep(BATCH_PAUSE_MS)
+    }
     return Response.json({ success: true, sent, failed })
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 })
