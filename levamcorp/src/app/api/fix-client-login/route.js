@@ -44,7 +44,12 @@ export async function POST(request) {
       const existing = list?.users?.find(u => u.email?.toLowerCase() === normalizedEmail)
       if (existing) {
         userId = existing.id
-        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword })
+        // email_confirm:true here too — an account created by hand in the Supabase
+        // dashboard without "Auto Confirm User" checked signs in with "Email not
+        // confirmed" no matter how correct the password is. Since this route exists
+        // specifically to make a client's login work, leaving that half-broken defeats
+        // the point.
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword, email_confirm: true })
         if (updateErr) throw updateErr
       } else {
         throw new Error(`Supabase reports ${normalizedEmail} is already registered, but no matching auth user was found in the first 1000 users. Check the Supabase Auth dashboard manually.`)

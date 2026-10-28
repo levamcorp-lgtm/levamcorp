@@ -132,7 +132,19 @@ export default function PortalPage() {
       } else {
         window.location.href = '/portal/dashboard'
       }
-    } catch { setError('Invalid credentials. Please try again.') }
+    } catch (e) {
+      // Surface the real reason instead of a blanket "invalid credentials" — accounts
+      // created by hand in the Supabase dashboard without "Auto Confirm User" checked
+      // fail sign-in with "Email not confirmed," which looks identical to a wrong
+      // password from the outside but needs a completely different fix (confirm the
+      // user in Supabase, not resend credentials).
+      const msg = e?.message || ''
+      if (/email not confirmed/i.test(msg)) {
+        setError('This account exists but its email was never confirmed in Supabase. Go to Supabase → Authentication → Users, open this user, and confirm their email — the password itself is fine.')
+      } else {
+        setError('Invalid credentials. Please try again.')
+      }
+    }
     finally { setLoading(false) }
   }
 
