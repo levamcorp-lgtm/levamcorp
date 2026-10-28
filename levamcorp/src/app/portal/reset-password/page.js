@@ -12,21 +12,45 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Supabase sends token_hash and type in the URL
+    const supabase = createClient()
+
     const params = new URLSearchParams(window.location.search)
     const tokenHash = params.get('token_hash')
     const type = params.get('type')
 
     if (tokenHash && type === 'recovery') {
-      const supabase = createClient()
-      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
-        .then(({ error }) => {
-          if (error) setError('This reset link has expired or is invalid. Please request a new one.')
-          else setReady(true)
-        })
-    } else {
-      setError('Invalid reset link. Please request a new password reset.')
+      // A reset link customized to point straight here with ?token_hash=...&type=recovery.
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' }).then(({ error }) => {
+        if (error) setError('This reset link has expired or is invalid. Please request a new one.')
+        else setReady(true)
+      })
+      return
     }
+
+    // Supabase's default password-recovery email template points at Supabase's own
+    // hosted /auth/v1/verify endpoint, which redirects back here with the session
+    // tokens already in the URL's hash fragment
+    // (#access_token=...&refresh_token=...&type=recovery) — an "implicit grant" shape.
+    // This app's client is built with @supabase/ssr's createBrowserClient, which hardcodes
+    // flowType:'pkce'. The library's OWN automatic hash-fragment handling checks that
+    // flowType and actively REJECTS an implicit-grant shape as a mismatch instead of just
+    // ignoring it — so a real, valid reset link looked identical to a broken one. Parse
+    // the hash ourselves and hand the tokens straight to setSession(), which (unlike the
+    // library's auto-detection) doesn't care what flow type the client is configured for.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+    const hashType = hashParams.get('type')
+
+    if (accessToken && refreshToken && hashType === 'recovery') {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
+        if (error) setError('This reset link has expired or is invalid. Please request a new one.')
+        else setReady(true)
+      })
+      return
+    }
+
+    setError('Invalid reset link. Please request a new password reset.')
   }, [])
 
   const handleReset = async () => {

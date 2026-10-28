@@ -153,6 +153,11 @@ export default function AdminClients() {
   // account at all. Deliberately NOT derived from `clients.user_id` — see the fetch
   // below for why that column can't be trusted for this.
   const [noLoginIds, setNoLoginIds] = useState(null)
+  // Set on a failed/errored check so "0 flagged" never gets silently confused with
+  // "the check didn't actually run" — a real risk here since a missing/misconfigured
+  // SUPABASE_SERVICE_ROLE_KEY on this route would otherwise just quietly leave
+  // noLoginIds null forever, which renders identically to "everyone's fine."
+  const [loginCheckError, setLoginCheckError] = useState(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -176,7 +181,8 @@ export default function AdminClients() {
       // account does exist but was never linked, so the data gets more correct over time.
       fetch('/api/clients-login-status').then(r => r.json()).then(d => {
         if (d.success) setNoLoginIds(new Set(d.noLoginIds))
-      }).catch(() => {})
+        else setLoginCheckError(d.error || 'Unknown error')
+      }).catch(e => setLoginCheckError(e.message))
     })
   }, [])
 
@@ -429,6 +435,11 @@ export default function AdminClients() {
                 )
               })}
             </div>
+            {loginCheckError && (
+              <div style={{ marginTop: 10, padding: '8px 10px', background: '#fff6f6', border: '1px solid #f6d5d5', borderRadius: 8, fontSize: 12, color: '#7f1d1d', lineHeight: 1.5 }}>
+                ⚠ Couldn't check who has a real login ({loginCheckError}) — the "No login" filter is unavailable, not confirming everyone's fine. Check <code style={{ fontSize: 11 }}>SUPABASE_SERVICE_ROLE_KEY</code> is set, then reload.
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 12 }}>
               <span style={{ fontSize: 13, color: '#6b7280' }}>{list.length} of {clients.length} clients</span>
               <span data-scroll style={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #d9dce2', borderRadius: 7, overflowX: 'auto', background: '#ffffff' }}>
