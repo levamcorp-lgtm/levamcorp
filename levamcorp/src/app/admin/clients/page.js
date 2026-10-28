@@ -147,6 +147,8 @@ export default function AdminClients() {
   const [authUserForm, setAuthUserForm] = useState({ name: '', email: '' })
   const [creatingAuthUser, setCreatingAuthUser] = useState(false)
   const [authAddedFor, setAuthAddedFor] = useState(null)
+  const [fixingLogin, setFixingLogin] = useState(null)
+  const [fixedLoginFor, setFixedLoginFor] = useState(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -227,6 +229,36 @@ export default function AdminClients() {
     const { error } = await supabase.from('client_users').delete().eq('id', authUser.id)
     if (error) { alert(`Couldn't remove access: ${error.message}`); return }
     setAuthorizedUsers(prev => prev.filter(u => u.id !== authUser.id))
+  }
+
+  // Repairs a client approved before the approve-application fix: a real `clients` row
+  // and the congratulatory/credentials emails went out, but a gap in that route's error
+  // handling let it report success without ever creating a real Supabase Auth account, so
+  // the emailed password never worked anywhere. This creates (or finds and resets) the
+  // real account, links it to the client, and resends working credentials — same pattern
+  // as addAuthorizedUser above.
+  const fixClientLogin = async (client) => {
+    setFixingLogin(client.id)
+    try {
+      const provision = await fetch('/api/fix-client-login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, email: client.email }),
+      }).then(r => r.json()).catch(() => ({ success: false }))
+      if (!provision.success) { alert(`Couldn't create a login: ${provision.error || 'unknown error'}`); setFixingLogin(null); return }
+
+      const credsRes = await fetch('/api/send-credentials-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: client.email, password: provision.tempPassword, businessName: client.business_name, contactName: client.contact_name }),
+      })
+      if (!credsRes.ok) alert('Login created, but the credentials email failed to send. Share the password manually.')
+
+      const supabase = createClient()
+      const { data: refreshed } = await supabase.from('clients').select('*').order('id', { ascending: false })
+      setClients(refreshed || [])
+      setFixedLoginFor(client.id)
+      setTimeout(() => setFixedLoginFor(prev => prev === client.id ? null : prev), 4000)
+    } catch (e) { alert('Error: ' + e.message) }
+    setFixingLogin(null)
   }
 
   const genPw = () => {
@@ -316,18 +348,21 @@ export default function AdminClients() {
   const badges = { Clients: { badge: String(clients.length) } }
   const shellCols = sidebarOpen ? 'clamp(210px, 16vw, 244px) clamp(290px, 23vw, 350px) minmax(0, 1fr)' : '76px clamp(290px, 25vw, 364px) minmax(0, 1fr)'
 
+  const noLoginCount = profiles.filter(p => !p.client.user_id).length
   const filterDefs = [
     { key: 'All', label: `All ${clients.length}`, dot: '#c9ced6' },
     { key: 'Active', label: `Buying now ${profiles.filter(p => p.profile.activity === 'hot').length}`, dot: '#16a34a' },
     { key: 'Dormant', label: `Gone quiet ${profiles.filter(p => p.profile.activity === 'dormant').length}`, dot: '#dc2626' },
     { key: 'Platinum', label: `Platinum ${profiles.filter(p => p.profile.tier === 'Platinum').length}`, dot: '#7c3aed' },
     { key: 'Gold', label: `Gold ${profiles.filter(p => p.profile.tier === 'Gold').length}`, dot: '#f0b429' },
+    ...(noLoginCount > 0 ? [{ key: 'NoLogin', label: `⚠ No login ${noLoginCount}`, dot: '#dc2626' }] : []),
   ]
 
   let list = profiles
   if (filter === 'Active') list = list.filter(p => p.profile.activity === 'hot')
   else if (filter === 'Dormant') list = list.filter(p => p.profile.activity === 'dormant')
   else if (filter === 'Platinum' || filter === 'Gold') list = list.filter(p => p.profile.tier === filter)
+  else if (filter === 'NoLogin') list = list.filter(p => !p.client.user_id)
 
   const q = search.trim().toLowerCase()
   if (q) list = list.filter(({ client: c }) => (c.business_name + ' ' + c.contact_name + ' ' + c.email + ' ' + (c.phone||'') + ' ' + (c.ein_number||'') + ' ' + (c.resale_tax_number||'') + ' ' + String(c.id)).toLowerCase().includes(q))
@@ -404,6 +439,7 @@ export default function AdminClients() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                       <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.015em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.business_name}</span>
                       <span className="lc-mono" style={{ flex: 'none', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', padding: '2px 6px 3px', borderRadius: 4, background: t.bg, color: t.ink }}>{p.tier.toUpperCase()}</span>
+                      {!c.user_id && <span title="No real login — credentials sent to them don't work" style={{ flex: 'none', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', padding: '2px 6px 3px', borderRadius: 4, background: '#fee2e2', color: '#991b1b' }}>⚠ NO LOGIN</span>}
                     </span>
                     <span style={{ display: 'block', paddingTop: 3, fontSize: 13, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.contact_name}{c.business_type ? ` · ${c.business_type}` : ''}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', paddingTop: 8 }}>
@@ -521,6 +557,17 @@ export default function AdminClients() {
                       </div>
                     ))}
                   </div>
+
+                  {!sel.user_id && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '26px minmax(0,1fr) auto', gap: 12, alignItems: 'center', background: '#fff6f6', border: '1px solid #f6d5d5', borderRadius: 11, padding: '14px 16px 15px' }}>
+                      <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: '#dc2626', color: '#fff', fontSize: 12, fontWeight: 700 }}>!</span>
+                      <span style={{ fontSize: 14.5, lineHeight: 1.5, color: '#7f1d1d' }}>{sel.business_name} has no real login — they can't sign in with whatever password was emailed to them, and "forgot password" won't send anything either. This happens to clients approved before a bug fix in the approval flow.</span>
+                      <button type="button" onClick={() => fixClientLogin(sel)} disabled={fixingLogin === sel.id} style={{ padding: '9px 13px 10px', borderRadius: 8, border: 'none', background: fixingLogin === sel.id ? '#e8a2a2' : '#dc2626', color: '#ffffff', fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap', cursor: fixingLogin === sel.id ? 'not-allowed' : 'pointer' }}>{fixingLogin === sel.id ? 'Creating…' : 'Create login & resend credentials'}</button>
+                    </div>
+                  )}
+                  {fixedLoginFor === sel.id && (
+                    <div style={{ padding: '10px 14px', background: '#f3faf5', border: '1px solid #cfe8d7', borderRadius: 8, fontSize: 13, color: '#166534', fontWeight: 600 }}>✓ Real login created and new credentials emailed to {sel.email}.</div>
+                  )}
 
                   {dormant && (
                     <div style={{ display: 'grid', gridTemplateColumns: '26px minmax(0,1fr) auto', gap: 12, alignItems: 'center', background: '#fff6f6', border: '1px solid #f6d5d5', borderRadius: 11, padding: '14px 16px 15px' }}>
