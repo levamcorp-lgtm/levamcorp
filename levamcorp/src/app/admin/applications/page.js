@@ -230,7 +230,7 @@ export default function AdminApplications() {
 
   const buildFirstContactMessage = (app) => {
     const firstName = (app.contact_name || '').trim().split(' ')[0] || 'there'
-    return `Hi ${firstName}! 👋 This is the Levam Corp Distributors team — thank you for applying${app.business_name ? ` with *${app.business_name}*` : ''}!\n\nWe review every application personally, and we'd love to learn a bit more about your business while we finish reviewing yours:\n\n• What products are you most interested in sourcing?\n• Roughly what's your monthly order volume?\n• Are you selling online (Amazon/Walmart), retail, or both?\n\nFeel free to reply here anytime — happy to help! 🙌`
+    return `Hi ${firstName}! 👋 This is the Levam Corp Distributors team — thank you for applying${app.business_name ? ` with *${app.business_name}*` : ''}!\n\nBefore we finish reviewing your application, we'd love to hear a bit more from you:\n\n• What products do you sell (or plan to sell)?\n• How did you hear about us?\n• What made you interested in working with us?\n\nQuick rundown of how we work: we're a wholesale distributor based in Doral, FL — once approved, you get a private portal with live wholesale pricing, real-time stock, and ordering, and we ship within 48 hours. We review every application personally, and you'll have a decision within the next 2 business days.\n\nFeel free to reply here anytime — happy to help! 🙌`
   }
 
   const buildDocRequestMessage = (app) => {
@@ -390,6 +390,8 @@ export default function AdminApplications() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', paddingTop: 9 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: app.first_contact_at ? '#dcfce7' : '#fde68a', color: app.first_contact_at ? '#166534' : '#7c4a03' }}>{app.first_contact_at ? 'Contacted' : 'Not contacted'}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: partial ? '#fee2e2' : '#eef0f4', color: partial ? '#991b1b' : '#47505e' }}>{docsCount} of 2 confirmed</span>
+                  {app.agent_decision === 'flagged' && <span title={app.agent_flag_reason || ''} style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#fde68a', color: '#7c4a03' }}>🤖 Flagged</span>}
+                  {app.agent_decision === 'approved' && <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#dcfce7', color: '#166534' }}>🤖 Auto-approved</span>}
                   {app.monthly_volume && <span style={{ fontSize: 12, color: '#8b909a' }}>{app.monthly_volume}</span>}
                 </span>
               </button>
@@ -460,8 +462,15 @@ export default function AdminApplications() {
                         <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-.025em' }}>{sel.business_name}</span>
                         {isPending && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: days > 2 ? '#fee2e2' : '#fde68a', color: days > 2 ? '#991b1b' : '#7c4a03' }}>{days > 2 ? `Waiting ${days} days` : `Waiting ${days || 1} day${days===1?'':'s'}`}</span>}
                         {!isPending && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: sel.status === 'approved' ? '#dcfce7' : '#f1f2f5', color: sel.status === 'approved' ? '#166534' : '#6b7280' }}>{sel.status === 'approved' ? 'Approved' : 'Rejected'}</span>}
+                        {sel.agent_decision === 'approved' && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: '#eef0f4', color: '#47505e' }}>🤖 Auto-approved by agent</span>}
+                        {sel.agent_decision === 'flagged' && isPending && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: '#fde68a', color: '#7c4a03' }}>🤖 Agent flagged this</span>}
                       </span>
                       <span style={{ display: 'block', paddingTop: 7, fontSize: 15, color: '#47505e' }}>{sel.contact_name} · {sel.business_type || 'business type not set'} · wants to buy {sel.monthly_volume || 'an unspecified amount'} per month</span>
+                      {sel.agent_decision === 'flagged' && isPending && sel.agent_flag_reason && (
+                        <span style={{ display: 'block', marginTop: 10, padding: '9px 12px', borderRadius: 7, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13.5 }}>
+                          <strong>Why the agent flagged it:</strong> {sel.agent_flag_reason}
+                        </span>
+                      )}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => openFirstContact(sel)} title="Opens WhatsApp with a message already written" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '10px 15px 11px', borderRadius: 8, background: '#16a34a', color: '#ffffff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}>{waLabel} <span style={{ fontWeight: 400, opacity: .85 }}>↗</span></button>
