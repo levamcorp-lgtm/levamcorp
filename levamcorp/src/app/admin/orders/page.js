@@ -32,6 +32,7 @@ const NEXT_LABEL   = { new:'Move to review →', review:'Confirm order →', con
 const NAV_GROUPS_BASE = [
   { label: 'Day to day work', items: [
     { label: 'Dashboard', code: 'DB', href: '/admin/dashboard' },
+    { label: 'Online Office', code: 'OC', href: '/admin/office' },
     { label: 'Applications', code: 'AP', href: '/admin/applications' },
     { label: 'Orders', code: 'OR', href: '/admin/orders' },
     { label: 'Payments', code: 'PY', href: '/admin/payments' },
