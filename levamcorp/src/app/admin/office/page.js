@@ -1,7 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createClient } from '../../../lib/supabase'
 
 const ADMIN_EMAILS = ['levamcorp@gmail.com', 'leopoldo@levamcorp.com']
@@ -99,26 +101,249 @@ function Sidebar({ open, setOpen, pathname, badges }) {
   )
 }
 
-// ── ISOMETRIC DESK — a little pure-CSS 3D desk for each cubicle, built from three
-// skewed/rotated panels (seat wall, desk front, desk top) so it reads as a real corner
-// of an office instead of a flat icon. Color is the only thing that changes per agent.
-function IsoDesk({ color, dim, muted }) {
-  const panel = muted ? '#eef0f4' : color
-  const top = muted ? '#f6f7f9' : `color-mix(in srgb, ${color} 55%, #ffffff)`
-  const side = muted ? '#e2e4e9' : `color-mix(in srgb, ${color} 75%, #000000)`
+// ── 3D OFFICE SCENE — a real isometric Three.js scene (not a CSS illustration): a row
+// of low-wall cubicle pods on a floor, each with a desk, a monitor, and a little mini-
+// figure "agent" sitting at it. Built from primitive geometry (boxes/capsules/spheres) —
+// no external 3D model files — so it ships without needing an asset pipeline. Orbit
+// controls let you rotate/zoom the view like the reference; clicking a trained pod
+// navigates to the real admin page it stands in for, same as the department cards did.
+function makeLabelSprite(text, color) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 320; canvas.height = 80
+  const ctx = canvas.getContext('2d')
+  const r = 16
+  ctx.fillStyle = 'rgba(22,24,29,0.94)'
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.arcTo(canvas.width, 0, canvas.width, canvas.height, r)
+  ctx.arcTo(canvas.width, canvas.height, 0, canvas.height, r)
+  ctx.arcTo(0, canvas.height, 0, 0, r)
+  ctx.arcTo(0, 0, canvas.width, 0, r)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = color
+  ctx.fillRect(20, 56, 48, 6)
+  ctx.font = '700 32px "Helvetica Neue", Arial, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, 20, 30)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
+  sprite.scale.set(2.2, 0.55, 1)
+  sprite.renderOrder = 10
+  return sprite
+}
+
+function buildRoom(agent, index, total) {
+  const spacing = 3.6
+  const x = (index - (total - 1) / 2) * spacing
+  const color = new THREE.Color(agent.color)
+  const muted = !agent.trained
+  const group = new THREE.Group()
+  group.position.x = x
+  group.userData = { key: agent.key, trained: agent.trained, href: agent.href }
+
+  // floor pad
+  const pad = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 0.1, 3.2),
+    new THREE.MeshStandardMaterial({ color: muted ? '#e2e4e9' : color, roughness: 0.9, transparent: true, opacity: muted ? 0.5 : 0.22 })
+  )
+  pad.position.y = 0.05
+  pad.receiveShadow = true
+  group.add(pad)
+
+  // low cubicle walls (back + two sides), tinted "glass" like the reference
+  const wallMat = new THREE.MeshStandardMaterial({ color: muted ? '#eef0f4' : color, transparent: true, opacity: muted ? 0.35 : 0.22, roughness: 0.4 })
+  const wallTrimMat = new THREE.MeshStandardMaterial({ color: muted ? '#d9dce2' : color, roughness: 0.5 })
+  const wallH = 1.3, wallT = 0.08
+  const back = new THREE.Mesh(new THREE.BoxGeometry(3.2, wallH, wallT), wallMat)
+  back.position.set(0, wallH / 2, -1.56)
+  const left = new THREE.Mesh(new THREE.BoxGeometry(wallT, wallH, 3.2), wallMat)
+  left.position.set(-1.56, wallH / 2, 0)
+  const right = left.clone()
+  right.position.x = 1.56
+  ;[back, left, right].forEach(w => { w.castShadow = true; w.receiveShadow = true; group.add(w) })
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(3.28, 0.06, wallT), wallTrimMat)
+  trim.position.set(0, wallH, -1.56)
+  group.add(trim)
+
+  // desk
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.75), new THREE.MeshStandardMaterial({ color: '#d8c3a0', roughness: 0.7 }))
+  desk.position.set(0, 0.62, 0.5)
+  desk.castShadow = true; desk.receiveShadow = true
+  group.add(desk)
+  const deskLeg = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.56, 0.5), new THREE.MeshStandardMaterial({ color: '#b89c74', roughness: 0.8 }))
+  deskLeg.position.set(0, 0.3, 0.5)
+  deskLeg.castShadow = true
+  group.add(deskLeg)
+
+  if (agent.trained) {
+    // monitor, glowing with the agent's color
+    const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.05), new THREE.MeshStandardMaterial({ color: '#15171c' }))
+    monitor.position.set(0, 1.0, 0.3)
+    monitor.castShadow = true
+    group.add(monitor)
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.32), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55 }))
+    screen.position.set(0, 1.0, 0.33)
+    group.add(screen)
+
+    // mini-figure agent, sitting at the desk
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.42, 4, 10), new THREE.MeshStandardMaterial({ color, roughness: 0.6 }))
+    body.position.set(0, 0.86, 0.95)
+    body.castShadow = true
+    group.add(body)
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: '#ffd9ae', roughness: 0.7 }))
+    head.position.set(0, 1.28, 0.95)
+    head.castShadow = true
+    group.add(head)
+  } else {
+    // empty chair — no figure, no monitor glow: an honestly idle desk
+    const chair = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.5, 12), new THREE.MeshStandardMaterial({ color: '#c7cad1', roughness: 0.8 }))
+    chair.position.set(0, 0.38, 0.95)
+    chair.castShadow = true
+    group.add(chair)
+  }
+
+  const label = makeLabelSprite(agent.title, agent.color)
+  label.position.set(0, 2.15, 0)
+  group.add(label)
+
+  return group
+}
+
+function OfficeScene({ agents }) {
+  const mountRef = useRef(null)
+  const router = useRouter()
+  const [hoveredKey, setHoveredKey] = useState(null)
+
+  useEffect(() => {
+    const mount = mountRef.current
+    if (!mount) return
+
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color('#eef1f5')
+
+    const frustum = 11
+    let width = mount.clientWidth || 800, height = mount.clientHeight || 480
+    let aspect = width / height
+    const camera = new THREE.OrthographicCamera(-frustum * aspect / 2, frustum * aspect / 2, frustum / 2, -frustum / 2, 0.1, 100)
+    camera.position.set(12, 11, 12)
+    camera.lookAt(0, 0, 0)
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setSize(width, height)
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    mount.appendChild(renderer.domElement)
+
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enableDamping = true
+    controls.dampingFactor = 0.08
+    controls.minZoom = 0.6
+    controls.maxZoom = 2.2
+    controls.minPolarAngle = Math.PI / 5
+    controls.maxPolarAngle = Math.PI / 2.4
+    controls.enablePan = false
+
+    scene.add(new THREE.AmbientLight('#ffffff', 0.75))
+    const sun = new THREE.DirectionalLight('#ffffff', 0.9)
+    sun.position.set(10, 16, 8)
+    sun.castShadow = true
+    sun.shadow.mapSize.set(1024, 1024)
+    sun.shadow.camera.left = -14; sun.shadow.camera.right = 14
+    sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14
+    scene.add(sun)
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(26, 10),
+      new THREE.MeshStandardMaterial({ color: '#e7dcc6', roughness: 0.95 })
+    )
+    floor.rotation.x = -Math.PI / 2
+    floor.position.y = -0.01
+    floor.receiveShadow = true
+    scene.add(floor)
+
+    const interactive = []
+    agents.forEach((a, i) => {
+      const room = buildRoom(a, i, agents.length)
+      scene.add(room)
+      interactive.push(room)
+    })
+
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+    const roomAt = (clientX, clientY) => {
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+      raycaster.setFromCamera(pointer, camera)
+      const hits = raycaster.intersectObjects(interactive, true)
+      if (!hits.length) return null
+      let obj = hits[0].object
+      while (obj && !obj.userData?.key) obj = obj.parent
+      return obj
+    }
+
+    const onMove = (e) => {
+      const room = roomAt(e.clientX, e.clientY)
+      renderer.domElement.style.cursor = room && room.userData.trained ? 'pointer' : 'default'
+      setHoveredKey(room ? room.userData.key : null)
+    }
+    const onClick = (e) => {
+      const room = roomAt(e.clientX, e.clientY)
+      if (room && room.userData.trained && room.userData.href) router.push(room.userData.href)
+    }
+    renderer.domElement.addEventListener('pointermove', onMove)
+    renderer.domElement.addEventListener('click', onClick)
+
+    let raf
+    const animate = () => {
+      controls.update()
+      renderer.render(scene, camera)
+      raf = requestAnimationFrame(animate)
+    }
+    animate()
+
+    const ro = new ResizeObserver(() => {
+      width = mount.clientWidth; height = mount.clientHeight
+      if (!width || !height) return
+      aspect = width / height
+      camera.left = -frustum * aspect / 2; camera.right = frustum * aspect / 2
+      camera.top = frustum / 2; camera.bottom = -frustum / 2
+      camera.updateProjectionMatrix()
+      renderer.setSize(width, height)
+    })
+    ro.observe(mount)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      renderer.domElement.removeEventListener('pointermove', onMove)
+      renderer.domElement.removeEventListener('click', onClick)
+      controls.dispose()
+      scene.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose()
+        if (obj.material) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+          mats.forEach(m => { if (m.map) m.map.dispose(); m.dispose() })
+        }
+      })
+      renderer.dispose()
+      if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
+    }
+  }, [agents, router])
+
   return (
-    <div style={{ position: 'relative', width: 96, height: 72, margin: '0 auto', opacity: dim ? 0.55 : 1 }}>
-      {/* floor diamond */}
-      <div style={{ position: 'absolute', left: 0, bottom: 0, width: 96, height: 48, background: '#f4f5f7', borderRadius: 6, transform: 'perspective(240px) rotateX(55deg)', transformOrigin: 'bottom' }} />
-      {/* desk front panel */}
-      <div style={{ position: 'absolute', left: 14, bottom: 10, width: 46, height: 26, background: side, borderRadius: '3px 3px 0 0' }} />
-      {/* desk top panel */}
-      <div style={{ position: 'absolute', left: 10, bottom: 32, width: 54, height: 16, background: top, borderRadius: 3, transform: 'perspective(160px) rotateX(45deg)', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }} />
-      {/* monitor */}
-      <div style={{ position: 'absolute', left: 30, bottom: 40, width: 16, height: 12, background: panel, borderRadius: 2, boxShadow: '0 2px 4px rgba(0,0,0,0.18)' }} />
-      <div style={{ position: 'absolute', left: 36, bottom: 36, width: 4, height: 5, background: side }} />
-      {/* agent chair blip */}
-      <div style={{ position: 'absolute', left: 66, bottom: 6, width: 14, height: 14, borderRadius: '50%', background: muted ? '#d9dce2' : panel, boxShadow: muted ? 'none' : `0 0 0 3px color-mix(in srgb, ${color} 18%, transparent)` }} />
+    <div style={{ position: 'relative' }}>
+      <div ref={mountRef} style={{ width: '100%', height: 460, borderRadius: 14, overflow: 'hidden', border: '1px solid #e2e4e9' }} />
+      <div style={{ position: 'absolute', bottom: 10, left: 14, fontSize: 11.5, color: '#6b7280', background: 'rgba(255,255,255,0.85)', padding: '4px 9px', borderRadius: 6 }}>Drag to look around · scroll to zoom · click a trained desk to open it</div>
+      {hoveredKey && (() => {
+        const a = agents.find(x => x.key === hoveredKey)
+        if (!a) return null
+        return <div style={{ position: 'absolute', top: 10, left: 14, fontSize: 13, fontWeight: 700, background: '#16181d', color: '#fff', padding: '6px 11px', borderRadius: 7 }}>{a.title}{a.trained ? ' — click to open' : ' — not trained yet'}</div>
+      })()}
     </div>
   )
 }
@@ -220,37 +445,27 @@ export default function AdminOffice() {
           </div>
 
           <div style={{ padding: 'clamp(16px,2.2vw,22px) clamp(14px,2.4vw,28px) clamp(40px,6vh,64px)' }}>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.015em' }}>A desk for every job<span style={{ color: ACCENT }}>.</span></div>
-              <div style={{ paddingTop: 6, fontSize: 14.5, color: '#6b7280', maxWidth: 560 }}>Each cubicle is an agent we're training for one part of the business. The trained ones already plug into real data below — the rest are empty desks waiting for their first assignment.</div>
+              <div style={{ paddingTop: 6, fontSize: 14.5, color: '#6b7280', maxWidth: 560 }}>Each cubicle is an agent we're training for one part of the business. The trained ones already plug into real data — the rest are empty desks waiting for their first assignment.</div>
             </div>
 
-            <div className="ofc-grid">
+            <OfficeScene agents={AGENTS} />
+
+            <div className="ofc-grid" style={{ marginTop: 18 }}>
               {AGENTS.map(a => {
                 const stat = statFor(a.key)
                 const card = (
-                  <div className={`ofc-card ${a.trained ? 'trained' : ''}`} style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 14, overflow: 'hidden', cursor: a.trained ? 'pointer' : 'default', opacity: a.trained ? 1 : 0.92 }}>
-                    <div style={{ padding: '22px 16px 10px', background: a.trained ? `color-mix(in srgb, ${a.color} 6%, #ffffff)` : '#fafbfc' }}>
-                      <IsoDesk color={a.color} muted={!a.trained} />
-                    </div>
-                    <div style={{ padding: '14px 16px 18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                        <span style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: '-.01em' }}>{a.title}</span>
-                        <span className="lc-mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '3px 8px 4px', borderRadius: 999, background: a.trained ? '#dcfce7' : '#f1f2f5', color: a.trained ? '#166534' : '#6b7280' }}>{a.trained ? 'Trained' : 'Not trained yet'}</span>
-                      </div>
-                      <div style={{ paddingTop: 7, fontSize: 13.5, lineHeight: 1.5, color: '#47505e', minHeight: 56 }}>{a.role}</div>
-                      <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid #eef0f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                        {stat ? (
-                          <span>
-                            <span className="lc-mono" style={{ fontSize: 17, fontWeight: 700 }}>{stat.v}</span>
-                            <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 6 }}>{stat.k}</span>
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 12.5, color: '#9aa0aa' }}>Not wired up yet</span>
-                        )}
-                        {a.trained && <span style={{ fontSize: 13, fontWeight: 700, color: DEEP }}>{a.cta} →</span>}
-                      </div>
-                    </div>
+                  <div className={`ofc-card ${a.trained ? 'trained' : ''}`} style={{ background: '#ffffff', border: '1px solid #e2e4e9', borderRadius: 12, padding: '13px 15px 14px', cursor: a.trained ? 'pointer' : 'default', opacity: a.trained ? 1 : 0.88, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ flex: 'none', width: 10, height: 10, borderRadius: '50%', background: a.trained ? a.color : '#d9dce2' }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 14.5, fontWeight: 700 }}>{a.title}</span>
+                        <span className="lc-mono" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', padding: '2px 6px 3px', borderRadius: 999, background: a.trained ? '#dcfce7' : '#f1f2f5', color: a.trained ? '#166534' : '#6b7280' }}>{a.trained ? 'Trained' : 'Not trained yet'}</span>
+                      </span>
+                      <span style={{ display: 'block', paddingTop: 2, fontSize: 12.5, color: '#6b7280' }}>{stat ? `${stat.v} ${stat.k}` : 'Not wired up yet'}</span>
+                    </span>
+                    {a.trained && <span style={{ flex: 'none', fontSize: 12.5, fontWeight: 700, color: DEEP }}>{a.cta} →</span>}
                   </div>
                 )
                 return a.trained ? <Link key={a.key} href={a.href}>{card}</Link> : <div key={a.key}>{card}</div>
