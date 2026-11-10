@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createClient } from '../../../lib/supabase'
@@ -212,9 +212,8 @@ function buildRoom(agent, index, total) {
   return group
 }
 
-function OfficeScene({ agents }) {
+function OfficeScene({ agents, onSelect }) {
   const mountRef = useRef(null)
-  const router = useRouter()
   const [hoveredKey, setHoveredKey] = useState(null)
 
   useEffect(() => {
@@ -288,12 +287,12 @@ function OfficeScene({ agents }) {
 
     const onMove = (e) => {
       const room = roomAt(e.clientX, e.clientY)
-      renderer.domElement.style.cursor = room && room.userData.trained ? 'pointer' : 'default'
+      renderer.domElement.style.cursor = room ? 'pointer' : 'default'
       setHoveredKey(room ? room.userData.key : null)
     }
     const onClick = (e) => {
       const room = roomAt(e.clientX, e.clientY)
-      if (room && room.userData.trained && room.userData.href) router.push(room.userData.href)
+      if (room) onSelect(room.userData.key)
     }
     renderer.domElement.addEventListener('pointermove', onMove)
     renderer.domElement.addEventListener('click', onClick)
@@ -333,17 +332,126 @@ function OfficeScene({ agents }) {
       renderer.dispose()
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
     }
-  }, [agents, router])
+  }, [agents, onSelect])
 
   return (
     <div style={{ position: 'relative' }}>
       <div ref={mountRef} style={{ width: '100%', height: 460, borderRadius: 14, overflow: 'hidden', border: '1px solid #e2e4e9' }} />
-      <div style={{ position: 'absolute', bottom: 10, left: 14, fontSize: 11.5, color: '#6b7280', background: 'rgba(255,255,255,0.85)', padding: '4px 9px', borderRadius: 6 }}>Drag to look around · scroll to zoom · click a trained desk to open it</div>
+      <div style={{ position: 'absolute', bottom: 10, left: 14, fontSize: 11.5, color: '#6b7280', background: 'rgba(255,255,255,0.85)', padding: '4px 9px', borderRadius: 6 }}>Drag to look around · scroll to zoom · click a desk to see what it's doing</div>
       {hoveredKey && (() => {
         const a = agents.find(x => x.key === hoveredKey)
         if (!a) return null
-        return <div style={{ position: 'absolute', top: 10, left: 14, fontSize: 13, fontWeight: 700, background: '#16181d', color: '#fff', padding: '6px 11px', borderRadius: 7 }}>{a.title}{a.trained ? ' — click to open' : ' — not trained yet'}</div>
+        return <div style={{ position: 'absolute', top: 10, left: 14, fontSize: 13, fontWeight: 700, background: '#16181d', color: '#fff', padding: '6px 11px', borderRadius: 7 }}>{a.title} — click for details</div>
       })()}
+    </div>
+  )
+}
+
+// Shows what a desk is actually doing, instead of just redirecting away to the real
+// tool — that's what clicking a room in the 3D scene used to do, and it was a fair
+// complaint: you'd click "Applications" and land on the admin page with no sense of
+// what the agent itself had been up to. Only Applications has real automated activity
+// right now (the auto-review/auto-approve/flag loop from applications-agent/tick) —
+// Sales and Stock are trained in the sense of linking to a real tool, but nothing runs
+// on its own there yet, so this says that honestly instead of inventing a feed for them.
+function BotActivityPanel({ agent, onClose }) {
+  const [state, setState] = useState({ loading: true, decided: [], waiting: 0, overdue: 0, error: null })
+
+  useEffect(() => {
+    if (agent.key !== 'applications') return
+    let cancelled = false
+    const load = async () => {
+      const sb = createClient()
+      const nowIso = new Date().toISOString()
+      const [decidedRes, waitingRes, overdueRes] = await Promise.all([
+        sb.from('applications').select('id,business_name,email,agent_decision,agent_flag_reason,agent_reviewed_at').not('agent_decision', 'is', null).order('agent_reviewed_at', { ascending: false }).limit(8),
+        sb.from('applications').select('*', { count: 'exact', head: true }).is('agent_reviewed_at', null).gt('agent_review_due_at', nowIso),
+        sb.from('applications').select('*', { count: 'exact', head: true }).is('agent_reviewed_at', null).lte('agent_review_due_at', nowIso),
+      ])
+      if (cancelled) return
+      const err = decidedRes.error || waitingRes.error || overdueRes.error
+      setState({
+        loading: false, error: err ? err.message : null,
+        decided: decidedRes.data || [], waiting: waitingRes.count || 0, overdue: overdueRes.count || 0,
+      })
+    }
+    load()
+    const interval = setInterval(load, 20000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [agent.key])
+
+  const ago = (iso) => {
+    if (!iso) return ''
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.round(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.round(hrs / 24)}d ago`
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(16,17,20,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 14, width: 'min(520px, 100%)', maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 24px 60px -20px rgba(0,0,0,0.4)' }}>
+        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #e2e4e9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: agent.trained ? agent.color : '#d9dce2' }} />
+            <span style={{ fontSize: 18, fontWeight: 700 }}>{agent.title} bot</span>
+          </span>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 20, color: '#8b909a', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ padding: '16px 20px 20px' }}>
+          <div style={{ fontSize: 14, color: '#47505e', marginBottom: 14 }}>{agent.role}</div>
+
+          {agent.key === 'applications' ? (
+            state.loading ? (
+              <div style={{ fontSize: 13.5, color: '#8b909a' }}>Loading activity…</div>
+            ) : state.error ? (
+              <div style={{ fontSize: 13.5, color: '#991b1b', background: '#fff7f7', border: '1px solid #f6d5d5', borderRadius: 8, padding: '10px 12px' }}>Couldn't load activity: {state.error}</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  <div style={{ flex: 1, background: '#f7f8fa', borderRadius: 9, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{state.waiting}</div>
+                    <div style={{ fontSize: 11.5, color: '#8b909a' }}>waiting for their review window</div>
+                  </div>
+                  <div style={{ flex: 1, background: state.overdue > 0 ? '#fff7ed' : '#f7f8fa', borderRadius: 9, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: state.overdue > 0 ? '#9a3412' : '#16181d' }}>{state.overdue}</div>
+                    <div style={{ fontSize: 11.5, color: state.overdue > 0 ? '#9a3412' : '#8b909a' }}>due now, not yet picked up</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#9aa0aa', marginBottom: 8 }}>Recent decisions</div>
+                {state.decided.length === 0 ? (
+                  <div style={{ fontSize: 13.5, color: '#8b909a' }}>No applications reviewed by the agent yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {state.decided.map(a => (
+                      <div key={a.id} style={{ border: '1px solid #e2e4e9', borderRadius: 9, padding: '9px 11px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{a.business_name || a.email}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px 3px', borderRadius: 999, background: a.agent_decision === 'approved' ? '#dcfce7' : '#fde68a', color: a.agent_decision === 'approved' ? '#166534' : '#7c4a03' }}>{a.agent_decision === 'approved' ? 'Auto-approved' : 'Flagged'}</span>
+                        </div>
+                        {a.agent_decision === 'flagged' && a.agent_flag_reason && <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 3 }}>{a.agent_flag_reason}</div>}
+                        <div style={{ fontSize: 11.5, color: '#9aa0aa', marginTop: 3 }}>{ago(a.agent_reviewed_at)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: 11.5, color: '#9aa0aa', marginTop: 14 }}>Runs on its own roughly every 15 minutes — reviews each application once its random 4–5h window is up.</div>
+              </>
+            )
+          ) : agent.trained ? (
+            <div style={{ fontSize: 13.5, color: '#6b7280', background: '#f7f8fa', borderRadius: 9, padding: '12px 13px' }}>This desk links to a real tool, but nothing runs on its own here yet — it's still a manual tool, not an automated agent.</div>
+          ) : (
+            <div style={{ fontSize: 13.5, color: '#6b7280', background: '#f7f8fa', borderRadius: 9, padding: '12px 13px' }}>Not trained yet — nothing is wired up for this desk.</div>
+          )}
+
+          {agent.href && (
+            <a href={agent.href} style={{ display: 'block', marginTop: 16, textAlign: 'center', padding: '11px 14px', borderRadius: 9, background: '#16181d', color: '#fff', fontSize: 14, fontWeight: 700 }}>{agent.cta} →</a>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -378,6 +486,7 @@ export default function AdminOffice() {
   const [pendingApps, setPendingApps] = useState(0)
   const [productCount, setProductCount] = useState(0)
   const [clientCount, setClientCount] = useState(0)
+  const [activeKey, setActiveKey] = useState(null)
 
   useEffect(() => {
     const sb = createClient()
@@ -450,7 +559,7 @@ export default function AdminOffice() {
               <div style={{ paddingTop: 6, fontSize: 14.5, color: '#6b7280', maxWidth: 560 }}>Each cubicle is an agent we're training for one part of the business. The trained ones already plug into real data — the rest are empty desks waiting for their first assignment.</div>
             </div>
 
-            <OfficeScene agents={AGENTS} />
+            <OfficeScene agents={AGENTS} onSelect={setActiveKey} />
 
             <div className="ofc-grid" style={{ marginTop: 18 }}>
               {AGENTS.map(a => {
@@ -474,6 +583,11 @@ export default function AdminOffice() {
           </div>
         </div>
       </div>
+
+      {activeKey && (() => {
+        const agent = AGENTS.find(a => a.key === activeKey)
+        return agent ? <BotActivityPanel agent={agent} onClose={() => setActiveKey(null)} /> : null
+      })()}
     </div>
   )
 }
