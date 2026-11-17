@@ -15,7 +15,7 @@ const genPassword = () => {
 export async function approveApplicationAccount(supabaseAdmin, {
   applicationId, email, businessName, contactName, phone, address,
   businessType, monthlyVolume, yearsInBusiness, einNumber, resaleTaxNumber,
-  einDocumentUrl, resaleTaxDocumentUrl,
+  einDocumentUrl, resaleTaxDocumentUrl, categories,
 }) {
   const normalizedEmail = email.trim().toLowerCase()
   const tempPassword = genPassword()
@@ -49,6 +49,11 @@ export async function approveApplicationAccount(supabaseAdmin, {
     phone, address, business_type: businessType, monthly_volume: monthlyVolume, years_in_business: yearsInBusiness,
     ein_number: einNumber, resale_tax_number: resaleTaxNumber,
     ein_document_url: einDocumentUrl, resale_tax_document_url: resaleTaxDocumentUrl,
+    // What they told us they sell, straight from the application — this used to get
+    // dropped the moment an application became a client, even though it's the clearest
+    // signal of what each partner actually wants to buy (it's usually the first thing
+    // they tell us). See admin/clients for where this surfaces.
+    categories: categories?.length ? categories : null,
   }
   const { data: existingClient } = await supabaseAdmin.from('clients').select('id').eq('email', normalizedEmail).maybeSingle()
   if (existingClient) {

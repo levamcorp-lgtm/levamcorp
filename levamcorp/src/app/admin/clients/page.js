@@ -469,6 +469,11 @@ export default function AdminClients() {
                       {noLoginIds?.has(c.id) && <span title="No real login — credentials sent to them don't work" style={{ flex: 'none', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', padding: '2px 6px 3px', borderRadius: 4, background: '#fee2e2', color: '#991b1b' }}>⚠ NO LOGIN</span>}
                     </span>
                     <span style={{ display: 'block', paddingTop: 3, fontSize: 13, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.contact_name}{c.business_type ? ` · ${c.business_type}` : ''}</span>
+                    {c.categories?.length > 0 && (
+                      <span style={{ display: 'block', paddingTop: 5, fontSize: 12, color: '#47505e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#9aa0aa' }}>Buys: </span>{c.categories.slice(0, 2).join(', ')}{c.categories.length > 2 ? ` +${c.categories.length - 2}` : ''}
+                      </span>
+                    )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', paddingTop: 8 }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: st.ink }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: st.dot }} />{st.label}</span>
                       <span className="lc-mono" style={{ fontSize: 12, color: '#47505e' }}>{p.orders.length === 1 ? '1 order' : `${p.orders.length} orders`}</span>
@@ -521,6 +526,7 @@ export default function AdminClients() {
                 { k: 'Monthly volume', v: sel.monthly_volume || '—', size: 15.5, weight: 700 },
                 { k: 'Partner since', v: fmtDate(sel.created_at) },
               ]},
+              { label: 'What they buy', hint: 'What they told us on the application — usually the first thing they tell us', bar: '#16a34a', headBg: '#f3fbf5', border: '#cfe9d6', chips: sel.categories?.length ? sel.categories : null },
               { label: 'Tax and ID numbers', bar: '#7c3aed', headBg: '#f7f5fe', border: '#ddd6f3', rows: [
                 { k: 'EIN', v: sel.ein_number || '—', mono: true, size: 16, weight: 700, copy: !!sel.ein_number },
                 { k: 'Resale tax #', v: sel.resale_tax_number || '—', mono: true, size: 16, weight: 700, copy: !!sel.resale_tax_number },
@@ -610,8 +616,21 @@ export default function AdminClients() {
                         <div key={g.label} style={{ background: '#ffffff', border: `1px solid ${g.border}`, borderRadius: 12, overflow: 'hidden' }}>
                           <div style={{ padding: '13px 16px 14px', borderBottom: `1px solid ${g.border}`, background: g.headBg, borderLeft: `5px solid ${g.bar}` }}>
                             <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-.02em' }}>{g.label}</span>
+                            {g.hint && <span style={{ display: 'block', paddingTop: 3, fontSize: 12, color: '#8b909a' }}>{g.hint}</span>}
                           </div>
-                          {g.rows.map(r => (
+                          {g.chips !== undefined ? (
+                            <div style={{ padding: '14px 16px 15px' }}>
+                              {g.chips ? (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                                  {g.chips.map(cat => (
+                                    <span key={cat} style={{ fontSize: 13, fontWeight: 600, padding: '6px 11px 7px', borderRadius: 999, background: '#dcfce7', color: '#166534' }}>{cat}</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: 13.5, color: '#8b909a' }}>Not on file — not captured on their application.</span>
+                              )}
+                            </div>
+                          ) : g.rows.map(r => (
                             <div key={r.k} style={{ display: 'grid', gridTemplateColumns: 'clamp(96px,26%,140px) minmax(0,1fr)', gap: 11, alignItems: 'baseline', padding: '11px 16px 12px', borderBottom: '1px solid #f1f2f5' }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>{r.k}</span>
                               <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
