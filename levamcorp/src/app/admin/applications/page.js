@@ -178,6 +178,7 @@ export default function AdminApplications() {
         phone: app.phone, address: app.address, businessType: app.business_type, monthlyVolume: app.monthly_volume,
         yearsInBusiness: app.years_in_business, einNumber: app.ein_number, resaleTaxNumber: app.resale_tax_number,
         einDocumentUrl: app.ein_document_url, resaleTaxDocumentUrl: app.resale_tax_document_url,
+        categories: app.categories,
       })
     }).then(r => r.json()).catch(() => ({ success: false }))
 
@@ -392,6 +393,12 @@ export default function AdminApplications() {
                   <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: partial ? '#fee2e2' : '#eef0f4', color: partial ? '#991b1b' : '#47505e' }}>{docsCount} of 2 confirmed</span>
                   {app.agent_decision === 'flagged' && <span title={app.agent_flag_reason || ''} style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#fde68a', color: '#7c4a03' }}>🤖 Flagged</span>}
                   {app.agent_decision === 'approved' && <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#dcfce7', color: '#166534' }}>🤖 Auto-approved</span>}
+                  {app.agent_decision === 'rejected' && <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#fee2e2', color: '#991b1b' }}>🤖 Auto-rejected — no response</span>}
+                  {(!app.status || app.status === 'pending') && app.agent_decision === 'flagged' && (
+                    <span title="Automatic follow-up emails sent so far" style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px 4px', borderRadius: 5, background: '#f1f2f5', color: '#47505e' }}>
+                      {app.second_contact_at ? 'Followed up 2x — closes soon' : app.first_contact_at ? 'Followed up 1x' : 'Follow-up pending'}
+                    </span>
+                  )}
                   {app.monthly_volume && <span style={{ fontSize: 12, color: '#8b909a' }}>{app.monthly_volume}</span>}
                 </span>
               </button>
@@ -464,11 +471,22 @@ export default function AdminApplications() {
                         {!isPending && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: sel.status === 'approved' ? '#dcfce7' : '#f1f2f5', color: sel.status === 'approved' ? '#166534' : '#6b7280' }}>{sel.status === 'approved' ? 'Approved' : 'Rejected'}</span>}
                         {sel.agent_decision === 'approved' && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: '#eef0f4', color: '#47505e' }}>🤖 Auto-approved by agent</span>}
                         {sel.agent_decision === 'flagged' && isPending && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: '#fde68a', color: '#7c4a03' }}>🤖 Agent flagged this</span>}
+                        {sel.agent_decision === 'rejected' && <span style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px 5px', borderRadius: 6, background: '#fee2e2', color: '#991b1b' }}>🤖 Auto-rejected — never replied</span>}
                       </span>
                       <span style={{ display: 'block', paddingTop: 7, fontSize: 15, color: '#47505e' }}>{sel.contact_name} · {sel.business_type || 'business type not set'} · wants to buy {sel.monthly_volume || 'an unspecified amount'} per month</span>
+                      {sel.agent_decision === 'flagged' && isPending && (
+                        <span style={{ display: 'block', marginTop: 10, padding: '9px 12px', borderRadius: 7, background: '#f1f2f5', color: '#47505e', fontSize: 13, fontWeight: 600 }}>
+                          {sel.second_contact_at ? '📨 Followed up twice — will auto-reject soon if there is still no response.' : sel.first_contact_at ? '📨 First follow-up email sent — a second one goes out if there is no response in a few days.' : '📨 A follow-up email will go out automatically.'}
+                        </span>
+                      )}
                       {sel.agent_decision === 'flagged' && isPending && sel.agent_flag_reason && (
-                        <span style={{ display: 'block', marginTop: 10, padding: '9px 12px', borderRadius: 7, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13.5 }}>
+                        <span style={{ display: 'block', marginTop: 8, padding: '9px 12px', borderRadius: 7, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13.5 }}>
                           <strong>Why the agent flagged it:</strong> {sel.agent_flag_reason}
+                        </span>
+                      )}
+                      {sel.agent_decision === 'rejected' && sel.agent_flag_reason && (
+                        <span style={{ display: 'block', marginTop: 10, padding: '9px 12px', borderRadius: 7, background: '#fff7f7', border: '1px solid #f6d5d5', color: '#991b1b', fontSize: 13.5 }}>
+                          <strong>Why:</strong> {sel.agent_flag_reason}
                         </span>
                       )}
                     </span>
